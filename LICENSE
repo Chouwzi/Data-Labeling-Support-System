@@ -1,21 +1,46 @@
-MIT License
+"Phần mềm hỗ trợ gán nhãn dữ liệu
+Data Labeling Support System"
 
-Copyright (c) 2026 Nguyễn Trần Đình Chương
+Context:
+Xây dựng hệ thống hỗ trợ gán nhãn dữ liệu phục vụ huấn luyện và đánh giá mô hình học máy (Ví dụ: Một bộ dữ liệu ảnh có thể gồm các nhãn: Đánh dấu trong ảnh có đối tượng nào, hoặc vẽ khung vùng chứa đối tượng, hoặc phân đoạn vùng chứa đối tượng...). Quản lý toàn bộ vòng đời gán nhãn từ tạo dự án, phân công, gán nhãn, kiểm duyệt đến xuất dữ liệu.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Problems:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+"- Gán nhãn thủ công tốn thời gian, khó mở rộng
+- Nhãn không đồng nhất giữa nhiều người gán
+- Thiếu theo dõi tiến độ và kiểm soát chất lượng
+- Khó chuẩn hóa và xuất dữ liệu theo định dạng dùng cho mô hình"
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Primary Actors:
+
+"Annotator
+Reviewer
+Manager
+Admin"
+
+Functional Requirements:
+
+"Manager
+- Quản lý dự án gán nhãn
+- Quản lý bộ dữ liệu
+- Thiết lập bộ nhãn và hướng dẫn gán nhãn
+- Phân công công việc cho annotator; theo dõi trạng thái gán nhãn
+- Theo dõi tổng quan chất lượng gán nhãn
+- Xuất dữ liệu đã duyệt theo định dạng yêu cầu
+Annotator
+- Nhận nhiệm vụ gán nhãn được phân công
+- Xem hướng dẫn gán nhãn và bộ nhãn áp dụng cho nhiệm vụ
+- Thực hiện gán nhãn trên dữ liệu
+- Đánh dấu hoàn thành và gửi nộp để kiểm duyệt
+- Nhận phản hồi khi bị trả về và chỉnh sửa nhãn theo yêu cầu
+Reviewer
+- Nhận danh sách dữ liệu đã nộp cần kiểm duyệt
+- Đối chiếu nhãn với hướng dẫn; kiểm tra tính hợp lệ
+- Phê duyệt nhãn hoặc trả về làm lại kèm nhận xét
+- Ghi nhận loại lỗi theo danh mục
+Admin:
+- Quản lý người dùng
+- Cấu hình hệ thống
+- Quản lý nhật ký hoạt động
+* Tùy chọn: AI hỗ trợ gán nhãn
+- Gợi ý nhãn ban đầu cho Annotator"
