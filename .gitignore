@@ -57,3 +57,9 @@ Thumbs.db
 # =========================
 prisma/dev.db
 prisma/dev.db-journal
+
+# =========================
+# Optional
+# =========================
+.cache/
+.tmp/
