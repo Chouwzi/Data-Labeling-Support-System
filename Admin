@@ -1,0 +1,10 @@
+[Admin] Quản lý người dùng và Nhật ký hệ thống
+
+Mục tiêu: Quản lý quyền truy cập của các thành viên (Manager, Annotator, Reviewer). Tính năng chính:
+
+Thêm/Xóa người dùng.
+
+Cấu hình hệ thống.
+
+Lưu nhật ký hoạt động (Audit log) để theo dõi ai đã làm gì.
+
