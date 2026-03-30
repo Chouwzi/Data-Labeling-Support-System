@@ -1,0 +1,14 @@
+[Reviewer] Hệ thống kiểm duyệt và phản hồi nhãn
+
+Mục tiêu: Cho phép Reviewer kiểm tra tính hợp lệ của nhãn dựa trên hướng dẫn. Tính năng chính:
+
+Danh sách dữ liệu đã nộp cần kiểm duyệt.
+
+Chức năng Phê duyệt (Approve) hoặc Trả về (Reject).
+
+Ghi nhận loại lỗi theo danh mục để thống kê chất lượng.
+
+
+Thiết kế giao diện so sánh nhãn và hướng dẫn (UI)
+Xây dựng logic thay đổi trạng thái nhãn (Pending -> Approved/Rejected)
+Tính năng ghi chú lỗi và gửi thông báo cho Annotator

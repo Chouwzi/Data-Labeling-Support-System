@@ -1,0 +1,97 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.App {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 50%, #fce4ec 100%);
+  
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.login-card {
+  background: white;
+  padding: 45px;
+  border-radius: 20px;
+  
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05); 
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.project-title {
+  color: #8c48df;
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #7f8c8d;
+  font-size: 0.95rem;
+  margin-bottom: 35px;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #E14E8D;
+  transform: translateY(-2px);
+}
+
+.email-btn {
+  background-color: #E14E8D;
+  color: white;
+  border: none;
+}
+
+.email-btn:hover {
+  background-color: #c93d7a;
+  color: white;
+}
+
+.login-btn img {
+  width: 20px;
+}
+
+.terms-text {
+  margin-top: 30px;
+  font-size: 0.8rem;
+  color: #95a5a6;
+  line-height: 1.5;
+}
+
+.terms-text a {
+  color: #E14E8D;
+  text-decoration: none;
+  font-weight: 600;
+}
