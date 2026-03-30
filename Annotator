@@ -1,0 +1,15 @@
+[Annotator] Xây dựng công cụ gán nhãn dữ liệu (Vẽ Bounding Box)
+
+Mục tiêu: Xây dựng trình chỉnh sửa ảnh cho phép người dùng vẽ khung (Rectangle) lên đối tượng. Yêu cầu cụ thể:
+
+Cho phép kéo thả để tạo khung trên ảnh.
+
+Cho phép chọn loại nhãn (Label) cho khung đó (Ví dụ: Chó, Mèo, Xe cộ).
+
+Nút "Lưu" để ghi nhận tọa độ khung (x, y, width, height). Giải quyết vấn đề: Khắc phục việc "Gán nhãn thủ công tốn thời gian" bằng giao diện tối ưu.
+
+Thiết kế giao diện Canvas vẽ khung trên ảnh
+Xây dựng API lưu tọa độ nhãn vào Database
+Thiết kế Database lưu trữ quan hệ Ảnh - Nhãn - Người gán
+Kiểm thử luồng: Vẽ nhãn -> Lưu -> Reviewer thấy được nhãn
+Viết tài liệu hướng dẫn gán nhãn (Guidelines) cho người dùng

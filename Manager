@@ -1,0 +1,10 @@
+[Manager] Quản lý dự án gán nhãn
+Mục tiêu: Cho phép Manager tạo mới, sửa, xóa và xem danh sách các dự án gán nhãn.
+
+Bối cảnh hệ thống: Quản lý toàn bộ vòng đời gán nhãn từ tạo dự án, phân công, gán nhãn, kiểm duyệt đến xuất dữ liệu.
+Vấn đề giải quyết: Giúp khắc phục tình trạng thiếu theo dõi tiến độ và kiểm soát chất lượng trong quá trình gán nhãn.
+
+Thiết kế giao diện (UI) tạo/sửa dự án
+Xây dựng API lưu trữ thông tin dự án vào Database
+Viết tài liệu hướng dẫn sử dụng cho Manager
+Kiểm thử tính năng tạo dự án (Manual Test)
