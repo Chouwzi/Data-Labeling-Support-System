@@ -9,7 +9,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -19,136 +19,100 @@
   <link rel="stylesheet" href="login.css">
 </head>
 <body data-page="login">
-  <!-- Background Effects -->
-  <div class="bg-effects">
-    <div class="gradient-orb orb-1"></div>
-    <div class="gradient-orb orb-2"></div>
-    <div class="gradient-orb orb-3"></div>
-    <div class="mesh-gradient"></div>
+  <!-- Background -->
+  <div class="page-background">
+    <div class="bg-glow"></div>
   </div>
 
-  <!-- Main Layout -->
-  <main class="login-layout">
-    <!-- Left Panel - Branding (optional split-screen) -->
-    <aside class="login-branding">
-      <div class="branding-content">
-        <div class="logo-container">
-          <svg class="logo-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="4" y="4" width="40" height="40" rx="12" fill="url(#logo-gradient)" fill-opacity="0.2" stroke="url(#logo-gradient)" stroke-width="2"/>
-            <circle cx="18" cy="18" r="5" fill="#6366f1"/>
-            <circle cx="30" cy="18" r="5" fill="#8b5cf6"/>
-            <circle cx="18" cy="30" r="5" fill="#a855f7"/>
-            <circle cx="30" cy="30" r="5" fill="#6366f1"/>
-            <defs>
-              <linearGradient id="logo-gradient" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#6366f1"/>
-                <stop offset="1" stop-color="#a855f7"/>
-              </linearGradient>
-            </defs>
+  <!-- Login Container -->
+  <main class="login-wrapper">
+    <div class="login-card">
+      <!-- Header -->
+      <header class="login-header">
+        <div class="logo-mark">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="36" height="36" rx="8" fill="#6366f1" fill-opacity="0.15" stroke="#6366f1" stroke-width="2"/>
+            <circle cx="14" cy="14" r="4" fill="#6366f1"/>
+            <circle cx="26" cy="14" r="4" fill="#818cf8"/>
+            <circle cx="14" cy="26" r="4" fill="#818cf8"/>
+            <circle cx="26" cy="26" r="4" fill="#6366f1"/>
           </svg>
-          <span class="logo-text">DLS</span>
         </div>
-        <h2 class="branding-title">Data Labeling<br>Support System</h2>
-        <p class="branding-desc">Nền tảng hỗ trợ gán nhãn dữ liệu chuyên nghiệp với công nghệ AI tiên tiến</p>
-        
-        <ul class="feature-list">
-          <li>
-            <i data-lucide="Sparkles"></i>
-            <span>Gán nhãn thông minh với AI</span>
-          </li>
-          <li>
-            <i data-lucide="Users"></i>
-            <span>Cộng tác đội nhóm hiệu quả</span>
-          </li>
-          <li>
-            <i data-lucide="Shield-check"></i>
-            <span>Bảo mật dữ liệu tối đa</span>
-          </li>
-        </ul>
-      </div>
-    </aside>
+        <h1 class="login-title">Đăng nhập</h1>
+        <p class="login-subtitle">Data Labeling Support System</p>
+      </header>
 
-    <!-- Right Panel - Login Form -->
-    <section class="login-container">
-      <div class="glass-card reveal-on-scroll">
-        <header class="login-header">
-          <h1 class="login-title">Đăng nhập hệ thống</h1>
-          <p class="login-subtitle">Data Labeling Support System</p>
-        </header>
+      <!-- Form -->
+      <form class="login-form" id="login-form" autocomplete="on">
+        <!-- Error Message -->
+        <div class="error-message" id="login-error-message" role="alert" aria-live="polite">
+          <i data-lucide="AlertCircle"></i>
+          <span class="error-text"></span>
+        </div>
 
-        <form class="login-form" id="login-form" autocomplete="on">
-          <!-- Error Message Area -->
-          <div class="error-message" id="login-error-message" role="alert" aria-live="polite">
-            <i data-lucide="AlertCircle"></i>
-            <span class="error-text"></span>
+        <!-- Email Field -->
+        <div class="form-field">
+          <label for="email" class="field-label">Email</label>
+          <div class="input-wrapper">
+            <i data-lucide="Mail" class="input-icon"></i>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="form-input" 
+              placeholder="name@company.com"
+              required
+              autocomplete="email"
+            >
           </div>
+        </div>
 
-          <!-- Email Field -->
-          <div class="input-group">
-            <label for="email" class="floating-label">Email</label>
-            <div class="input-wrapper">
-              <i data-lucide="Mail" class="input-icon"></i>
-              <input 
-                type="email" 
-                id="email" 
-                name="email" 
-                class="form-input" 
-                placeholder=" "
-                required
-                autocomplete="email"
-              >
-            </div>
+        <!-- Password Field -->
+        <div class="form-field">
+          <label for="password" class="field-label">Mật khẩu</label>
+          <div class="input-wrapper">
+            <i data-lucide="Lock" class="input-icon"></i>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-input" 
+              placeholder="Nhập mật khẩu"
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" class="toggle-password" aria-label="Hiện mật khẩu">
+              <i data-lucide="Eye" class="icon-show"></i>
+              <i data-lucide="Eye-off" class="icon-hide"></i>
+            </button>
           </div>
+        </div>
 
-          <!-- Password Field -->
-          <div class="input-group">
-            <label for="password" class="floating-label">Mật khẩu</label>
-            <div class="input-wrapper">
-              <i data-lucide="Lock" class="input-icon"></i>
-              <input 
-                type="password" 
-                id="password" 
-                name="password" 
-                class="form-input" 
-                placeholder=" "
-                required
-                autocomplete="current-password"
-              >
-              <button type="button" class="toggle-password" aria-label="Hiện mật khẩu">
-                <i data-lucide="Eye" class="eye-open"></i>
-                <i data-lucide="Eye-off" class="eye-closed"></i>
-              </button>
-            </div>
-          </div>
+        <!-- Forgot Password -->
+        <div class="form-actions">
+          <a href="#forgot-password" class="link-forgot">Quên mật khẩu?</a>
+        </div>
 
-          <!-- Forgot Password Link -->
-          <div class="form-options">
-            <a href="#forgot-password" class="forgot-link">
-              <span>Quên mật khẩu?</span>
-            </a>
-          </div>
+        <!-- Submit Button -->
+        <button type="submit" class="btn-login" id="login-submit">
+          <span class="btn-text">Đăng nhập</span>
+          <span class="btn-loader">
+            <svg class="spinner" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <i data-lucide="ArrowRight" class="btn-icon"></i>
+        </button>
+      </form>
 
-          <!-- Submit Button -->
-          <button type="submit" class="btn-primary magnetic-button" id="login-submit">
-            <span class="btn-text">Đăng nhập</span>
-            <span class="btn-loader">
-              <svg class="spinner" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <i data-lucide="ArrowRight" class="btn-icon"></i>
-          </button>
-        </form>
-
-        <!-- Footer Links -->
-        <footer class="login-footer">
-          <p class="signup-prompt">
-            Chưa có tài khoản? 
-            <a href="#register" class="signup-link">Đăng ký ngay</a>
-          </p>
-        </footer>
-      </div>
-    </section>
+      <!-- Footer -->
+      <footer class="login-footer">
+        <p class="footer-text">
+          Chưa có tài khoản? 
+          <a href="#register" class="link-signup">Đăng ký</a>
+        </p>
+      </footer>
+    </div>
   </main>
 
   <!-- Scripts -->
