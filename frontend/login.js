@@ -136,7 +136,7 @@
       // Success
       onLoginSuccess();
     } catch (error) {
-      onLoginError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      onLoginError('Thông tin không chính xác');
     } finally {
       setLoadingState(false);
     }
