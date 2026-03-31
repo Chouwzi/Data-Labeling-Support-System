@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Data Labeling Support System - Đăng nhập">
+  <title>Đăng nhập | Data Labeling Support System</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body data-page="login">
+  <!-- Background -->
+  <div class="page-background">
+    <div class="bg-glow"></div>
+  </div>
+
+  <!-- Login Container -->
+  <main class="login-wrapper">
+    <div class="login-card">
+      <!-- Header -->
+      <header class="login-header">
+        <div class="logo-mark">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="36" height="36" rx="8" fill="#6366f1" fill-opacity="0.15" stroke="#6366f1" stroke-width="2"/>
+            <circle cx="14" cy="14" r="4" fill="#6366f1"/>
+            <circle cx="26" cy="14" r="4" fill="#818cf8"/>
+            <circle cx="14" cy="26" r="4" fill="#818cf8"/>
+            <circle cx="26" cy="26" r="4" fill="#6366f1"/>
+          </svg>
+        </div>
+        <h1 class="login-title">Đăng nhập</h1>
+        <p class="login-subtitle">Data Labeling Support System</p>
+      </header>
+
+      <!-- Form -->
+      <form class="login-form" id="login-form" autocomplete="on">
+        <!-- Error Message -->
+        <div class="error-message" id="login-error-message" role="alert" aria-live="polite">
+          <i data-lucide="AlertCircle"></i>
+          <span class="error-text"></span>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-field">
+          <div class="input-wrapper">
+            <i data-lucide="Mail" class="input-icon"></i>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="form-input" 
+              placeholder="Email"
+              required
+              autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-field">
+          <div class="input-wrapper">
+            <i data-lucide="Lock" class="input-icon"></i>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-input" 
+              placeholder="Mật khẩu"
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" class="toggle-password" aria-label="Hiện mật khẩu">
+              <i data-lucide="Eye" class="icon-show"></i>
+              <i data-lucide="Eye-off" class="icon-hide"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Forgot Password -->
+        <div class="form-actions">
+          <a href="#forgot-password" class="link-forgot">Quên mật khẩu?</a>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-login" id="login-submit">
+          <span class="btn-text">Đăng nhập</span>
+          <span class="btn-loader">
+            <svg class="spinner" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <i data-lucide="ArrowRight" class="btn-icon"></i>
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>
