@@ -1,31 +1,16 @@
-# Data Labeling Support System - Frontend
+# React + Vite
 
-Đây là kho lưu trữ mã nguồn Frontend cho **Hệ thống hỗ trợ gán nhãn dữ liệu**, được xây dựng để tối ưu hóa toàn bộ vòng đời chuẩn bị dữ liệu cho các mô hình Học máy (Machine Learning). 
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Dự án áp dụng các tiêu chuẩn thiết kế UI/UX hiện đại của năm 2026, lấy cảm hứng từ các nền tảng SaaS hàng đầu như Roboflow, tập trung vào hiệu suất cao, không gian làm việc tối giản và các tương tác vi mô (micro-interactions) tinh tế.
+Currently, two official plugins are available:
 
-## Tech Stack
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-* **Framework:** React 18+
-* **Build Tool:** Vite (Cung cấp tốc độ khởi động và HMR siêu tốc)
-* **Styling:** CSS Custom Properties & Glassmorphism UI (Thiết kế hệ thống giao diện độc quyền)
-* **Icons:** Lucide React / Phosphor Icons
+## React Compiler
 
-## Tính năng nổi bật
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-* **Giao diện Đăng nhập Cấp Doanh nghiệp:** Trải nghiệm xác thực mượt mà với hiệu ứng động và phản hồi trực quan (Task: LTJ-124).
-* **Workspace Đa Vai Trò:** Tùy biến giao diện chuyên sâu cho từng nhóm người dùng (Admin, Manager, Annotator, Reviewer).
-* **Canvas Gán Nhãn Tương Tác:** Khu vực làm việc tập trung, hỗ trợ phím tắt (hotkeys) để tối đa hóa tốc độ vẽ khung (bounding box) và phân đoạn (segmentation).
-* **AI Pre-labeling UI:** Tích hợp giao diện nhận diện và phê duyệt các nhãn do AI gợi ý nháp.
+## Expanding the ESLint configuration
 
-## Hướng dẫn cài đặt
-
-### Yêu cầu môi trường
-Đảm bảo máy tính của bạn đã cài đặt **Node.js (phiên bản 18.x trở lên)**.
-
-### Các bước chạy dự án
-
-1. Clone repository về máy tính:
-   ```bash
-   git clone <đường-dẫn-repo-của-bạn>
-   cd <thư-mục-frontend>
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

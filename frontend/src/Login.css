@@ -70,36 +70,12 @@ body {
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
 a {
   color: inherit;
   text-decoration: none;
-}
-
-/* =============================================
-   BACKGROUND
-   ============================================= */
-
-.page-background {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: var(--color-bg);
-}
-
-.bg-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(
-    circle at center,
-    rgba(59, 130, 246, 0.04) 0%,
-    transparent 70%
-  );
 }
 
 /* =============================================
@@ -207,7 +183,7 @@ a {
   display: flex;
 }
 
-.error-message i {
+.error-message svg {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -226,12 +202,6 @@ a {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.field-label {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
 }
 
 /* =============================================
@@ -290,6 +260,11 @@ a {
   opacity: 0.8;
 }
 
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* =============================================
    PASSWORD TOGGLE
    ============================================= */
@@ -316,7 +291,7 @@ a {
   opacity: 0.8;
 }
 
-.toggle-password i {
+.toggle-password svg {
   width: 16px;
   height: 16px;
 }
@@ -379,7 +354,6 @@ a {
    ============================================= */
 
 .btn-login {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -399,11 +373,11 @@ a {
   transition: background var(--transition-fast);
 }
 
-.btn-login:hover {
+.btn-login:hover:not(:disabled) {
   background: var(--color-primary-hover);
 }
 
-.btn-login:active {
+.btn-login:active:not(:disabled) {
   transform: scale(0.99);
 }
 
