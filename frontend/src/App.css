@@ -1,42 +1,225 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px; 
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px; 
+  width: 100%;
+  border-radius: 10px; 
+  border: 1px solid #e0e0e0;
+  background: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px; 
+}
+
+.login-btn img {
+  width: 18px;
+  height: 18px;
+}
+.project-title {
+  color: #6D34B3; 
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+  letter-spacing: -1px;
+}
+
+.email-btn {
+  background-color: #D84B7E;
+  color: white;
+  border: none;
+}
+
+.email-btn:hover {
+  background-color: #C03D6D; 
+}
+
+.terms-text {
+  margin-top: 25px;
+  font-size: 0.75rem;
+  color: #999;
+  line-height: 1.5;
+}
+
+.terms-text a {
+  color: #D84B7E;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.subtitle {
+  color: #888888; 
+  font-size: 0.9rem; 
+  margin-bottom: 25px; 
+  font-weight: 400; 
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: white;
+  color: #1a1a1a;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.landing-container {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 5%;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: white;
+  z-index: 1000;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #6D34B3;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.btn-signin-nav {
+  background: transparent;
+  border: 1px solid #ddd;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-getstarted-nav {
+  background: #E14E8D;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hero-section {
+  padding-top: 120px;
+  text-align: center;
+  padding-bottom: 50px;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.purple-text {
+  color: #6D34B3;
+}
+
+.hero-subtitle {
+  color: #666;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 60px;
+}
+
+.btn-pink-solid {
+  background: #E14E8D;
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-purple-outline {
+  background: transparent;
+  border: 2px solid #6D34B3;
+  color: #6D34B3;
+  padding: 15px 40px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.platform-preview {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.platform-preview img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.App {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #e0f7fa 0%, #f3e5f5 50%, #fce4ec 100%);
+}
+
+@media (max-width: 768px) {
+  .nav-actions {
+    display: none;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .hero-title {
+    padding: 0 15px;
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
   }
-}
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  .btn-pink-solid, .btn-purple-outline {
+    width: 80%;
+  }
 }
