@@ -1,35 +1,88 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import Login from './Login';
+import LandingPage from './LandingPage';
+import AdminDashboard from './AdminDashboard';
+import StaffDashboard from './StaffDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+function PublicRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return null;
+  }
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
 }
 
-export default App
+function App() {
+  return (
+    <Routes>
+      {/* Public routes - redirect to dashboard if logged in */}
+      <Route 
+        path="/" 
+        element={
+          <PublicRoute>
+            <LandingPage />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/login" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      
+      {/* Protected routes */}
+      <Route 
+        path="/admin/dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/staff/dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={['STAFF']}>
+            <StaffDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Short dashboard route - redirects based on role */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <DashboardRedirect />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Catch all - redirect to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function DashboardRedirect() {
+  const { user } = useAuth();
+  
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
+  return <Navigate to="/staff/dashboard" replace />;
+}
+
+export default App;
