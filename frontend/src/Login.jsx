@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import BrandLogo from './components/BrandLogo';
 import './Login.css';
 
 const API_BASE_URL = '/api';
@@ -117,13 +118,7 @@ export default function Login() {
       <div className="login-card fade-in-up">
         <header className="login-header">
           <div className="logo-mark">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <rect x="4" y="4" width="40" height="40" rx="10" fill="#006c51" fillOpacity="0.1" stroke="#006c51" strokeWidth="1.5"/>
-              <circle cx="16" cy="16" r="5" fill="#006c51"/>
-              <circle cx="32" cy="16" r="5" fill="#00a67e"/>
-              <circle cx="16" cy="32" r="5" fill="#00a67e"/>
-              <circle cx="32" cy="32" r="5" fill="#006c51"/>
-            </svg>
+            <BrandLogo size={48} />
           </div>
           <h1 className="login-title">Đăng nhập</h1>
           <p className="login-subtitle">DataLabel Pro</p>

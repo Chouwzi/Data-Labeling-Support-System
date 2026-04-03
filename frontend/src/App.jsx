@@ -7,16 +7,19 @@ import StaffDashboard from './StaffDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function PublicRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  
+  const { isAuthenticated, isLoading, user } = useAuth();
+
   if (isLoading) {
     return null;
   }
-  
+
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    if (user?.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    return <Navigate to="/staff/dashboard" replace />;
   }
-  
+
   return children;
 }
 
