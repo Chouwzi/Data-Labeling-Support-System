@@ -54,9 +54,13 @@ public class UserService {
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
     userMapper.updateUser(user, request);
-    if (request.getPassword() != null && !request.getPassword().isBlank()) {
-      user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+    // Báo lỗi nếu mật khẩu rỗng, nếu có giá trị thì mã hóa
+    if (request.getPassword() == null || request.getPassword().isBlank()) {
+      throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
     }
+
+    user.setPassword(passwordEncoder.encode(request.getPassword()));
 
     return userMapper.toUserResponse(userRepository.save(user));
   }

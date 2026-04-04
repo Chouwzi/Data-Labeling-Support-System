@@ -23,6 +23,7 @@ public class UserCreationRequest {
   @NotBlank(message = "MISSING_REQUIRED_FIELD")
   String fullName;
 
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
   @Size(min = 8, message = "PASSWORD_TOO_SHORT")
   String password;
 
