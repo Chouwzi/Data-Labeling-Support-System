@@ -15,14 +15,17 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   private final String[] PUBLIC_ENDPOINTS = {
-      "/users",
-      "/auth/login"
+      "/users/**",
+      "/auth/login",
+      "/v3/api-docs/**",
+      "/swagger-ui/**",
+      "/swagger-ui.html"
   };
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.authorizeHttpRequests(request -> request
-        .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
         .anyRequest().authenticated());
 
     // Tắt CSRF cho REST API
