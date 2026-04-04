@@ -11,6 +11,7 @@ import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class UserService {
   UserRepository userRepository;
   UserMapper userMapper;
+  PasswordEncoder passwordEncoder;
 
   public UserResponse createUser(UserCreationRequest request) {
     if (userRepository.existsByEmail(request.getEmail())) {
@@ -30,6 +32,8 @@ public class UserService {
 
     User user = userMapper.toUser(request);
 
+    // Hash password bằng BCrypt
+    user.setPassword(passwordEncoder.encode(user.getPassword()));
     return userMapper.toUserResponse(userRepository.save(user));
   }
 
@@ -50,6 +54,9 @@ public class UserService {
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
     userMapper.updateUser(user, request);
+    if (request.getPassword() != null && !request.getPassword().isBlank()) {
+      user.setPassword(passwordEncoder.encode(user.getPassword()));
+    }
 
     return userMapper.toUserResponse(userRepository.save(user));
   }
