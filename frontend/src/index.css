@@ -1,15 +1,3 @@
-<<<<<<< HEAD
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body, #root {
-  height: 100%;
-=======
 /**
  * GLOBAL STYLES - Data Labeling Support System
  * Design System: Precision Editorial
@@ -386,7 +374,6 @@ textarea::placeholder {
     opacity: 1;
     transform: translateY(0);
   }
->>>>>>> origin/Feature/LTJ-63-admin-system-settings-ui
 }
 
 @keyframes fadeInDown {

@@ -1,17 +1,10 @@
-<<<<<<< HEAD
-import Login from './Login';
-
-function App() {
-  return <Login />;
-}
-
-=======
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Login from './Login';
 import LandingPage from './LandingPage';
 import AdminDashboard from './AdminDashboard';
 import StaffDashboard from './StaffDashboard';
+import ActivityLog from './ActivityLog'; // 1. Import Task LTJ-58 của Trang
 import ProtectedRoute from './components/ProtectedRoute';
 
 function PublicRoute({ children }) {
@@ -52,7 +45,7 @@ function App() {
         } 
       />
       
-      {/* Protected routes */}
+      {/* Protected routes - Dành riêng cho ADMIN */}
       <Route 
         path="/admin/dashboard" 
         element={
@@ -61,6 +54,18 @@ function App() {
           </ProtectedRoute>
         } 
       />
+
+      {/* 2. CHÈN TASK LTJ-58 CỦA TRANG VÀO ĐÂY */}
+      <Route 
+        path="/admin/logs" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <ActivityLog />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Protected routes - Dành riêng cho STAFF */}
       <Route 
         path="/staff/dashboard" 
         element={
@@ -96,5 +101,4 @@ function DashboardRedirect() {
   return <Navigate to="/staff/dashboard" replace />;
 }
 
->>>>>>> origin/Feature/LTJ-63-admin-system-settings-ui
 export default App;

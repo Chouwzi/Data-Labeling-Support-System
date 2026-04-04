@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
 
@@ -71,6 +72,11 @@ export default function AdminDashboard() {
       type: 'success',
     });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // Logic điều hướng sang trang Nhật ký (LTJ-58)
+  const handleViewAllLogs = () => {
+    navigate('/admin/logs');
   };
 
   const userName = user?.name || user?.email || 'Julian Casablancas';
@@ -137,7 +143,12 @@ export default function AdminDashboard() {
                   <h2 className="activity-section__title" id="recent-activity-heading">
                     Recent Activity
                   </h2>
-                  <button type="button" className="activity-section__view-all">
+                  {/* Cập nhật sự kiện onClick cho nút bấm ở đây */}
+                  <button 
+                    type="button" 
+                    className="activity-section__view-all"
+                    onClick={handleViewAllLogs}
+                  >
                     VIEW ALL LOGS
                   </button>
                 </div>
