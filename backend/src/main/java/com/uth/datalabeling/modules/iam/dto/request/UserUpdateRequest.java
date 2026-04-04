@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreationRequest {
+public class UserUpdateRequest {
   @NotBlank(message = "MISSING_REQUIRED_FIELD")
   @Email(message = "INVALID_CREDENTIALS")
   String email;
@@ -30,6 +30,5 @@ public class UserCreationRequest {
   @Size(max = 50)
   String role;
 
-  @Builder.Default
-  boolean active = true;
+  Boolean active;
 }

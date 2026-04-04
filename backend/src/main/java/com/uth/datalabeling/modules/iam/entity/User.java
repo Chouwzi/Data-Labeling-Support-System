@@ -23,7 +23,7 @@ import lombok.experimental.FieldDefaults;
 
 @Entity // Khai báo cho Spring Boot biết đây là Enity
 @Table(name = "users") // Đặt tên bảng là users trong db
-@Data
+@Data // Tự tạo Getter/Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -34,21 +34,25 @@ public class User {
   UUID id;
 
   @Column(nullable = false, unique = true) // Không được rỗng và phải là duy nhất
-  @Email(message = "")
-  @NotBlank(message = "")
+  @Email(message = "INVALID_CREDENTIALS")
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
   String email;
 
   @Column(name = "full_name")
-  @NotBlank(message = "")
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
   String fullName;
 
-  @NotBlank(message = "")
-  @Size(min = 8, message = "")
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
+  @Size(min = 8, message = "PASSWORD_TOO_SHORT")
   String password;
 
   @Builder.Default
   @Column(name = "is_active")
   boolean active = true;
+
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
+  @Column(length = 50)
+  String role;
 
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)
