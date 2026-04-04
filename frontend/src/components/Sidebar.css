@@ -3,7 +3,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 39;
+  z-index: 90;
   margin: 0;
   padding: 0;
   border: none;
@@ -172,8 +172,11 @@
   }
 }
 
-/* Mobile: drawer */
-@media (max-width: 767px) {
+/*
+ * Drawer: khớp với AdminDashboard.css (admin-main margin-left: 0 khi ≤1024px).
+ * Trước đây chỉ ≤767px → iPad (768–1024) vẫn cố định sidebar nhưng main không margin → chồng lấn.
+ */
+@media (max-width: 1024px) {
   .sidebar__backdrop {
     display: block;
   }
@@ -181,6 +184,7 @@
   .sidebar {
     transform: translateX(-100%);
     box-shadow: 4px 0 24px rgba(22, 29, 26, 0.08);
+    z-index: 100;
   }
 
   .sidebar--open {

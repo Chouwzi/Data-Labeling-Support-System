@@ -4,41 +4,165 @@
   min-height: 100vh;
 }
 
+.log-header {
+  margin-bottom: 1.5rem;
+}
+
 .log-header h1 {
   color: var(--color-primary);
   margin-bottom: 10px;
 }
 
+.log-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.875rem;
+  margin-bottom: 0.875rem;
+  background: #ffffff;
+  border: 1px solid rgba(5, 150, 105, 0.18);
+  border-radius: 0.5rem;
+  color: #059669;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.log-back-btn:hover {
+  background: #ecfdf5;
+  border-color: rgba(5, 150, 105, 0.3);
+  transform: translateX(-2px);
+}
+
+.log-back-btn:active {
+  transform: translateX(0) scale(0.98);
+}
+
 .log-table-wrapper {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  margin-top: 20px;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 2.5rem;
+  color: #006c51;
+  font-weight: 600;
+  font-size: 0.9375rem;
 }
 
 .log-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.log-table thead tr {
+  text-align: left;
 }
 
 .log-table th {
-  text-align: left;
-  padding: 15px;
-  background-color: #f8fdfa;
+  padding: 0.625rem 1rem;
+  color: #6b7a72;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   border-bottom: 2px solid #eee;
+  white-space: nowrap;
 }
 
 .log-table td {
-  padding: 15px;
+  padding: 1rem;
   border-bottom: 1px solid #f0f0f0;
+  color: #374151;
+  font-size: 0.875rem;
 }
 
-.status.success { color: #00a67e; font-weight: bold; }
-.status.error { color: #9f3f37; font-weight: bold; }
+.log-table tbody tr {
+  background-color: #fafafa;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.log-table tbody tr:hover {
+  background-color: #f0fdf4;
+}
+
+.log-table__cell--first {
+  border-radius: 0.5rem 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.log-table__cell--muted {
+  color: #6b7280;
+}
+
+.log-table__cell--last {
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.log-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.log-status--success {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.log-status--error,
+.log-status--failed {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.log-status--pending {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.log-status--info,
+.log-status--default {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
 .action-tag {
-  background: #e8f5e9;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  display: inline-block;
+  background: #ecfdf5;
+  color: #006c51;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.log-table__empty {
+  text-align: center;
+  padding: 3.5rem 1rem;
+  color: #9ca3af;
+}
+
+.log-table__empty-icon {
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+  color: #d1d5db;
 }

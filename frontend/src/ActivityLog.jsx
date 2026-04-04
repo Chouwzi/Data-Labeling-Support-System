@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { ArrowLeft } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import './AdminDashboard.css';
 import './ActivityLog.css';
 
 const ActivityLog = () => {
@@ -53,22 +55,31 @@ const ActivityLog = () => {
           onLogout={handleLogout}
         />
 
-        <main className="admin-content" style={{ padding: '30px' }}>
+        <main className="admin-content">
           <div className="log-header">
+            <button
+              type="button"
+              className="log-back-btn"
+              onClick={() => navigate('/admin', { replace: true })}
+              aria-label="Quay lại Dashboard"
+            >
+              <ArrowLeft size={16} aria-hidden />
+              <span>Dashboard</span>
+            </button>
             <h1 className="admin-page-title">System Activity Logs</h1>
             <p className="admin-page-subtitle">Monitor and audit all user actions and system changes across the platform.</p>
           </div>
 
-          <div className="log-table-wrapper" style={{ marginTop: '24px', background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(23, 29, 26, 0.05)' }}>
+          <div className="log-table-wrapper">
             {loading ? (
-              <div className="loading" style={{ textAlign: 'center', padding: '40px', color: '#006c51', fontWeight: '600' }}>
+              <div className="loading">
                 Fetching system logs...
               </div>
             ) : (
-              <table className="log-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+              <table className="log-table">
                 <thead>
-                  <tr style={{ textAlign: 'left', color: '#6b7a72', fontSize: '0.875rem', fontWeight: '600' }}>
-                    <th style={{ padding: '12px 16px' }}>TIMESTAMP</th>
+                  <tr>
+                    <th>TIMESTAMP</th>
                     <th>USER</th>
                     <th>ACTION</th>
                     <th>TARGET OBJECT</th>
@@ -77,34 +88,27 @@ const ActivityLog = () => {
                 </thead>
                 <tbody>
                   {logs.length > 0 ? logs.map((log) => (
-                    <tr key={log.id} style={{ backgroundColor: '#fdfdfd', transition: 'transform 0.2s' }}>
-                      <td style={{ padding: '16px', borderRadius: '8px 0 0 8px', fontSize: '0.875rem' }}>
+                    <tr key={log.id}>
+                      <td className="log-table__cell--first">
                         {new Date(log.timestamp).toLocaleString('en-US')}
                       </td>
                       <td><strong>{log.userEmail || log.username || 'System'}</strong></td>
                       <td>
-                        <span className="action-tag" style={{ background: '#e8f5e9', color: '#006c51', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase' }}>
+                        <span className="action-tag">
                           {log.action}
                         </span>
                       </td>
-                      <td style={{ color: '#3d4a43' }}>{log.targetName || log.target || 'N/A'}</td>
-                      <td style={{ borderRadius: '0 8px 8px 0' }}>
-                        <span style={{ 
-                          padding: '4px 12px', 
-                          borderRadius: '20px', 
-                          fontSize: '12px', 
-                          fontWeight: '600',
-                          backgroundColor: log.status?.toLowerCase() === 'success' ? '#ecfdf5' : '#fef2f2',
-                          color: log.status?.toLowerCase() === 'success' ? '#059669' : '#dc2626'
-                        }}>
+                      <td className="log-table__cell--muted">{log.targetName || log.target || 'N/A'}</td>
+                      <td className="log-table__cell--last">
+                        <span className={`log-status log-status--${(log.status || 'info').toLowerCase()}`}>
                           {log.status || 'INFO'}
                         </span>
                       </td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '60px', color: '#6b7a72' }}>
-                        <div style={{ fontSize: '1.25rem', marginBottom: '8px' }}>📭 No logs found.</div>
+                      <td colSpan="5" className="log-table__empty">
+                        <div className="log-table__empty-icon">No logs found.</div>
                         <p>The activity history is currently empty.</p>
                       </td>
                     </tr>
