@@ -53,14 +53,17 @@ public class UserService {
     User user = userRepository.findById(id)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+    // Lưu mật khẩu cũ đề phòng mapper ghi đè null
+    String oldPassword = user.getPassword();
+
     userMapper.updateUser(user, request);
 
-    // Báo lỗi nếu mật khẩu rỗng, nếu có giá trị thì mã hóa
-    if (request.getPassword() == null || request.getPassword().isBlank()) {
-      throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD);
+    // Chỉ mã hóa và cập nhật mật khẩu nếu request có mật khẩu mới
+    if (request.getPassword() != null && !request.getPassword().isBlank()) {
+      user.setPassword(passwordEncoder.encode(request.getPassword()));
+    } else {
+      user.setPassword(oldPassword);
     }
-
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
 
     return userMapper.toUserResponse(userRepository.save(user));
   }
