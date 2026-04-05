@@ -351,23 +351,48 @@ a {
 .toggle-password svg {
   width: 18px;
   height: 18px;
-}
-
-.toggle-password .icon-hide {
-  display: none;
-}
-
-.toggle-password.active .icon-show {
-  display: none;
-}
-
-.toggle-password.active .icon-hide {
   display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.toggle-password:focus-visible {
+  outline: none;
+  color: var(--color-primary);
+  background: rgba(0, 108, 81, 0.06);
+}
+
+.toggle-password.active {
+  color: var(--color-primary);
 }
 
 /* Password input with toggle */
-.input-wrapper:has(.toggle-password) .form-input {
-  padding-right: 48px;
+.input-wrapper:has(.toggle-password) .form-input,
+.input-wrapper--with-toggle .form-input {
+  padding-right: 3rem;
+}
+
+/* Ẩn nút gợi ý mật khẩu / reveal mặc định (tránh chồng icon tùy chỉnh) */
+.form-input--password::-webkit-credentials-auto-fill-button,
+.form-input--password::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+}
+
+.form-input--password::-ms-reveal,
+.form-input--password::-ms-clear {
+  display: none !important;
+}
+
+.form-input[type='password']::-webkit-password-toggle-button {
+  display: none !important;
+  margin: 0;
+  width: 0;
+  height: 0;
 }
 
 /* =============================================

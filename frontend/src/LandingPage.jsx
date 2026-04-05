@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import BrandLogo from './components/BrandLogo';
 import './LandingPage.css';
 
 function LandingPage() {
@@ -92,13 +93,7 @@ function LandingPage() {
       <nav className="nav">
         <div className="nav-container">
           <div className="nav-brand">
-            <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
-              <rect x="4" y="4" width="40" height="40" rx="10" fill="#006c51" fillOpacity="0.15" stroke="#006c51" strokeWidth="1.5"/>
-              <circle cx="16" cy="16" r="5" fill="#006c51"/>
-              <circle cx="32" cy="16" r="5" fill="#00a67e"/>
-              <circle cx="16" cy="32" r="5" fill="#00a67e"/>
-              <circle cx="32" cy="32" r="5" fill="#006c51"/>
-            </svg>
+            <BrandLogo size={32} />
             <span className="brand-text">DataLabel Pro</span>
           </div>
           <div className="nav-actions">
@@ -254,13 +249,7 @@ function LandingPage() {
         <div className="footer-container">
           <div className="footer-brand">
             <div className="nav-brand">
-              <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-                <rect x="4" y="4" width="40" height="40" rx="10" fill="#006c51" fillOpacity="0.15" stroke="#006c51" strokeWidth="1.5"/>
-                <circle cx="16" cy="16" r="5" fill="#006c51"/>
-                <circle cx="32" cy="16" r="5" fill="#00a67e"/>
-                <circle cx="16" cy="32" r="5" fill="#00a67e"/>
-                <circle cx="32" cy="32" r="5" fill="#006c51"/>
-              </svg>
+              <BrandLogo size={28} />
               <span className="brand-text">DataLabel Pro</span>
             </div>
           </div>

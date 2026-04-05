@@ -1,0 +1,132 @@
+/* UsersPage - User management with grid layout */
+
+/* =============================================
+   TOOLBAR
+   ============================================= */
+
+.users-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.users-toolbar__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+
+.users-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 40px;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.users-btn--primary {
+  background: linear-gradient(135deg, #006c51 0%, #00a67e 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 108, 81, 0.2);
+}
+
+.users-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 108, 81, 0.3);
+}
+
+.users-btn--secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.users-btn--secondary:hover {
+  background: #e5e7eb;
+}
+
+/* =============================================
+   USER GRID
+   ============================================= */
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+/* =============================================
+   EMPTY STATE
+   ============================================= */
+
+.users-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.users-empty p {
+  color: #9ca3af;
+  font-size: 0.9375rem;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+
+@media (max-width: 1280px) {
+  .users-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .users-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .users-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .users-toolbar__actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .users-toolbar__actions {
+    flex-direction: column;
+  }
+
+  .users-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

@@ -4,19 +4,24 @@ import Login from './Login';
 import LandingPage from './LandingPage';
 import AdminDashboard from './AdminDashboard';
 import StaffDashboard from './StaffDashboard';
+import ActivityLog from './ActivityLog';
+import UsersPage from './UsersPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function PublicRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  
+  const { isAuthenticated, isLoading, user } = useAuth();
+
   if (isLoading) {
     return null;
   }
-  
+
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    if (user?.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    return <Navigate to="/staff/dashboard" replace />;
   }
-  
+
   return children;
 }
 
@@ -41,7 +46,7 @@ function App() {
         } 
       />
       
-      {/* Protected routes */}
+      {/* Protected routes - Dành riêng cho ADMIN */}
       <Route 
         path="/admin/dashboard" 
         element={
@@ -50,6 +55,26 @@ function App() {
           </ProtectedRoute>
         } 
       />
+
+      <Route 
+        path="/admin/logs" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <ActivityLog />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/admin/users" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <UsersPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Protected routes - Dành riêng cho STAFF */}
       <Route 
         path="/staff/dashboard" 
         element={

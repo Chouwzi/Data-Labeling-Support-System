@@ -1,105 +1,187 @@
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import './Dashboard.css';
+import Sidebar from './components/Sidebar';
+import Topbar from './components/Topbar';
+import KpiCard from './components/KpiCard';
+import ActivityItem from './components/ActivityItem';
+import SystemConfigPanel from './components/SystemConfigPanel';
+import BrandLogo from './components/BrandLogo';
+import './AdminDashboard.css';
+
+const ACTIVITIES = [
+  {
+    id: 1,
+    icon: 'person_edit',
+    iconBgClass: 'activity-item__icon--secondary-container',
+    iconColorClass: 'activity-item__icon--text-secondary-container',
+    message: (
+      <>
+        <strong>Julian Casablancas</strong> updated role for annotator
+      </>
+    ),
+    timestamp: '2 MINUTES AGO',
+    category: 'USER MANAGEMENT',
+  },
+  {
+    id: 2,
+    icon: 'check_circle',
+    iconBgClass: 'activity-item__icon--primary-container',
+    iconColorClass: 'activity-item__icon--text-primary-container',
+    message: (
+      <>
+        Project <strong>Visual-QA-Alpha</strong> completed
+      </>
+    ),
+    timestamp: '45 MINUTES AGO',
+    category: 'PROJECT PIPELINE',
+  },
+  {
+    id: 3,
+    icon: 'warning',
+    iconBgClass: 'activity-item__icon--tertiary-container',
+    iconColorClass: 'activity-item__icon--text-tertiary',
+    message: (
+      <>
+        Storage quota exceeded for node <strong>AWS-US-EAST-1</strong>
+      </>
+    ),
+    timestamp: '2 HOURS AGO',
+    category: 'SYSTEM ALERT',
+  },
+];
 
 export default function AdminDashboard() {
-  const { logout, user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
+  const handleSaveConfig = (config) => {
+    console.log('Configuration saved:', config);
+    setToast({
+      message: 'Configuration saved successfully',
+      type: 'success',
+    });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // Logic điều hướng sang trang Nhật ký (LTJ-58)
+  const handleViewAllLogs = () => {
+    navigate('/admin/logs');
+  };
+
+  const userName = user?.name || user?.email || 'Julian Casablancas';
+  const userRole = 'SENIOR ADMINISTRATOR';
+
   return (
-    <main className="dashboard-wrapper">
-      <div className="dashboard-header fade-in-up">
-        <div className="dashboard-logo">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-            <rect x="4" y="4" width="40" height="40" rx="10" fill="#006c51" fillOpacity="0.1" stroke="#006c51" strokeWidth="1.5"/>
-            <circle cx="16" cy="16" r="5" fill="#006c51"/>
-            <circle cx="32" cy="16" r="5" fill="#00a67e"/>
-            <circle cx="16" cy="32" r="5" fill="#00a67e"/>
-            <circle cx="32" cy="32" r="5" fill="#006c51"/>
-          </svg>
-          <div className="dashboard-title-group">
-            <h1 className="dashboard-title">Admin Dashboard</h1>
-            <p className="dashboard-subtitle">{user?.email || 'Admin User'}</p>
+    <div className="admin-layout">
+      <Sidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
+
+      <div className="admin-main">
+        <Topbar
+          userName={userName}
+          userRole={userRole}
+          onMenuClick={toggleSidebar}
+          onLogout={handleLogout}
+        />
+
+        <main className="admin-content">
+          <header className="admin-page-header">
+            <div className="admin-page-header__brand" aria-hidden="true">
+              <BrandLogo size={32} />
+              <span className="admin-page-header__brand-name">DataLabel Pro</span>
+            </div>
+            <h1 className="admin-page-title">Admin Dashboard</h1>
+            <p className="admin-page-subtitle">
+              Monitor system status and control configuration for the Data Labeling Support System ecosystem.
+            </p>
+          </header>
+
+          <div className="admin-grid">
+            <section className="admin-left-col">
+              <div className="kpi-grid">
+                <KpiCard
+                  title="Total Users"
+                  value="1,284"
+                  icon="group"
+                  trend="+12%"
+                />
+                <KpiCard
+                  title="Active Projects"
+                  value="42"
+                  icon="folder_managed"
+                />
+                <KpiCard
+                  title="System Usage"
+                  value="76%"
+                  subtitle="Storage"
+                  variant="wide"
+                  progress={76}
+                />
+                <KpiCard
+                  title="Tasks in Progress"
+                  value="8,912"
+                  variant="activity"
+                  dotColors={['#10b981', '#34d399', '#6ee7b7']}
+                />
+              </div>
+
+              <section
+                className="activity-section"
+                aria-labelledby="recent-activity-heading"
+              >
+                <div className="activity-section__header">
+                  <h2 className="activity-section__title" id="recent-activity-heading">
+                    Recent Activity
+                  </h2>
+                  {/* Cập nhật sự kiện onClick cho nút bấm ở đây */}
+                  <button 
+                    type="button" 
+                    className="activity-section__view-all"
+                    onClick={handleViewAllLogs}
+                  >
+                    VIEW ALL LOGS
+                  </button>
+                </div>
+
+                <div className="activity-section__list">
+                  {ACTIVITIES.map((activity) => (
+                    <ActivityItem
+                      key={activity.id}
+                      icon={activity.icon}
+                      iconBgClass={activity.iconBgClass}
+                      iconColorClass={activity.iconColorClass}
+                      message={activity.message}
+                      timestamp={activity.timestamp}
+                      category={activity.category}
+                    />
+                  ))}
+                </div>
+              </section>
+            </section>
+
+            <aside className="admin-right-col">
+              <SystemConfigPanel onSave={handleSaveConfig} />
+            </aside>
           </div>
-        </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Đăng xuất
-        </button>
+        </main>
       </div>
 
-      <div className="dashboard-content fade-in-up">
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">12</span>
-              <span className="stat-label">Nhân viên</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-              </svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">248</span>
-              <span className="stat-label">Dự án</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">1,842</span>
-              <span className="stat-label">Nhãn đã gắn</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">98%</span>
-              <span className="stat-label">Độ chính xác</span>
-            </div>
-          </div>
+      {toast && (
+        <div className={`toast toast--${toast.type}`}>
+          <span className="toast__icon">{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span className="toast__message">{toast.message}</span>
         </div>
-
-        <div className="mock-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          Chế độ Mock - Dữ liệu mẫu
-        </div>
-      </div>
-    </main>
+      )}
+    </div>
   );
 }

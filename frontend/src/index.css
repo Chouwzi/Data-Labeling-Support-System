@@ -3,6 +3,63 @@
  * Design System: Precision Editorial
  */
 
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #00513c;
+  --color-primary-hover: #005a43;
+  --color-primary-container: #006c51;
+  --color-surface-variant: #dde4de;
+  --color-surface-container-high: #e3eae4;
+  --color-surface-bright: #f4fbf5;
+  --color-surface-dim: #d5dcd6;
+  --color-surface-container-low: #eef5ef;
+  --color-surface-container: #e9f0ea;
+  --color-surface-container-highest: #dde4de;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface: #f4fbf5;
+  --color-on-surface: #161d1a;
+  --color-on-surface-variant: #3f4944;
+  --color-background: #f4fbf5;
+  --color-on-background: #161d1a;
+  --color-secondary: #466558;
+  --color-secondary-container: #c5e7d7;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #4a695c;
+  --color-tertiary: #802822;
+  --color-tertiary-container: #a03f37;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #ffcdc7;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+  --color-outline: #6f7a74;
+  --color-outline-variant: #bec9c2;
+  --color-inverse-surface: #2b322e;
+  --color-inverse-on-surface: #ebf2ed;
+  --color-inverse-primary: #82d7b6;
+  --color-primary-fixed: #9df4d1;
+  --color-primary-fixed-dim: #82d7b6;
+  --color-secondary-fixed: #c8eada;
+  --color-secondary-fixed-dim: #accebe;
+  --color-tertiary-fixed: #ffdad6;
+  --color-tertiary-fixed-dim: #ffb4ab;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #94eac8;
+  --color-on-secondary-fixed: #012016;
+  --color-on-secondary-fixed-variant: #2e4d41;
+  --color-on-tertiary-fixed: #410002;
+  --color-on-tertiary-fixed-variant: #802822;
+  --color-on-primary-fixed: #002116;
+  --color-on-primary-fixed-variant: #00513c;
+  --color-surface-tint: #006c51;
+  --color-on-error: #ffffff;
+  --font-headline: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-label: 'Inter', sans-serif;
+}
+
 /* =============================================
    CSS RESET
    ============================================= */
