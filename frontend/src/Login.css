@@ -13,15 +13,15 @@
   --color-bg: #f4fbf5;
   --color-surface-low: #eff5f0;
   --color-surface-lowest: #ffffff;
-  
+
   --color-primary: #006c51;
   --color-primary-hover: #005a43;
   --color-primary-container: #00a67e;
-  
+
   --color-text: #171d1a;
   --color-text-secondary: #3d4a43;
   --color-text-muted: #6b7a72;
-  
+
   --color-error-bg: rgba(159, 63, 55, 0.08);
   --color-error-text: #9f3f37;
   --color-error-border: rgba(159, 63, 55, 0.2);
@@ -29,7 +29,7 @@
   /* Typography */
   --font-heading: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  
+
   /* Spacing */
   --space-xs: 4px;
   --space-sm: 8px;
@@ -102,7 +102,7 @@ a {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0, 166, 126, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse 60% 50% at 80% 90%, rgba(0, 108, 81, 0.06) 0%, transparent 50%);
   pointer-events: none;
@@ -269,7 +269,7 @@ a {
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: 0.9375rem;
-  transition: 
+  transition:
     background var(--transition-fast),
     box-shadow var(--transition-fast);
   outline: none;
@@ -287,7 +287,7 @@ a {
 
 .form-input:focus {
   background: var(--color-surface-lowest);
-  box-shadow: 
+  box-shadow:
     var(--shadow-input),
     0 0 0 2px rgba(0, 108, 81, 0.12);
 }
@@ -304,14 +304,14 @@ a {
 /* Input Error State - Soft Outline */
 .form-input.has-error {
   background: rgba(159, 63, 55, 0.04);
-  box-shadow: 
+  box-shadow:
     var(--shadow-input),
     0 0 0 1px rgba(159, 63, 55, 0.25);
 }
 
 .form-input.has-error:focus {
   background: rgba(159, 63, 55, 0.06);
-  box-shadow: 
+  box-shadow:
     var(--shadow-input),
     0 0 0 2px rgba(159, 63, 55, 0.3);
 }
@@ -338,7 +338,7 @@ a {
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: 
+  transition:
     color var(--transition-fast),
     background var(--transition-fast);
 }
@@ -457,7 +457,7 @@ a {
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: 
+  transition:
     transform var(--transition-fast),
     box-shadow var(--transition-base);
   box-shadow: 0 4px 12px rgba(0, 108, 81, 0.2);
@@ -578,13 +578,13 @@ a {
 }
 
 .form-input:focus-visible {
-  box-shadow: 
+  box-shadow:
     0 0 0 2px rgba(0, 108, 81, 0.2),
     0 0 0 4px rgba(0, 108, 81, 0.08);
 }
 
 .btn-login:focus-visible {
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 108, 81, 0.2),
     0 0 0 3px rgba(0, 108, 81, 0.25);
 }
