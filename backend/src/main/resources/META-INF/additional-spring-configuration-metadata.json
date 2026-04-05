@@ -6,9 +6,9 @@
       "description": "Signing secret for JWT (HS256)."
     },
     {
-      "name": "jwt.expiration-ms",
+      "name": "jwt.expiration",
       "type": "java.lang.Long",
-      "description": "JWT expiration time in milliseconds."
+      "description": "JWT expiration time in seconds."
     },
     {
       "name": "jwt.issuer",
