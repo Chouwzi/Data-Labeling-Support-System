@@ -1,7 +1,22 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import './Login.css';
 
 const API_BASE_URL = '/api';
+
+const MOCK_ACCOUNTS = {
+  'admin@gmail.com': {
+    password: 'admin123',
+    role: 'ADMIN',
+    token: 'mock-jwt-token-admin'
+  },
+  'staff@gmail.com': {
+    password: 'staff123',
+    role: 'STAFF',
+    token: 'mock-jwt-token-staff'
+  }
+};
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,8 +24,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  // Email validation regex
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const validateEmail = (email) => {
@@ -34,18 +54,27 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    // Validate email
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {
       setError(emailValidation.message);
       return;
     }
 
-    // Validate password
     const passwordValidation = validatePassword(password);
     if (!passwordValidation.valid) {
       setError(passwordValidation.message);
       return;
+    }
+
+    // MOCK LOGIN
+    if (MOCK_ACCOUNTS[email]) {
+      const mockAccount = MOCK_ACCOUNTS[email];
+      if (password === mockAccount.password) {
+        login(mockAccount.token, mockAccount.role, email);
+        console.log('Login success (Mock):', mockAccount.role);
+        navigate(from, { replace: true });
+        return;
+      }
     }
 
     setLoading(true);
@@ -64,14 +93,9 @@ export default function Login() {
       }
 
       const data = await response.json();
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.role);
-
-      const redirectPath = data.role === 'ADMIN'
-        ? '/admin/dashboard.html'
-        : '/staff/dashboard.html';
-
-      window.location.href = redirectPath;
+      login(data.token, data.role, email);
+      console.log('Login success:', data.role);
+      navigate(from, { replace: true });
     } catch (err) {
       setError('Thông tin không chính xác');
     } finally {
@@ -102,7 +126,7 @@ export default function Login() {
             </svg>
           </div>
           <h1 className="login-title">Đăng nhập</h1>
-          <p className="login-subtitle">Data Labeling Support System</p>
+          <p className="login-subtitle">DataLabel Pro</p>
         </header>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -113,7 +137,7 @@ export default function Login() {
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
-              <span className="error-text">{error}</span>
+              <span>{error}</span>
             </div>
           )}
 
@@ -159,12 +183,12 @@ export default function Login() {
                 aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
               >
                 {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-hide">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                     <line x1="1" y1="1" x2="23" y2="23"/>
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon-show">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
