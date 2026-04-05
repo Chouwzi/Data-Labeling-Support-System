@@ -4,6 +4,8 @@ import Login from './Login';
 import LandingPage from './LandingPage';
 import AdminDashboard from './AdminDashboard';
 import StaffDashboard from './StaffDashboard';
+import ActivityLog from './ActivityLog';
+import UsersPage from './UsersPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function PublicRoute({ children }) {
@@ -44,7 +46,7 @@ function App() {
         } 
       />
       
-      {/* Protected routes */}
+      {/* Protected routes - Dành riêng cho ADMIN */}
       <Route 
         path="/admin/dashboard" 
         element={
@@ -53,6 +55,26 @@ function App() {
           </ProtectedRoute>
         } 
       />
+
+      <Route 
+        path="/admin/logs" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <ActivityLog />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/admin/users" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <UsersPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Protected routes - Dành riêng cho STAFF */}
       <Route 
         path="/staff/dashboard" 
         element={

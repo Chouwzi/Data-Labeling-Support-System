@@ -1,0 +1,236 @@
+/* UserCard - Card layout for user list */
+
+.user-card {
+  background: #ffffff;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.user-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 108, 81, 0.15);
+  transform: translateY(-2px);
+}
+
+.user-card--disabled {
+  opacity: 0.7;
+  background: #fafafa;
+}
+
+/* =============================================
+   CARD HEADER
+   ============================================= */
+
+.user-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  position: relative;
+}
+
+.user-card__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-card__avatar span {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.user-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-card__name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-card__email {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7a72;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =============================================
+   ACTIONS DROPDOWN
+   ============================================= */
+
+.user-card__actions-wrapper {
+  position: relative;
+}
+
+.user-card__actions-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  color: #6b7a72;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.user-card__actions-toggle:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.user-card__actions-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  min-width: 140px;
+  padding: 0.375rem;
+  z-index: 50;
+  animation: dropdownIn 0.15s ease;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-card__action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.user-card__action:hover {
+  background: #f3f4f6;
+}
+
+.user-card__action--danger {
+  color: #dc2626;
+}
+
+.user-card__action--danger:hover {
+  background: #fef2f2;
+}
+
+.user-card__action--success {
+  color: #059669;
+}
+
+.user-card__action--success:hover {
+  background: #ecfdf5;
+}
+
+/* =============================================
+   BADGES
+   ============================================= */
+
+.user-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.user-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.user-card__badge--role {
+  font-size: 0.625rem;
+}
+
+.user-card__badge--status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.user-card__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.user-card__badge--group {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* =============================================
+   CARD FOOTER
+   ============================================= */
+
+.user-card__footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+
+@media (max-width: 768px) {
+  .user-card {
+    padding: 1rem;
+  }
+
+  .user-card__name {
+    font-size: 0.875rem;
+  }
+}
