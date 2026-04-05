@@ -279,21 +279,9 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
-.toggle-password svg {
+.toggle-password__icon {
   width: 20px;
   height: 20px;
-}
-
-.toggle-password .icon-hide {
-  display: none;
-}
-
-.toggle-password.active .icon-show {
-  display: none;
-}
-
-.toggle-password.active .icon-hide {
-  display: block;
 }
 
 /* =============================================
