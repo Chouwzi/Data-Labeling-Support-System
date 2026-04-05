@@ -30,7 +30,4 @@ public class UserCreationRequest {
   @NotBlank(message = "MISSING_REQUIRED_FIELD")
   @Size(max = 50)
   String role;
-
-  @Builder.Default
-  boolean active = true;
 }

@@ -39,18 +39,14 @@ public class User {
   String email;
 
   @Column(name = "full_name")
-  @NotBlank(message = "MISSING_REQUIRED_FIELD")
   String fullName;
 
-  @NotBlank(message = "MISSING_REQUIRED_FIELD")
-  @Size(min = 8, message = "PASSWORD_TOO_SHORT")
   String password;
 
   @Builder.Default
   @Column(name = "is_active")
   boolean active = true;
 
-  @NotBlank(message = "MISSING_REQUIRED_FIELD")
   @Column(length = 50)
   String role;
 
