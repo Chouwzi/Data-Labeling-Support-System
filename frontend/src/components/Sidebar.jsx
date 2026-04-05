@@ -7,9 +7,9 @@ import { Link } from 'react-router-dom';
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { id: 'logs', label: 'Activity Logs', icon: Activity, path: '/admin/logs' },
+  { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
   { id: 'projects', label: 'Projects', icon: Folder, active: false },
   { id: 'datasets', label: 'Datasets', icon: Database, active: false },
-  { id: 'users', label: 'Users', icon: Users, active: false },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
 ];
 

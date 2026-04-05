@@ -4,7 +4,8 @@ import Login from './Login';
 import LandingPage from './LandingPage';
 import AdminDashboard from './AdminDashboard';
 import StaffDashboard from './StaffDashboard';
-import ActivityLog from './ActivityLog'; // 1. Import Task LTJ-58 của Trang
+import ActivityLog from './ActivityLog';
+import UsersPage from './UsersPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function PublicRoute({ children }) {
@@ -55,12 +56,20 @@ function App() {
         } 
       />
 
-      {/* 2. CHÈN TASK LTJ-58 CỦA TRANG VÀO ĐÂY */}
       <Route 
         path="/admin/logs" 
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <ActivityLog />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/admin/users" 
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <UsersPage />
           </ProtectedRoute>
         } 
       />
