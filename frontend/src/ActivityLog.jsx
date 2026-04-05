@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -11,40 +10,76 @@ import './ActivityLog.css';
 const ActivityLog = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [logs, setLogs] = useState([]); 
-  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        
-        const response = await axios.get('http://localhost:8080/api/logs');
-        
-        if (Array.isArray(response.data)) {
-          setLogs(response.data);
-        } else {
-          console.error("API did not return an array:", response.data);
-          setLogs([]); 
-        }
-      } catch (error) {
-        console.error("Error fetching logs:", error);
-        setLogs([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLogs();
-  }, []);
+  // Mock data - Replace with actual API when available
+  const [logs] = useState([
+    {
+      id: 1,
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      userEmail: 'admin@gmail.com',
+      action: 'USER_LOGIN',
+      targetName: 'System',
+      status: 'SUCCESS'
+    },
+    {
+      id: 2,
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      userEmail: 'admin@gmail.com',
+      action: 'CONFIG_UPDATE',
+      targetName: 'AI Labeling Settings',
+      status: 'SUCCESS'
+    },
+    {
+      id: 3,
+      timestamp: new Date(Date.now() - 10800000).toISOString(),
+      userEmail: 'staff@gmail.com',
+      action: 'DATA_UPLOAD',
+      targetName: 'Dataset Batch #23',
+      status: 'SUCCESS'
+    },
+    {
+      id: 4,
+      timestamp: new Date(Date.now() - 14400000).toISOString(),
+      userEmail: 'system',
+      action: 'BACKUP_COMPLETE',
+      targetName: 'Nightly Backup',
+      status: 'INFO'
+    },
+    {
+      id: 5,
+      timestamp: new Date(Date.now() - 18000000).toISOString(),
+      userEmail: 'admin@gmail.com',
+      action: 'USER_LOGOUT',
+      targetName: 'System',
+      status: 'INFO'
+    }
+  ]);
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
+  const getStatusClass = (status) => {
+    const statusLower = (status || 'INFO').toLowerCase();
+    switch (statusLower) {
+      case 'success':
+      case 'completed':
+        return 'log-status--success';
+      case 'error':
+      case 'failed':
+        return 'log-status--error';
+      case 'pending':
+      case 'processing':
+        return 'log-status--pending';
+      default:
+        return 'log-status--info';
+    }
+  };
+
   return (
     <div className="admin-layout">
-      {/* Sidebar và Topbar để đồng bộ giao diện với Dashboard */}
       <Sidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       
       <div className="admin-main">
@@ -60,10 +95,10 @@ const ActivityLog = () => {
             <button
               type="button"
               className="log-back-btn"
-              onClick={() => navigate('/admin', { replace: true })}
+              onClick={() => navigate('/admin/dashboard', { replace: true })}
               aria-label="Quay lại Dashboard"
             >
-              <ArrowLeft size={16} aria-hidden />
+              <ArrowLeft size={16} aria-hidden="true" />
               <span>Dashboard</span>
             </button>
             <h1 className="admin-page-title">System Activity Logs</h1>
@@ -71,51 +106,46 @@ const ActivityLog = () => {
           </div>
 
           <div className="log-table-wrapper">
-            {loading ? (
-              <div className="loading">
-                Fetching system logs...
-              </div>
-            ) : (
-              <table className="log-table">
-                <thead>
-                  <tr>
-                    <th>TIMESTAMP</th>
-                    <th>USER</th>
-                    <th>ACTION</th>
-                    <th>TARGET OBJECT</th>
-                    <th>STATUS</th>
+            <table className="log-table">
+              <thead>
+                <tr>
+                  <th>TIMESTAMP</th>
+                  <th>USER</th>
+                  <th>ACTION</th>
+                  <th>TARGET OBJECT</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.length > 0 ? logs.map((log) => (
+                  <tr key={log.id}>
+                    <td className="log-table__cell--timestamp">
+                      {new Date(log.timestamp).toLocaleString('vi-VN')}
+                    </td>
+                    <td>
+                      <span className="log-user">{log.userEmail}</span>
+                    </td>
+                    <td>
+                      <span className="action-tag">
+                        {log.action.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="log-table__cell--muted">{log.targetName}</td>
+                    <td>
+                      <span className={`log-status ${getStatusClass(log.status)}`}>
+                        {log.status}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {logs.length > 0 ? logs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="log-table__cell--first">
-                        {new Date(log.timestamp).toLocaleString('en-US')}
-                      </td>
-                      <td><strong>{log.userEmail || log.username || 'System'}</strong></td>
-                      <td>
-                        <span className="action-tag">
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="log-table__cell--muted">{log.targetName || log.target || 'N/A'}</td>
-                      <td className="log-table__cell--last">
-                        <span className={`log-status log-status--${(log.status || 'info').toLowerCase()}`}>
-                          {log.status || 'INFO'}
-                        </span>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan="5" className="log-table__empty">
-                        <div className="log-table__empty-icon">No logs found.</div>
-                        <p>The activity history is currently empty.</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
+                )) : (
+                  <tr>
+                    <td colSpan="5" className="log-table__empty">
+                      No activity logs found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </main>
       </div>

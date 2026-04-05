@@ -1,16 +1,21 @@
-import { LayoutDashboard, Folder, Database, Users, Settings } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { LayoutDashboard, Folder, Database, Users, Settings, Activity } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 import './Sidebar.css';
+import { Link } from 'react-router-dom';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, active: true },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+  { id: 'logs', label: 'Activity Logs', icon: Activity, path: '/admin/logs' },
   { id: 'projects', label: 'Projects', icon: Folder, active: false },
   { id: 'datasets', label: 'Datasets', icon: Database, active: false },
   { id: 'users', label: 'Users', icon: Users, active: false },
-  { id: 'settings', label: 'Settings', icon: Settings, active: false },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
 ];
 
 export default function Sidebar({ isOpen = false, onNavigate }) {
+  const location = useLocation();
+  
   const handleNavClick = () => {
     onNavigate?.();
   };
@@ -40,19 +45,19 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
           <nav className="sidebar__nav" aria-label="Dashboard sections">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
+              const isActive = location.pathname === item.path;
               return (
-                <a
+                <Link
                   key={item.id}
-                  href="#"
-                  className={`sidebar__nav-item ${item.active ? 'sidebar__nav-item--active' : ''}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick();
+                  to={item.path || '#'}
+                  className={`sidebar__nav-item ${isActive ? 'sidebar__nav-item--active' : ''}`}
+                  onClick={() => {
+                    if (item.path) handleNavClick();
                   }}
                 >
-                  <Icon size={20} className={item.active ? 'active-icon' : ''} />
+                  <Icon size={20} className={isActive ? 'active-icon' : ''} />
                   <span className="sidebar__nav-label">{item.label}</span>
-                </a>
+                </Link>
               );
             })}
           </nav>

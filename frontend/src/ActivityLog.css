@@ -1,26 +1,21 @@
-.log-container {
-  padding: 30px;
-  background-color: #f4fbf5;
-  min-height: 100vh;
-}
+/* ActivityLog - Consistent with AdminDashboard */
+
+/* =============================================
+   LOG HEADER
+   ============================================= */
 
 .log-header {
   margin-bottom: 1.5rem;
-}
-
-.log-header h1 {
-  color: var(--color-primary);
-  margin-bottom: 10px;
 }
 
 .log-back-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.4rem 0.875rem;
-  margin-bottom: 0.875rem;
-  background: #ffffff;
-  border: 1px solid rgba(5, 150, 105, 0.18);
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 108, 81, 0.18);
   border-radius: 0.5rem;
   color: #059669;
   font-family: 'Manrope', sans-serif;
@@ -30,11 +25,10 @@
   transition: all 0.18s ease;
   letter-spacing: -0.01em;
   line-height: 1;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .log-back-btn:hover {
-  background: #ecfdf5;
+  background-color: #ecfdf5;
   border-color: rgba(5, 150, 105, 0.3);
   transform: translateX(-2px);
 }
@@ -43,8 +37,12 @@
   transform: translateX(0) scale(0.98);
 }
 
+/* =============================================
+   LOG TABLE WRAPPER
+   ============================================= */
+
 .log-table-wrapper {
-  background: #ffffff;
+  background-color: #ffffff;
   border-radius: 0.75rem;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -52,18 +50,14 @@
   overflow-x: auto;
 }
 
-.loading {
-  text-align: center;
-  padding: 2.5rem;
-  color: #006c51;
-  font-weight: 600;
-  font-size: 0.9375rem;
-}
+/* =============================================
+   LOG TABLE
+   ============================================= */
 
 .log-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 0.5rem;
+  border-spacing: 0;
 }
 
 .log-table thead tr {
@@ -71,14 +65,23 @@
 }
 
 .log-table th {
-  padding: 0.625rem 1rem;
+  padding: 0.75rem 1rem;
   color: #6b7a72;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid #e8f0eb;
   white-space: nowrap;
+  background-color: #f8faf9;
+}
+
+.log-table th:first-child {
+  border-radius: 0.5rem 0 0 0;
+}
+
+.log-table th:last-child {
+  border-radius: 0 0.5rem 0 0;
 }
 
 .log-table td {
@@ -86,30 +89,53 @@
   border-bottom: 1px solid #f0f0f0;
   color: #374151;
   font-size: 0.875rem;
+  vertical-align: middle;
 }
 
 .log-table tbody tr {
-  background-color: #fafafa;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  background-color: #ffffff;
+  transition: background-color 0.15s ease;
 }
 
 .log-table tbody tr:hover {
-  background-color: #f0fdf4;
+  background-color: #f4fbf5;
 }
 
-.log-table__cell--first {
-  border-radius: 0.5rem 0 0 0.5rem;
+.log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.log-table tbody tr:last-child td:first-child {
+  border-radius: 0 0 0 0.5rem;
+}
+
+.log-table tbody tr:last-child td:last-child {
+  border-radius: 0 0 0.5rem 0;
+}
+
+/* =============================================
+   TABLE CELLS
+   ============================================= */
+
+.log-table__cell--timestamp {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: #6b7a72;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
 }
 
 .log-table__cell--muted {
-  color: #6b7280;
+  color: #6b7a72;
 }
 
-.log-table__cell--last {
-  border-radius: 0 0.5rem 0.5rem 0;
+.log-user {
+  font-weight: 600;
+  color: #111827;
 }
+
+/* =============================================
+   STATUS BADGES
+   ============================================= */
 
 .log-status {
   display: inline-block;
@@ -118,6 +144,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .log-status--success {
@@ -136,11 +163,14 @@
   color: #d97706;
 }
 
-.log-status--info,
-.log-status--default {
+.log-status--info {
   background-color: #f3f4f6;
   color: #6b7280;
 }
+
+/* =============================================
+   ACTION TAGS
+   ============================================= */
 
 .action-tag {
   display: inline-block;
@@ -155,14 +185,44 @@
   white-space: nowrap;
 }
 
+/* =============================================
+   EMPTY STATE
+   ============================================= */
+
 .log-table__empty {
   text-align: center;
   padding: 3.5rem 1rem;
   color: #9ca3af;
+  font-size: 0.9375rem;
 }
 
-.log-table__empty-icon {
-  font-size: 1.125rem;
-  margin-bottom: 0.5rem;
-  color: #d1d5db;
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+
+@media (max-width: 1024px) {
+  .log-table-wrapper {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .log-table th,
+  .log-table td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .log-table th {
+    font-size: 0.6875rem;
+  }
+
+  .log-status {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  .action-tag {
+    font-size: 0.625rem;
+    padding: 0.2rem 0.5rem;
+  }
 }
