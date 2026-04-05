@@ -192,6 +192,18 @@ export default function Login() {
             </div>
           </div>
 
+          <div className="form-actions">
+            <a
+              href="#forgot-password"
+              className="link-forgot"
+              onClick={(e) => {
+                e.preventDefault();
+              }}
+            >
+              Quên mật khẩu?
+            </a>
+          </div>
+
           <button
             type="submit"
             className={`btn-login ${loading ? 'loading' : ''}`}
