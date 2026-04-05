@@ -19,9 +19,26 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
   }
 
+  // Ưu tiên bắt các ngoại lệ liên quan đến phân quyền của Spring Security
+  // Nếu không có block này thì Exception catch-all sẽ báo lỗi 500 Server Error
+  @ExceptionHandler(value = {
+      org.springframework.security.access.AccessDeniedException.class,
+      org.springframework.security.authorization.AuthorizationDeniedException.class
+  })
+  public void handleAccessDeniedException(Exception ex) throws Exception {
+    // Throw ngược ra ngoài để Spring Security can thiệp
+    // Và gọi JwtAccessDeniedHandler (trả về lỗi 403 Forbidden)
+    throw ex;
+  }
+
   @ExceptionHandler(value = MethodArgumentNotValidException.class)
   public ResponseEntity<ApiResponse<Object>> handleValidationException(MethodArgumentNotValidException exception) {
     String messageKey = exception.getFieldError().getDefaultMessage();
+    String field = exception.getFieldError().getField();
+
+    // Ghi log để biết field nào bị thiếu/lỗi validation ở môi trường test/dev
+    System.out.println("\nValidation failed for field: " + field + ", messageKey: " + messageKey);
+
     // Mặc định errorCode sẽ là VALIDATION_ERROR
     // Để đề phòng trường hợp ghi sai enumKey ở các message validation
     ErrorCode errorCode = ErrorCode.VALIDATION_ERROR;
