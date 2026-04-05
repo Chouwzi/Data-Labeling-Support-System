@@ -26,21 +26,21 @@ public class UserController {
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserCreationRequest request) {
     return ApiResponse.<UserResponse>builder()
-        .result(userService.createUser(request))
+        .data(userService.createUser(request))
         .build();
   }
 
   @GetMapping
   public ApiResponse<List<UserResponse>> getAllUsers() {
     return ApiResponse.<List<UserResponse>>builder()
-        .result(userService.getAllUsers())
+        .data(userService.getAllUsers())
         .build();
   }
 
   @GetMapping("/{userId}")
   public ApiResponse<UserResponse> getUser(@PathVariable("userId") UUID userId) {
     return ApiResponse.<UserResponse>builder()
-        .result(userService.getUserById(userId))
+        .data(userService.getUserById(userId))
         .build();
   }
 
@@ -48,7 +48,7 @@ public class UserController {
   public ApiResponse<UserResponse> updateUser(@PathVariable("userId") UUID userId,
       @Valid @RequestBody UserUpdateRequest request) {
     return ApiResponse.<UserResponse>builder()
-        .result(userService.updateUser(userId, request))
+        .data(userService.updateUser(userId, request))
         .build();
   }
 

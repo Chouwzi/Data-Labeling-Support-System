@@ -1,6 +1,6 @@
-package com.uth.datalabeling.common.response;
+package com.uth.datalabeling.modules.system.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,11 +13,10 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
-  @Builder.Default
-  boolean success = true;
-  String message;
-  T data;
-  Object error;
+public class SystemConfigUpdateRequest {
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
+  String key;
+
+  @NotBlank(message = "MISSING_REQUIRED_FIELD")
+  String value;
 }

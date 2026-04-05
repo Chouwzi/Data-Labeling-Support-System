@@ -13,8 +13,9 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponse<Object>> handleAppException(AppException ex) {
     ErrorCode errorCode = ex.getErrorCode();
     ApiResponse<Object> response = ApiResponse.builder()
-        .code(errorCode.getCode())
+        .success(false)
         .message(errorCode.getMessage())
+        .error(errorCode.getCode())
         .build();
     return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
   }
@@ -33,8 +34,9 @@ public class GlobalExceptionHandler {
     }
 
     ApiResponse<Object> apiResponse = ApiResponse.builder()
-        .code(errorCode.getCode())
+        .success(false)
         .message(errorCode.getMessage())
+        .error(errorCode.getCode())
         .build();
     return ResponseEntity.status(errorCode.getHttpStatus()).body(apiResponse);
   }
@@ -43,8 +45,9 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception exception) {
     ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
     ApiResponse<Object> response = ApiResponse.builder()
-        .code(errorCode.getCode())
+        .success(false)
         .message(errorCode.getMessage())
+        .error(errorCode.getCode())
         .build();
     return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
   }

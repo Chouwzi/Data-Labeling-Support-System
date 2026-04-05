@@ -13,6 +13,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface UserMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
+  @Mapping(target = "active", source = "active")
   User toUser(UserCreationRequest request);
 
   UserResponse toUserResponse(User user);

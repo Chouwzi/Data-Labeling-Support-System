@@ -1,6 +1,5 @@
-package com.uth.datalabeling.common.response;
+package com.uth.datalabeling.modules.system.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,16 +7,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
-  @Builder.Default
-  boolean success = true;
-  String message;
-  T data;
-  Object error;
+public class AuditLogResponse {
+  Long id;
+  String action;
+  String userEmail;
+  String details;
+  LocalDateTime timestamp;
 }
