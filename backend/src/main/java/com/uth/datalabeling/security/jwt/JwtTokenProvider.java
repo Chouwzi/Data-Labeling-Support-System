@@ -1,4 +1,4 @@
-package com.uth.datalabeling.config.security;
+package com.uth.datalabeling.security.jwt;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
@@ -11,64 +11,80 @@ import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
 
-  @Value("${jwt.secret}")
+  @Value("${jwt.secret}") // Lấy key jwt từ properties/.env
   private String jwtSecret;
 
-  @Value("${jwt.expiration-ms}")
-  private long jwtExpirationMs;
+  @Value("${jwt.expiration}") // Thời hạn jwt (seconds)
+  private long jwtExpiration;
+
+  @Value("${jwt.issuer}")
+  private String jwtIssuer;
 
   private Key signingKey;
 
   @PostConstruct
   public void init() {
+    if (jwtSecret == null || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+      throw new IllegalStateException("JWT secret must be at least 32 bytes for HS256");
+    }
     signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
   }
 
+  // Tạo token từ thông tin đăng nhập thành công
   public String generateToken(Authentication authentication) {
     String email = authentication.getName();
-    List<String> authorities = authentication.getAuthorities().stream()
-        .map(GrantedAuthority::getAuthority)
-        .collect(Collectors.toList());
 
     Date now = new Date();
-    Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+    // Chuyển đổi giây sang milis giây để dùng với thư viện Date của Java
+    Date expiryDate = new Date(now.getTime() + jwtExpiration * 1000);
 
     return Jwts.builder()
         .setSubject(email)
-        .claim("roles", authorities)
+        .setIssuer(jwtIssuer)
         .setIssuedAt(now)
         .setExpiration(expiryDate)
         .signWith(signingKey, SignatureAlgorithm.HS256)
         .compact();
   }
 
+  // Đọc email của người dùng từ token
   public String getEmailFromToken(String token) {
     return Jwts.parserBuilder()
         .setSigningKey(signingKey)
+        .requireIssuer(jwtIssuer)
         .build()
         .parseClaimsJws(token)
         .getBody()
         .getSubject();
   }
 
+  // Kiểm tra xem token có bị hết hạn, sai hoặc bị sửa đổi
   public boolean validateToken(String token) {
     try {
-      Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
+      Jwts.parserBuilder()
+          .setSigningKey(signingKey)
+          .requireIssuer(jwtIssuer)
+          .build()
+          .parseClaimsJws(token);
       return true;
     } catch (ExpiredJwtException ex) {
+      // Token hết hạn
       throw new AppException(ErrorCode.TOKEN_EXPIRED);
     } catch (JwtException | IllegalArgumentException ex) {
+      // Token sai định dạng hoặc giả mạo
       throw new AppException(ErrorCode.TOKEN_INVALID);
     }
+  }
+
+  // Cung cấp thời hạn của token cho LoginResponse (seconds)
+  public long getExpiration() {
+    return jwtExpiration;
   }
 }
