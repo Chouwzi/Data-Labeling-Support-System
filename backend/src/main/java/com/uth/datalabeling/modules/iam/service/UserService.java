@@ -1,5 +1,6 @@
 package com.uth.datalabeling.modules.iam.service;
 
+import com.uth.datalabeling.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.iam.dto.request.UserCreationRequest;
@@ -21,10 +22,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
+
   UserRepository userRepository;
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
 
+  @LogActivity(action = "CREATE_USER")
   public UserResponse createUser(UserCreationRequest request) {
     if (userRepository.existsByEmail(request.getEmail())) {
       throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
@@ -32,10 +35,10 @@ public class UserService {
 
     User user = userMapper.toUser(request);
 
-    // Hash password bằng BCrypt
     user.setPassword(passwordEncoder.encode(user.getPassword()));
     return userMapper.toUserResponse(userRepository.save(user));
   }
+
 
   public List<UserResponse> getAllUsers() {
     return userRepository.findAll().stream()
@@ -43,22 +46,23 @@ public class UserService {
         .toList();
   }
 
+
   public UserResponse getUserById(UUID id) {
     return userRepository.findById(id)
         .map(userMapper::toUserResponse)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
   }
 
+ 
+  @LogActivity(action = "UPDATE_USER")
   public UserResponse updateUser(UUID id, UserUpdateRequest request) {
     User user = userRepository.findById(id)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-    // Lưu mật khẩu cũ đề phòng mapper ghi đè null
     String oldPassword = user.getPassword();
 
     userMapper.updateUser(user, request);
 
-    // Chỉ mã hóa và cập nhật mật khẩu nếu request có mật khẩu mới
     if (request.getPassword() != null && !request.getPassword().isBlank()) {
       user.setPassword(passwordEncoder.encode(request.getPassword()));
     } else {
@@ -68,6 +72,8 @@ public class UserService {
     return userMapper.toUserResponse(userRepository.save(user));
   }
 
+  
+  @LogActivity(action = "DELETE_USER")
   public void deleteUser(UUID id) {
     if (!userRepository.existsById(id)) {
       throw new AppException(ErrorCode.USER_NOT_FOUND);

@@ -11,7 +11,7 @@ public enum ErrorCode {
 
   // 401 Unauthorized
   UNAUTHORIZED(401, 40100, "Chưa xác thực"),
-  INVALID_CREDENTIALS(401, 40101, "Sai thông tin đăng nhập"),
+  INVALID_CREDENTIALS(401, 40101, " đăng nhập"),
   TOKEN_EXPIRED(401, 40102, "Token hết hạn"),
   TOKEN_INVALID(401, 40103, "Token không hợp lệ"),
 
