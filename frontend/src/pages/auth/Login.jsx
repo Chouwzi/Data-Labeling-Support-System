@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD:frontend/src/pages/auth/Login.jsx
 import { useAuth } from '@/contexts/AuthContext';
 import BrandLogo from '@/components/common/BrandLogo';
 import { mockLogin } from '@/services/mockAuth';
 import '@/styles/Login.css';
+=======
+import { useAuth } from './contexts/AuthContext';
+import BrandLogo from './components/BrandLogo';
+import { mockLogin } from './services/mockAuth';
+import './Login.css';
+>>>>>>> b62c715017dd8b801834a02262a3fda1d84eecfa:frontend/src/Login.jsx
 
 export default function Login() {
   const [email, setEmail] = useState('');

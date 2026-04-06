@@ -234,11 +234,22 @@
     padding: 0.75rem;
   }
 
-  .admin-page-header {
+  .admin-page-header,
+  .users-header,
+  .log-header {
     margin-bottom: 1.25rem;
   }
 
   .admin-page-title {
     font-size: 1.25rem;
   }
+}
+
+/* Users Page Header */
+.users-header {
+  margin-bottom: 1.5rem;
+}
+
+.users-header .admin-page-title {
+  margin-top: 0.5rem;
 }

@@ -6,6 +6,7 @@ const mockUsers = [
 ];
 
 export const mockLogin = async (email, password) => {
+  // Simulate network delay for realistic UX
   await new Promise((resolve) => setTimeout(resolve, 600));
 
   const user = mockUsers.find(

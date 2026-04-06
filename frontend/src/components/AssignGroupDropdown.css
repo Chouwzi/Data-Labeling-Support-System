@@ -4,6 +4,7 @@
   align-items: center;
   gap: 0.5rem;
 }
+
 .assign-group__label {
   display: flex;
   align-items: center;
@@ -15,11 +16,13 @@
   letter-spacing: 0.05em;
   flex-shrink: 0;
 }
+
 .assign-group__select-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
+
 .assign-group__select {
   appearance: none;
   background: #f4fbf5;
@@ -34,16 +37,20 @@
   transition: all 0.15s ease;
   min-width: 100px;
 }
+
 .assign-group__select:hover:not(:disabled) {
   background: #ecfdf5;
   border-color: rgba(0, 108, 81, 0.15);
 }
+
 .assign-group__select:focus {
   outline: none;
   border-color: #006c51;
   box-shadow: 0 0 0 3px rgba(0, 108, 81, 0.1);
 }
+
 .assign-group__select:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .assign-group__arrow {
   position: absolute;
   right: 0.5rem;

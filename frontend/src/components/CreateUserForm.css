@@ -1,15 +1,26 @@
 /* CreateUserForm - Clean flat modal design */
+
+/* =============================================
+   FORM CONTAINER
+   ============================================= */
+
 .create-user-form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   padding: 0.5rem 0;
 }
+
+/* =============================================
+   FORM FIELDS
+   ============================================= */
+
 .form-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
+
 .form-field__label {
   display: flex;
   align-items: center;
@@ -19,7 +30,16 @@
   color: #374151;
   font-family: 'Inter', sans-serif;
 }
-.form-field__label svg { color: #6b7a72; flex-shrink: 0; }
+
+.form-field__label svg {
+  color: #6b7a72;
+  flex-shrink: 0;
+}
+
+/* =============================================
+   INPUT STYLES
+   ============================================= */
+
 .form-field__input,
 .form-field__select {
   width: 100%;
@@ -34,31 +54,72 @@
   transition: all 0.2s ease;
   outline: none;
 }
-.form-field__input::placeholder { color: #9ca3af; }
-.form-field__input:hover, .form-field__select:hover { border-color: #d1d5db; }
-.form-field__input:focus, .form-field__select:focus {
+
+.form-field__input::placeholder {
+  color: #9ca3af;
+}
+
+.form-field__input:hover,
+.form-field__select:hover {
+  border-color: #d1d5db;
+}
+
+.form-field__input:focus,
+.form-field__select:focus {
   border-color: #006c51;
   box-shadow: 0 0 0 3px rgba(0, 108, 81, 0.08);
 }
-.form-field__input:disabled, .form-field__select:disabled {
+
+.form-field__input:disabled,
+.form-field__select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #f9faf9;
+  background: #f9fafb;
 }
-.form-field__input--error { border-color: #dc2626; background: rgba(239, 68, 68, 0.02); }
-.form-field__input--error:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08); }
+
+/* =============================================
+   ERROR STATE
+   ============================================= */
+
+.form-field__input--error {
+  border-color: #dc2626;
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.form-field__input--error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+}
+
 .form-field__error {
   font-size: 0.8125rem;
   color: #dc2626;
   margin: 0;
   padding-left: 0.25rem;
 }
+
+.form-field__error--submit {
+  background: rgba(239, 68, 68, 0.08);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* =============================================
+   PASSWORD FIELD
+   ============================================= */
+
 .form-field__password-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
-.form-field__input--password { padding-right: 3rem; }
+
+.form-field__input--password {
+  padding-right: 3rem;
+}
+
 .form-field__password-toggle {
   position: absolute;
   right: 0.625rem;
@@ -74,26 +135,49 @@
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.form-field__password-toggle:hover { color: #6b7280; background: #f3f4f6; }
-.form-field__password-toggle:active { background: #e5e7eb; }
-.form-field__password-toggle:disabled { cursor: not-allowed; opacity: 0.4; }
+
+.form-field__password-toggle:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.form-field__password-toggle:active {
+  background: #e5e7eb;
+}
+
+.form-field__password-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* =============================================
+   SELECT FIELD
+   ============================================= */
+
 .form-field__select-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
+
 .form-field__select {
   appearance: none;
   cursor: pointer;
   padding-right: 2.5rem;
   background: #ffffff;
 }
+
 .form-field__select-arrow {
   position: absolute;
   right: 0.875rem;
   pointer-events: none;
   color: #9ca3af;
 }
+
+/* =============================================
+   SUBMIT BUTTON
+   ============================================= */
+
 .create-user-form__submit {
   display: flex;
   align-items: center;
@@ -113,12 +197,23 @@
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 108, 81, 0.2);
 }
+
 .create-user-form__submit:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(0, 108, 81, 0.3);
 }
-.create-user-form__submit:active:not(:disabled) { transform: translateY(0); }
-.create-user-form__submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.create-user-form__submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.create-user-form__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .create-user-form__spinner {
   width: 18px;
   height: 18px;
@@ -127,7 +222,17 @@
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =============================================
+   HINT TEXT
+   ============================================= */
+
 .create-user-form__hint {
   font-size: 0.75rem;
   color: #9ca3af;
@@ -135,8 +240,24 @@
   margin: 0;
   padding-top: 0.25rem;
 }
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+
 @media (max-width: 480px) {
-  .create-user-form { gap: 1rem; }
-  .form-field__input, .form-field__select { height: 42px; font-size: 0.875rem; }
-  .create-user-form__submit { height: 44px; font-size: 0.875rem; }
+  .create-user-form {
+    gap: 1rem;
+  }
+
+  .form-field__input,
+  .form-field__select {
+    height: 42px;
+    font-size: 0.875rem;
+  }
+
+  .create-user-form__submit {
+    height: 44px;
+    font-size: 0.875rem;
+  }
 }

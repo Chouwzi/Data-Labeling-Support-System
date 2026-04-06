@@ -9,7 +9,7 @@ const ROLES = [
   { value: 'REVIEWER', label: 'Reviewer' },
 ];
 
-export default function CreateUserForm({ onSuccess }) {
+export default function CreateUserForm({ onSuccess, onSubmit }) {
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -19,11 +19,11 @@ export default function CreateUserForm({ onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -67,21 +67,30 @@ export default function CreateUserForm({ onSuccess }) {
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    console.log('User data ready for submission:', formData);
-    setIsSubmitting(false);
+    setSubmitError('');
 
-    if (onSuccess) {
-      onSuccess(formData);
+    try {
+      if (onSubmit) {
+        await onSubmit(formData);
+      }
+
+      if (onSuccess) {
+        onSuccess(formData);
+      }
+
+      setFormData({ email: '', fullName: '', password: '', role: '' });
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to create user');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setFormData({ email: '', fullName: '', password: '', role: '' });
   };
 
   const isFormValid = formData.email && formData.fullName && formData.password && formData.role;
 
   return (
     <form className="create-user-form" onSubmit={handleSubmit} noValidate>
+      {/* Email Field */}
       <div className="form-field">
         <label className="form-field__label" htmlFor="email">
           <Mail size={16} />
@@ -103,6 +112,7 @@ export default function CreateUserForm({ onSuccess }) {
         )}
       </div>
 
+      {/* Full Name Field */}
       <div className="form-field">
         <label className="form-field__label" htmlFor="fullName">
           <User size={16} />
@@ -124,6 +134,7 @@ export default function CreateUserForm({ onSuccess }) {
         )}
       </div>
 
+      {/* Password Field */}
       <div className="form-field">
         <label className="form-field__label" htmlFor="password">
           <Lock size={16} />
@@ -166,6 +177,7 @@ export default function CreateUserForm({ onSuccess }) {
         )}
       </div>
 
+      {/* Role Field */}
       <div className="form-field">
         <label className="form-field__label" htmlFor="role">
           <Shield size={16} />
@@ -195,6 +207,14 @@ export default function CreateUserForm({ onSuccess }) {
         )}
       </div>
 
+      {/* Submit Error */}
+      {submitError && (
+        <div className="form-field__error form-field__error--submit">
+          {submitError}
+        </div>
+      )}
+
+      {/* Submit Button */}
       <button
         type="submit"
         className={`create-user-form__submit ${isSubmitting ? 'loading' : ''}`}
