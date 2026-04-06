@@ -2,22 +2,10 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import BrandLogo from './components/BrandLogo';
+import { normalizeLoginResult } from './utils/apiResponse';
 import './Login.css';
 
 const API_BASE_URL = '/api/v1';
-
-const MOCK_ACCOUNTS = {
-  'admin@gmail.com': {
-    password: 'admin123',
-    role: 'ADMIN',
-    token: 'mock-jwt-token-admin',
-  },
-  'staff@gmail.com': {
-    password: 'staff123',
-    role: 'STAFF',
-    token: 'mock-jwt-token-staff',
-  },
-};
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -83,10 +71,19 @@ export default function Login() {
       }
 
       const data = await response.json();
-      const { accessToken, user } = data.result;
-      login(accessToken, user.role, email, user.id, user.fullName);
-      console.log('Login success:', user.role);
-      navigate(from, { replace: true });
+      const parsed = normalizeLoginResult(data.result);
+      if (!parsed) {
+        throw new Error('Invalid login payload');
+      }
+
+      const { accessToken, role, userId, fullName, email: apiEmail } = parsed;
+      login(accessToken, role, email || apiEmail, userId, fullName);
+
+      // Đợi React commit AuthContext trước khi điều hướng (tránh ProtectedRoute thấy chưa đăng nhập)
+      const target = role === 'ADMIN' ? '/admin/dashboard' : '/staff/dashboard';
+      queueMicrotask(() => {
+        navigate(target, { replace: true });
+      });
     } catch {
       setError('Thông tin không chính xác');
     } finally {
