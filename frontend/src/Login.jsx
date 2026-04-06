@@ -6,19 +6,6 @@ import './Login.css';
 
 const API_BASE_URL = '/api';
 
-const MOCK_ACCOUNTS = {
-  'admin@gmail.com': {
-    password: 'admin123',
-    role: 'ADMIN',
-    token: 'mock-jwt-token-admin',
-  },
-  'staff@gmail.com': {
-    password: 'staff123',
-    role: 'STAFF',
-    token: 'mock-jwt-token-staff',
-  },
-};
-
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,16 +54,6 @@ export default function Login() {
       return;
     }
 
-    // MOCK LOGIN
-    if (MOCK_ACCOUNTS[email]) {
-      const mockAccount = MOCK_ACCOUNTS[email];
-      if (password === mockAccount.password) {
-        login(mockAccount.token, mockAccount.role, email);
-        console.log('Login success (Mock):', mockAccount.role);
-        navigate(from, { replace: true });
-        return;
-      }
-    }
 
     setLoading(true);
 
@@ -94,9 +71,10 @@ export default function Login() {
       }
 
       const data = await response.json();
-      login(data.token, data.role, email);
-      console.log('Login success:', data.role);
-      navigate(from, { replace: true });
+      if (data.result) {
+        login(data.result.accessToken, data.result.user.role, data.result.user.email);
+        navigate(from, { replace: true });
+      }
     } catch {
       setError('Thông tin không chính xác');
     } finally {
