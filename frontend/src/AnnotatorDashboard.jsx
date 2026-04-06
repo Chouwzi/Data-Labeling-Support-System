@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import './Dashboard.css';
 
-export default function StaffDashboard() {
+export default function AnnotatorDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -23,8 +23,8 @@ export default function StaffDashboard() {
             <circle cx="32" cy="32" r="5" fill="#006c51"/>
           </svg>
           <div className="dashboard-title-group">
-            <h1 className="dashboard-title">Staff Dashboard</h1>
-            <p className="dashboard-subtitle">{user?.email || 'Staff User'}</p>
+            <h1 className="dashboard-title">ANNOTATOR DASHBOARD</h1>
+            <p className="dashboard-subtitle">{user?.email || 'annotator@test.com'}</p>
           </div>
         </div>
         <button className="logout-btn" onClick={handleLogout}>
@@ -39,7 +39,7 @@ export default function StaffDashboard() {
 
       <div className="dashboard-content fade-in-up">
         <div className="welcome-card">
-          <h2 className="welcome-title">Chào mừng bạn quay trở lại!</h2>
+          <h2 className="welcome-title">Chào mừng Annotator!</h2>
           <p className="welcome-text">Tiếp tục công việc gắn nhãn của bạn.</p>
         </div>
 

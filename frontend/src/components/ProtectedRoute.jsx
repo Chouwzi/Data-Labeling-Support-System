@@ -18,11 +18,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    // Redirect based on role
-    if (user?.role === 'ADMIN') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    return <Navigate to="/staff/dashboard" replace />;
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;

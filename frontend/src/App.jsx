@@ -3,10 +3,18 @@ import { useAuth } from './contexts/AuthContext';
 import Login from './Login';
 import LandingPage from './LandingPage';
 import AdminDashboard from './AdminDashboard';
-import StaffDashboard from './StaffDashboard';
-import ActivityLog from './ActivityLog';
-import UsersPage from './UsersPage';
+import ManagerDashboard from './ManagerDashboard';
+import AnnotatorDashboard from './AnnotatorDashboard';
+import ReviewerDashboard from './ReviewerDashboard';
+import Unauthorized from './Unauthorized';
 import ProtectedRoute from './components/ProtectedRoute';
+
+const ROLE_ROUTES = {
+  ADMIN: '/admin',
+  MANAGER: '/manager',
+  ANNOTATOR: '/annotator',
+  REVIEWER: '/reviewer',
+};
 
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -16,10 +24,10 @@ function PublicRoute({ children }) {
   }
 
   if (isAuthenticated) {
-    if (user?.role === 'ADMIN') {
-      return <Navigate to="/admin/dashboard" replace />;
+    const target = ROLE_ROUTES[user?.role];
+    if (target) {
+      return <Navigate to={target} replace />;
     }
-    return <Navigate to="/staff/dashboard" replace />;
   }
 
   return children;
@@ -28,86 +36,76 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <Routes>
-      {/* Public routes - redirect to dashboard if logged in */}
-      <Route 
-        path="/" 
+      {/* Public routes */}
+      <Route
+        path="/"
         element={
           <PublicRoute>
             <LandingPage />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <Login />
           </PublicRoute>
-        } 
+        }
       />
-      
-      {/* Protected routes - Dành riêng cho ADMIN */}
-      <Route 
-        path="/admin/dashboard" 
+      <Route
+        path="/unauthorized"
+        element={<Unauthorized />}
+      />
+
+      {/* Role-specific dashboard routes */}
+      <Route
+        path="/admin"
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminDashboard />
           </ProtectedRoute>
-        } 
+        }
+      />
+      <Route
+        path="/manager"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/annotator"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerDashboard />
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/admin/logs" 
+      {/* Legacy admin routes (for backwards compat) */}
+      <Route
+        path="/admin/dashboard"
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
-            <ActivityLog />
+            <AdminDashboard />
           </ProtectedRoute>
-        } 
+        }
       />
 
-      <Route 
-        path="/admin/users" 
-        element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <UsersPage />
-          </ProtectedRoute>
-        } 
-      />
-
-      {/* Protected routes - Dành riêng cho STAFF */}
-      <Route 
-        path="/staff/dashboard" 
-        element={
-          <ProtectedRoute allowedRoles={['STAFF']}>
-            <StaffDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Short dashboard route - redirects based on role */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <DashboardRedirect />
-          </ProtectedRoute>
-        } 
-      />
-      
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-}
-
-function DashboardRedirect() {
-  const { user } = useAuth();
-  
-  if (user?.role === 'ADMIN') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-  
-  return <Navigate to="/staff/dashboard" replace />;
 }
 
 export default App;

@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import BrandLogo from './components/BrandLogo';
-import { normalizeLoginResult } from './utils/apiResponse';
+import { mockLogin } from './services/mockAuth';
 import './Login.css';
-
-const API_BASE_URL = '/api/v1';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -55,29 +53,17 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const result = await mockLogin(email, password);
+      const { accessToken, role } = result;
+      login(accessToken, role, email);
 
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
-      }
-
-      const data = await response.json();
-      const parsed = normalizeLoginResult(data.result);
-      if (!parsed) {
-        throw new Error('Invalid login payload');
-      }
-
-      const { accessToken, role, userId, fullName, email: apiEmail } = parsed;
-      login(accessToken, role, email || apiEmail, userId, fullName);
-
-      // Đợi React commit AuthContext trước khi điều hướng (tránh ProtectedRoute thấy chưa đăng nhập)
-      const target = role === 'ADMIN' ? '/admin/dashboard' : '/staff/dashboard';
+      const roleRoutes = {
+        ADMIN: '/admin',
+        MANAGER: '/manager',
+        ANNOTATOR: '/annotator',
+        REVIEWER: '/reviewer',
+      };
+      const target = roleRoutes[role] || '/login';
       queueMicrotask(() => {
         navigate(target, { replace: true });
       });

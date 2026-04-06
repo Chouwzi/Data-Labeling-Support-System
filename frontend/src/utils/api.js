@@ -7,11 +7,11 @@ const API_BASE_URL = '/api/v1';
  * @returns {Promise<Response>}
  */
 export async function apiRequest(endpoint, options = {}) {
-  const token = localStorage.getItem('token');
+  const accessToken = localStorage.getItem('accessToken');
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
     ...options.headers,
   };
 
@@ -22,7 +22,7 @@ export async function apiRequest(endpoint, options = {}) {
 
   // Xử lý khi token hết hạn
   if (response.status === 401) {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('role');
     localStorage.removeItem('email');
     localStorage.removeItem('userId');
