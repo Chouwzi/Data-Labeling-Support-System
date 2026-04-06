@@ -4,7 +4,7 @@ import { useAuth } from './contexts/AuthContext';
 import BrandLogo from './components/BrandLogo';
 import './Login.css';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api/v1';
 
 const MOCK_ACCOUNTS = {
   'admin@gmail.com': {
@@ -67,17 +67,6 @@ export default function Login() {
       return;
     }
 
-    // MOCK LOGIN
-    if (MOCK_ACCOUNTS[email]) {
-      const mockAccount = MOCK_ACCOUNTS[email];
-      if (password === mockAccount.password) {
-        login(mockAccount.token, mockAccount.role, email);
-        console.log('Login success (Mock):', mockAccount.role);
-        navigate(from, { replace: true });
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
@@ -94,8 +83,9 @@ export default function Login() {
       }
 
       const data = await response.json();
-      login(data.token, data.role, email);
-      console.log('Login success:', data.role);
+      const { accessToken, user } = data.result;
+      login(accessToken, user.role, email, user.id, user.fullName);
+      console.log('Login success:', user.role);
       navigate(from, { replace: true });
     } catch {
       setError('Thông tin không chính xác');

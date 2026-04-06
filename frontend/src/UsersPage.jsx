@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, UserPlus, FolderPlus } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -9,60 +9,9 @@ import CreateUserForm from './components/CreateUserForm';
 import Modal from './components/Modal';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { getUsers, createUser as createUserApi, updateUser as updateUserApi } from './utils/api';
 import './AdminDashboard.css';
 import './UsersPage.css';
-
-// Mock users - UI only, no API
-const INITIAL_USERS = [
-  {
-    id: 1,
-    fullName: 'Nguyen Van A',
-    email: 'nguyenvana@example.com',
-    role: 'MANAGER',
-    status: 'active',
-    groupId: 1,
-  },
-  {
-    id: 2,
-    fullName: 'Tran Thi B',
-    email: 'tranthib@example.com',
-    role: 'ANNOTATOR',
-    status: 'active',
-    groupId: 2,
-  },
-  {
-    id: 3,
-    fullName: 'Le Van C',
-    email: 'levanc@example.com',
-    role: 'REVIEWER',
-    status: 'active',
-    groupId: 1,
-  },
-  {
-    id: 4,
-    fullName: 'Pham Thi D',
-    email: 'phamthid@example.com',
-    role: 'ANNOTATOR',
-    status: 'disabled',
-    groupId: null,
-  },
-  {
-    id: 5,
-    fullName: 'Hoang Van E',
-    email: 'hoangvane@example.com',
-    role: 'MANAGER',
-    status: 'active',
-    groupId: 2,
-  },
-  {
-    id: 6,
-    fullName: 'Duong Thi F',
-    email: 'duongthif@example.com',
-    role: 'REVIEWER',
-    status: 'active',
-    groupId: null,
-  },
-];
 
 export default function UsersPage() {
   const { user, logout } = useAuth();
@@ -70,7 +19,7 @@ export default function UsersPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // State
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([
     { id: 1, name: 'Team Alpha' },
     { id: 2, name: 'Team Beta' },
@@ -80,16 +29,52 @@ export default function UsersPage() {
   const [groupFilter, setGroupFilter] = useState('');
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch users from API on mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const data = await getUsers();
+        // Map backend response to frontend format
+        const mappedUsers = data.map(u => ({
+          id: u.id,
+          fullName: u.fullName,
+          email: u.email,
+          role: u.role,
+          status: u.active ? 'active' : 'disabled',
+          groupId: null,
+        }));
+        setUsers(mappedUsers);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+        setError('Không thể tải danh sách người dùng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
-  const handleUpdateUser = (userId, updates) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
-    );
+  const handleUpdateUser = async (userId, updates) => {
+    try {
+      await updateUserApi(userId, updates);
+      // Update local state
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
+      );
+    } catch (err) {
+      console.error('Failed to update user:', err);
+      setError('Không thể cập nhật người dùng');
+    }
   };
 
   const handleCreateGroup = (groupName) => {
@@ -100,20 +85,33 @@ export default function UsersPage() {
     setGroups((prev) => [...prev, newGroup]);
   };
 
-  const handleCreateUser = (userData) => {
-    console.log('User data ready for API:', userData);
-    // UI only - in real app, this would call an API
+  const handleCreateUser = async (userData) => {
+    try {
+      const newUser = await createUserApi(userData);
+      const mappedUser = {
+        id: newUser.id,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        role: newUser.role,
+        status: newUser.active ? 'active' : 'disabled',
+        groupId: null,
+      };
+      setUsers((prev) => [...prev, mappedUser]);
+    } catch (err) {
+      console.error('Failed to create user:', err);
+      throw err;
+    }
   };
 
   // Filter users
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users.filter((u) => {
     const matchesSearch =
       !searchQuery ||
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesRole = !roleFilter || user.role === roleFilter;
-    const matchesGroup = !groupFilter || user.groupId === Number(groupFilter);
+    const matchesRole = !roleFilter || u.role === roleFilter;
+    const matchesGroup = !groupFilter || u.groupId === Number(groupFilter);
 
     return matchesSearch && matchesRole && matchesGroup;
   });
@@ -147,6 +145,13 @@ export default function UsersPage() {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="error-message visible" role="alert">
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Toolbar */}
           <div className="users-toolbar">
             <Filters
@@ -179,16 +184,20 @@ export default function UsersPage() {
             </div>
           </div>
 
-          {/* User List */}
-          {filteredUsers.length > 0 ? (
+          {/* Loading State */}
+          {loading ? (
+            <div className="users-loading">
+              <p>Đang tải danh sách người dùng...</p>
+            </div>
+          ) : filteredUsers.length > 0 ? (
             <div className="users-grid">
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((u) => (
                 <UserCard
-                  key={user.id}
-                  user={user}
+                  key={u.id}
+                  user={u}
                   groups={groups}
                   onUpdateUser={handleUpdateUser}
-                  onEditRole={() => console.log('Edit role for:', user.fullName)}
+                  onEditRole={() => console.log('Edit role for:', u.fullName)}
                 />
               ))}
             </div>
@@ -218,6 +227,7 @@ export default function UsersPage() {
           onSuccess={() => {
             setShowCreateUserModal(false);
           }}
+          onSubmit={handleCreateUser}
         />
       </Modal>
     </div>
