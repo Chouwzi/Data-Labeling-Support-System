@@ -143,18 +143,10 @@ export default function AdminDashboard() {
                   <h2 className="activity-section__title" id="recent-activity-heading">
                     Recent Activity
                   </h2>
-<<<<<<< HEAD:frontend/src/pages/admin/AdminDashboard.jsx
                   <button
                     type="button"
                     className="activity-section__view-all"
                     onClick={() => navigate('/admin/logs')}
-=======
-                  {/* Cập nhật sự kiện onClick cho nút bấm ở đây */}
-                  <button 
-                    type="button" 
-                    className="activity-section__view-all"
-                    onClick={handleViewAllLogs}
->>>>>>> b62c715017dd8b801834a02262a3fda1d84eecfa:frontend/src/AdminDashboard.jsx
                   >
                     VIEW ALL LOGS
                   </button>
