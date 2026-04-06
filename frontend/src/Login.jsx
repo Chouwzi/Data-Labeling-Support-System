@@ -67,16 +67,6 @@ export default function Login() {
       return;
     }
 
-    // MOCK LOGIN
-    if (MOCK_ACCOUNTS[email]) {
-      const mockAccount = MOCK_ACCOUNTS[email];
-      if (password === mockAccount.password) {
-        login(mockAccount.token, mockAccount.role, email);
-        console.log('Login success (Mock):', mockAccount.role);
-        navigate(from, { replace: true });
-        return;
-      }
-    }
 
     setLoading(true);
 
@@ -94,9 +84,14 @@ export default function Login() {
       }
 
       const data = await response.json();
-      login(data.token, data.role, email);
-      console.log('Login success:', data.role);
-      navigate(from, { replace: true });
+      if (data.result) {
+        login(data.result.token, data.result.roles[0], email);
+        console.log('Login success:', data.result.roles[0]);
+        navigate(from, { replace: true });
+        } else {
+          login(data.token, data.role, email);
+          navigate(from, { replace: true });
+      }
     } catch {
       setError('Thông tin không chính xác');
     } finally {
