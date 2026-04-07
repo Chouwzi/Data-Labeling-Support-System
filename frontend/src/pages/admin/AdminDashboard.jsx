@@ -65,12 +65,17 @@ export default function AdminDashboard() {
     navigate('/login', { replace: true });
   };
 
-  const handleSaveConfig = (config) => {
-    console.log('Configuration saved:', config);
-    setToast({
-      message: 'Configuration saved successfully',
-      type: 'success',
-    });
+  const handleSaveConfig = async (config) => {
+    try {
+      const { updateSystemConfig } = await import('@/services/api');
+      await updateSystemConfig(config);
+      setToast({ message: 'Configuration saved successfully', type: 'success' });
+    } catch (err) {
+      setToast({
+        message: err.response?.data?.message || 'Failed to save configuration',
+        type: 'error',
+      });
+    }
     setTimeout(() => setToast(null), 3000);
   };
 
@@ -79,8 +84,8 @@ export default function AdminDashboard() {
     navigate('/admin/logs');
   };
 
-  const userName = user?.name || user?.email || 'Julian Casablancas';
-  const userRole = 'SENIOR ADMINISTRATOR';
+  const userName = user?.fullName || user?.email || 'Administrator';
+  const userRole = user?.role ? user.role.replace('_', ' ') : 'USER';
 
   return (
     <div className="admin-layout">

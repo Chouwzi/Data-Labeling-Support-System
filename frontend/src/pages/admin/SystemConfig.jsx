@@ -5,7 +5,7 @@ import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import SystemConfigPanel from '@/components/system/SystemConfigPanel';
 import BrandLogo from '@/components/common/BrandLogo';
-import { getSystemConfig, updateSystemConfig } from '@/services/systemConfigService';
+import { getSystemConfig, updateSystemConfig } from '@/services/api';
 import '@/styles/SystemConfig.css';
 
 export default function SystemConfig() {
@@ -26,56 +26,30 @@ export default function SystemConfig() {
   };
 
   useEffect(() => {
-    const loadConfig = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
+    async function loadConfig() {
       try {
-        const res = await getSystemConfig(token);
+        const res = await getSystemConfig();
         const data = res.data?.result || res.data;
         setConfigData({
           maxImageSize: data.maxImageSize ?? 10,
           aiEnabled: data.aiEnabled ?? true,
         });
       } catch (err) {
-        if (err?.response?.status === 401) {
-          logout();
-          navigate('/login');
-          return;
-        }
         setError('Không thể tải cấu hình. Vui lòng thử lại.');
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     loadConfig();
-  }, [navigate, logout]);
+  }, []);
 
   const handleSave = async (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    try {
-      await updateSystemConfig(config, token);
-    } catch (err) {
-      if (err?.response?.status === 401) {
-        logout();
-        navigate('/login');
-        return;
-      }
-      throw err;
-    }
+    await updateSystemConfig(config);
   };
 
-  const userName = user?.name || user?.email || 'Admin';
-  const userRole = 'SENIOR ADMINISTRATOR';
+  const userName = user?.fullName || user?.email || 'Admin';
+  const userRole = user?.role ? user.role.replace('_', ' ') : 'USER';
 
   return (
     <div className="admin-layout">

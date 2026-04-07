@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import BrandLogo from '@/components/common/BrandLogo';
-import { mockLogin } from '@/services/mockAuth';
+import { login } from '@/services/api';
 import '@/styles/Login.css';
 
 export default function Login() {
@@ -53,9 +53,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const result = await mockLogin(email, password);
-      const { accessToken, role } = result;
-      login(accessToken, role, email);
+      const response = await login(email, password);
+      const result = response.data.result;
+
+      const userData = {
+        accessToken: result.access_token,
+        role: result.user?.role,
+        email: result.user?.email,
+        userId: result.user?.id,
+        fullName: result.user?.full_name,
+      };
+
+      login(userData);
 
       const roleRoutes = {
         ADMIN: '/admin',
@@ -63,12 +72,14 @@ export default function Login() {
         ANNOTATOR: '/annotator',
         REVIEWER: '/reviewer',
       };
-      const target = roleRoutes[role] || '/login';
-      queueMicrotask(() => {
-        navigate(target, { replace: true });
-      });
-    } catch {
-      setError('Thông tin không chính xác');
+      const target = roleRoutes[userData.role] || '/login';
+      navigate(target, { replace: true });
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Đăng nhập thất bại';
+      setError(message);
     } finally {
       setLoading(false);
     }

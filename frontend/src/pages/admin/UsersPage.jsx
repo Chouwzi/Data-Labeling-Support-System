@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, UserPlus, FolderPlus } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
@@ -9,85 +9,70 @@ import CreateUserForm from '@/components/CreateUserForm';
 import Modal from '@/components/Modal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { getUsers, deleteUser, createUser } from '@/services/api';
 import '@/styles/AdminDashboard.css';
 import '@/styles/UsersPage.css';
-
-const INITIAL_USERS = [
-  {
-    id: 1,
-    fullName: 'Nguyen Van A',
-    email: 'nguyenvana@example.com',
-    role: 'MANAGER',
-    status: 'active',
-    groupId: 1,
-  },
-  {
-    id: 2,
-    fullName: 'Tran Thi B',
-    email: 'tranthib@example.com',
-    role: 'ANNOTATOR',
-    status: 'active',
-    groupId: 2,
-  },
-  {
-    id: 3,
-    fullName: 'Le Van C',
-    email: 'levanc@example.com',
-    role: 'REVIEWER',
-    status: 'active',
-    groupId: 1,
-  },
-  {
-    id: 4,
-    fullName: 'Pham Thi D',
-    email: 'phamthid@example.com',
-    role: 'ANNOTATOR',
-    status: 'disabled',
-    groupId: null,
-  },
-  {
-    id: 5,
-    fullName: 'Hoang Van E',
-    email: 'hoangvane@example.com',
-    role: 'MANAGER',
-    status: 'active',
-    groupId: 2,
-  },
-  {
-    id: 6,
-    fullName: 'Duong Thi F',
-    email: 'duongthif@example.com',
-    role: 'REVIEWER',
-    status: 'active',
-    groupId: null,
-  },
-];
 
 export default function UsersPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [groups, setGroups] = useState([
-    { id: 1, name: 'Team Alpha' },
-    { id: 2, name: 'Team Beta' },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState(null);
+  const [groups, setGroups] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
+  // Gọi API lấy danh sách users
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        setUsersLoading(true);
+        const res = await getUsers();
+        setUsers(res.data.result || []);
+      } catch (err) {
+        setUsersError(err.response?.data?.message || 'Không thể tải danh sách users');
+      } finally {
+        setUsersLoading(false);
+      }
+    }
+    fetchUsers();
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleCreateUser = async (formData) => {
+    try {
+      await createUser(formData);
+      const res = await getUsers();
+      setUsers(res.data.result || []);
+      setShowCreateUserModal(false);
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Tạo user thất bại');
+    }
   };
 
   const handleUpdateUser = (userId, updates) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
     );
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      await deleteUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err) {
+      console.error('Xóa user thất bại:', err);
+    }
   };
 
   const handleCreateGroup = (groupName) => {
@@ -98,14 +83,24 @@ export default function UsersPage() {
     setGroups((prev) => [...prev, newGroup]);
   };
 
-  const filteredUsers = users.filter((user) => {
+  // Chuẩn hóa dữ liệu user từ API (snake_case → camelCase)
+  const normalizedUsers = users.map((u) => ({
+    id: u.id,
+    fullName: u.fullName || u.full_name,
+    email: u.email,
+    role: u.role,
+    active: u.active,
+    groupId: u.groupId || null,
+  }));
+
+  const filteredUsers = normalizedUsers.filter((u) => {
     const matchesSearch =
       !searchQuery ||
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      u.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesRole = !roleFilter || user.role === roleFilter;
-    const matchesGroup = !groupFilter || user.groupId === Number(groupFilter);
+    const matchesRole = !roleFilter || u.role === roleFilter;
+    const matchesGroup = !groupFilter || String(u.groupId) === groupFilter;
 
     return matchesSearch && matchesRole && matchesGroup;
   });
@@ -116,8 +111,8 @@ export default function UsersPage() {
 
       <div className="admin-main">
         <Topbar
-          userName={user?.email || 'Administrator'}
-          userRole="SENIOR ADMINISTRATOR"
+          userName={user?.fullName || user?.email || 'Administrator'}
+          userRole={user?.role ? user.role.replace('_', ' ') : 'USER'}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={handleLogout}
         />
@@ -169,7 +164,15 @@ export default function UsersPage() {
             </div>
           </div>
 
-          {filteredUsers.length > 0 ? (
+          {usersLoading ? (
+            <div className="users-empty">
+              <p>Đang tải danh sách users...</p>
+            </div>
+          ) : usersError ? (
+            <div className="users-empty">
+              <p style={{ color: 'red' }}>{usersError}</p>
+            </div>
+          ) : filteredUsers.length > 0 ? (
             <div className="users-grid">
               {filteredUsers.map((u) => (
                 <UserCard
@@ -201,6 +204,7 @@ export default function UsersPage() {
         title="Create New Account"
       >
         <CreateUserForm
+          onSubmit={handleCreateUser}
           onSuccess={() => {
             setShowCreateUserModal(false);
           }}

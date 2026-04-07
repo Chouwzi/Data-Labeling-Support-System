@@ -19,18 +19,13 @@ export function AuthProvider({ children }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback((accessToken, role, email = '', userId = null, fullName = '') => {
+  const login = useCallback((userData) => {
+    const { accessToken, role, email, userId, fullName } = userData;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('role', role);
-    if (email) {
-      localStorage.setItem('email', email);
-    }
-    if (userId) {
-      localStorage.setItem('userId', userId);
-    }
-    if (fullName) {
-      localStorage.setItem('fullName', fullName);
-    }
+    if (email) localStorage.setItem('email', email);
+    if (userId) localStorage.setItem('userId', userId);
+    if (fullName) localStorage.setItem('fullName', fullName);
     setUser({ accessToken, role, email, userId, fullName });
   }, []);
 

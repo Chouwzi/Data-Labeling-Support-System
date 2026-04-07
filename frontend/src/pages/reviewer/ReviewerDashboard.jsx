@@ -24,7 +24,7 @@ export default function ReviewerDashboard() {
           </svg>
           <div className="dashboard-title-group">
             <h1 className="dashboard-title">REVIEWER DASHBOARD</h1>
-            <p className="dashboard-subtitle">{user?.email || 'reviewer@test.com'}</p>
+            <p className="dashboard-subtitle">{user?.fullName || user?.email || 'Reviewer'}</p>
           </div>
         </div>
         <button className="logout-btn" onClick={handleLogout}>
@@ -39,7 +39,9 @@ export default function ReviewerDashboard() {
 
       <div className="dashboard-content fade-in-up">
         <div className="welcome-card">
-          <h2 className="welcome-title">Chào mừng Reviewer!</h2>
+          <h2 className="welcome-title">
+            Chào mừng, {user?.fullName || 'Reviewer'}!
+          </h2>
           <p className="welcome-text">Kiểm tra và phê duyệt các nhãn đã gắn.</p>
         </div>
 
@@ -72,14 +74,6 @@ export default function ReviewerDashboard() {
           </div>
         </div>
 
-        <div className="mock-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          Chế độ Mock - Dữ liệu mẫu
-        </div>
       </div>
     </main>
   );
