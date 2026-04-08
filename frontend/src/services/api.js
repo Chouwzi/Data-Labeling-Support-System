@@ -22,13 +22,20 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || '';
+    const isLoginRequest = requestUrl.includes('/auth/login');
+
+    if (status === 401 && !isLoginRequest) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('role');
       localStorage.removeItem('email');
       localStorage.removeItem('userId');
       localStorage.removeItem('fullName');
-      window.location.href = '/login';
+
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login');
+      }
     }
     return Promise.reject(error);
   }

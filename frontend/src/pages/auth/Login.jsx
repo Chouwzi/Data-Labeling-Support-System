@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import BrandLogo from '@/components/common/BrandLogo';
-import { login } from '@/services/api';
+import { login as apiLogin } from '@/services/api';
+import { getDashboardRoute } from '@/utils/auth';
 import '@/styles/Login.css';
 
 export default function Login() {
@@ -12,8 +13,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login: authLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -53,26 +55,21 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await login(email, password);
+      const response = await apiLogin(email, password);
       const result = response.data.result;
 
       const userData = {
-        accessToken: result.access_token,
+        accessToken: result.access_token || result.accessToken,
         role: result.user?.role,
         email: result.user?.email,
         userId: result.user?.id,
-        fullName: result.user?.full_name,
+        fullName: result.user?.full_name || result.user?.fullName,
       };
 
-      login(userData);
+      authLogin(userData);
 
-      const roleRoutes = {
-        ADMIN: '/admin',
-        MANAGER: '/manager',
-        ANNOTATOR: '/annotator',
-        REVIEWER: '/reviewer',
-      };
-      const target = roleRoutes[userData.role] || '/login';
+      const from = location.state?.from?.pathname;
+      const target = from || getDashboardRoute(userData.role);
       navigate(target, { replace: true });
     } catch (err) {
       const message =

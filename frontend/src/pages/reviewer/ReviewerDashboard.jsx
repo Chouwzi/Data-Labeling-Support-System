@@ -6,6 +6,11 @@ export default function ReviewerDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
+  const handleLoginAgain = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -42,7 +47,13 @@ export default function ReviewerDashboard() {
           <h2 className="welcome-title">
             Chào mừng, {user?.fullName || 'Reviewer'}!
           </h2>
+          <p className="welcome-text">Role hiện tại: {user?.role || 'REVIEWER'}</p>
           <p className="welcome-text">Kiểm tra và phê duyệt các nhãn đã gắn.</p>
+          <div className="dashboard-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+            <button className="logout-btn" type="button" onClick={handleLoginAgain}>
+              Đăng nhập lại
+            </button>
+          </div>
         </div>
 
         <div className="stats-grid">

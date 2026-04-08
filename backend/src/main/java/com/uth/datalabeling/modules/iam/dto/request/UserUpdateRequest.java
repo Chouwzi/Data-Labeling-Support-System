@@ -1,5 +1,6 @@
 package com.uth.datalabeling.modules.iam.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -21,6 +22,7 @@ public class UserUpdateRequest {
   String email;
 
   @NotBlank(message = "MISSING_REQUIRED_FIELD")
+  @JsonProperty("full_name")
   String fullName;
 
   @Size(min = 8, message = "PASSWORD_TOO_SHORT")

@@ -1,5 +1,6 @@
 package com.uth.datalabeling.modules.iam.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class UserResponse {
     UUID id;
     String email;
+    @JsonProperty("full_name")
     String fullName;
     String role;
     boolean active;

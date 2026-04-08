@@ -11,13 +11,7 @@ import UsersPage from '@/pages/admin/UsersPage';
 import ActivityLog from '@/pages/admin/ActivityLog';
 import Unauthorized from '@/pages/common/Unauthorized';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
-
-const ROLE_ROUTES = {
-  ADMIN: '/admin',
-  MANAGER: '/manager',
-  ANNOTATOR: '/annotator',
-  REVIEWER: '/reviewer',
-};
+import { getDashboardRoute, DEFAULT_ROUTE } from '@/utils/auth';
 
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -27,13 +21,15 @@ function PublicRoute({ children }) {
   }
 
   if (isAuthenticated) {
-    const target = ROLE_ROUTES[user?.role];
-    if (target) {
-      return <Navigate to={target} replace />;
-    }
+    return <Navigate to={getDashboardRoute(user?.role)} replace />;
   }
 
   return children;
+}
+
+function DashboardRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={getDashboardRoute(user?.role)} replace />;
 }
 
 function App() {
@@ -59,6 +55,14 @@ function App() {
       <Route
         path="/unauthorized"
         element={<Unauthorized />}
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardRedirect />
+          </ProtectedRoute>
+        }
       />
 
       {/* Admin routes */}
@@ -122,7 +126,7 @@ function App() {
       />
 
       {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={DEFAULT_ROUTE} replace />} />
     </Routes>
   );
 }
