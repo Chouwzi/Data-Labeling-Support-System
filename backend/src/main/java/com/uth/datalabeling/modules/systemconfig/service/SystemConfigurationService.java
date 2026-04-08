@@ -26,7 +26,7 @@ public class SystemConfigurationService {
   SystemConfigurationRepository systemConfigurationRepository;
   SystemConfigurationMapper systemConfigurationMapper;
 
-  @Transactional(readOnly = true)
+  @Transactional
   public SystemConfigurationResponse getConfiguration() {
     return systemConfigurationMapper.toResponse(getOrCreateSingleton());
   }
