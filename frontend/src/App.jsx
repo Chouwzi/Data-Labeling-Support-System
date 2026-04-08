@@ -1,12 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import Login from './Login';
-import LandingPage from './LandingPage';
-import AdminDashboard from './AdminDashboard';
-import StaffDashboard from './StaffDashboard';
-import ActivityLog from './ActivityLog';
-import UsersPage from './UsersPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
+import Login from '@/pages/auth/Login';
+import LandingPage from '@/pages/common/LandingPage';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import ManagerDashboard from '@/pages/manager/ManagerDashboard';
+import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
+import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
+import SystemConfig from '@/pages/admin/SystemConfig';
+import UsersPage from '@/pages/admin/UsersPage';
+import ActivityLog from '@/pages/admin/ActivityLog';
+import Unauthorized from '@/pages/common/Unauthorized';
+import ProtectedRoute from '@/components/common/ProtectedRoute';
+import { getDashboardRoute, DEFAULT_ROUTE } from '@/utils/auth';
 
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -16,98 +21,114 @@ function PublicRoute({ children }) {
   }
 
   if (isAuthenticated) {
-    if (user?.role === 'ADMIN') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    return <Navigate to="/staff/dashboard" replace />;
+    return <Navigate to={getDashboardRoute(user?.role)} replace />;
   }
 
   return children;
 }
 
+function DashboardRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={getDashboardRoute(user?.role)} replace />;
+}
+
 function App() {
   return (
     <Routes>
-      {/* Public routes - redirect to dashboard if logged in */}
-      <Route 
-        path="/" 
+      {/* Public routes */}
+      <Route
+        path="/"
         element={
           <PublicRoute>
             <LandingPage />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <Login />
           </PublicRoute>
-        } 
+        }
       />
-      
-      {/* Protected routes - Dành riêng cho ADMIN */}
-      <Route 
-        path="/admin/dashboard" 
-        element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } 
+      <Route
+        path="/unauthorized"
+        element={<Unauthorized />}
       />
-
-      <Route 
-        path="/admin/logs" 
-        element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <ActivityLog />
-          </ProtectedRoute>
-        } 
-      />
-
-      <Route 
-        path="/admin/users" 
-        element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <UsersPage />
-          </ProtectedRoute>
-        } 
-      />
-
-      {/* Protected routes - Dành riêng cho STAFF */}
-      <Route 
-        path="/staff/dashboard" 
-        element={
-          <ProtectedRoute allowedRoles={['STAFF']}>
-            <StaffDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Short dashboard route - redirects based on role */}
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <DashboardRedirect />
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      {/* Catch all - redirect to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+
+      {/* Admin routes */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/logs"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <ActivityLog />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <UsersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/system-config"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <SystemConfig />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Other role dashboards */}
+      <Route
+        path="/manager"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/annotator"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to={DEFAULT_ROUTE} replace />} />
     </Routes>
   );
-}
-
-function DashboardRedirect() {
-  const { user } = useAuth();
-  
-  if (user?.role === 'ADMIN') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-  
-  return <Navigate to="/staff/dashboard" replace />;
 }
 
 export default App;

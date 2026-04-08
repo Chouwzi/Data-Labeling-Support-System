@@ -1,21 +1,20 @@
 import { useLocation } from 'react-router-dom';
 import { LayoutDashboard, Folder, Database, Users, Settings, Activity } from 'lucide-react';
-import BrandLogo from './BrandLogo';
-import './Sidebar.css';
-import { Link } from 'react-router-dom';
+import BrandLogo from '@/components/common/BrandLogo';
+import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
   { id: 'logs', label: 'Activity Logs', icon: Activity, path: '/admin/logs' },
   { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
-  { id: 'projects', label: 'Projects', icon: Folder, active: false },
-  { id: 'datasets', label: 'Datasets', icon: Database, active: false },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
+  { id: 'projects', label: 'Projects', icon: Folder, path: null },
+  { id: 'datasets', label: 'Datasets', icon: Database, path: null },
+  { id: 'settings', label: 'System Config', icon: Settings, path: '/admin/system-config' },
 ];
 
 export default function Sidebar({ isOpen = false, onNavigate }) {
   const location = useLocation();
-  
+
   const handleNavClick = () => {
     onNavigate?.();
   };
@@ -47,17 +46,21 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
-                <Link
+                <a
                   key={item.id}
-                  to={item.path || '#'}
+                  href={item.path || '#'}
                   className={`sidebar__nav-item ${isActive ? 'sidebar__nav-item--active' : ''}`}
-                  onClick={() => {
-                    if (item.path) handleNavClick();
+                  onClick={(e) => {
+                    if (!item.path) {
+                      e.preventDefault();
+                      return;
+                    }
+                    handleNavClick();
                   }}
                 >
                   <Icon size={20} className={isActive ? 'active-icon' : ''} />
                   <span className="sidebar__nav-label">{item.label}</span>
-                </Link>
+                </a>
               );
             })}
           </nav>

@@ -1,5 +1,4 @@
 /* UserCard - Card layout for user list */
-
 .user-card {
   background: #ffffff;
   border-radius: 0.875rem;
@@ -78,13 +77,13 @@
   white-space: nowrap;
 }
 
-/* =============================================
-   ACTIONS DROPDOWN
-   ============================================= */
-
 .user-card__actions-wrapper {
   position: relative;
 }
+
+/* =============================================
+   ACTIONS DROPDOWN
+   ============================================= */
 
 .user-card__actions-toggle {
   display: flex;
@@ -121,14 +120,8 @@
 }
 
 @keyframes dropdownIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .user-card__action {
@@ -147,25 +140,11 @@
   transition: background 0.15s ease;
 }
 
-.user-card__action:hover {
-  background: #f3f4f6;
-}
-
-.user-card__action--danger {
-  color: #dc2626;
-}
-
-.user-card__action--danger:hover {
-  background: #fef2f2;
-}
-
-.user-card__action--success {
-  color: #059669;
-}
-
-.user-card__action--success:hover {
-  background: #ecfdf5;
-}
+.user-card__action:hover { background: #f3f4f6; }
+.user-card__action--danger { color: #dc2626; }
+.user-card__action--danger:hover { background: #fef2f2; }
+.user-card__action--success { color: #059669; }
+.user-card__action--success:hover { background: #ecfdf5; }
 
 /* =============================================
    BADGES
@@ -189,15 +168,8 @@
   letter-spacing: 0.04em;
 }
 
-.user-card__badge--role {
-  font-size: 0.625rem;
-}
-
-.user-card__badge--status {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
+.user-card__badge--role { font-size: 0.625rem; }
+.user-card__badge--status { display: flex; align-items: center; gap: 0.375rem; }
 
 .user-card__status-dot {
   width: 6px;
@@ -206,10 +178,7 @@
   flex-shrink: 0;
 }
 
-.user-card__badge--group {
-  background: #f3f4f6;
-  color: #6b7280;
-}
+.user-card__badge--group { background: #f3f4f6; color: #6b7280; }
 
 /* =============================================
    CARD FOOTER
@@ -221,16 +190,7 @@
   border-top: 1px solid #f0f0f0;
 }
 
-/* =============================================
-   RESPONSIVE
-   ============================================= */
-
 @media (max-width: 768px) {
-  .user-card {
-    padding: 1rem;
-  }
-
-  .user-card__name {
-    font-size: 0.875rem;
-  }
+  .user-card { padding: 1rem; }
+  .user-card__name { font-size: 0.875rem; }
 }

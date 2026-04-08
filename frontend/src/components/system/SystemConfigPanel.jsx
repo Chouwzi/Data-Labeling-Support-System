@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { CheckCircle, AlertCircle, Info } from 'lucide-react';
-import './SystemConfigPanel.css';
-
+import '@/styles/SystemConfigPanel.css';
 function ToggleSwitch({ checked, onChange, disabled = false, labelledBy }) {
   return (
     <button
@@ -94,8 +93,6 @@ export default function SystemConfigPanel({
 
     try {
       const config = { maxImageSize: size, aiEnabled };
-      console.log('Saving configuration:', config);
-
       if (onSave) {
         await onSave(config);
       } else {
@@ -200,7 +197,7 @@ export default function SystemConfigPanel({
           {isSaving ? (
             <>
               <span className="config-save-btn__spinner" aria-hidden="true" />
-              <span>Saving…</span>
+              <span>Saving&hellip;</span>
             </>
           ) : (
             'Save Configuration'

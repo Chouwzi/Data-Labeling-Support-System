@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import Sidebar from './components/Sidebar';
-import Topbar from './components/Topbar';
-import KpiCard from './components/KpiCard';
-import ActivityItem from './components/ActivityItem';
-import SystemConfigPanel from './components/SystemConfigPanel';
-import BrandLogo from './components/BrandLogo';
-import './AdminDashboard.css';
+import { useAuth } from '@/contexts/AuthContext';
+import Sidebar from '@/components/common/Sidebar';
+import Topbar from '@/components/common/Topbar';
+import KpiCard from '@/components/dashboard/KpiCard';
+import ActivityItem from '@/components/dashboard/ActivityItem';
+import SystemConfigPanel from '@/components/system/SystemConfigPanel';
+import BrandLogo from '@/components/common/BrandLogo';
+import '@/styles/AdminDashboard.css';
 
 const ACTIVITIES = [
   {
@@ -65,12 +65,17 @@ export default function AdminDashboard() {
     navigate('/login', { replace: true });
   };
 
-  const handleSaveConfig = (config) => {
-    console.log('Configuration saved:', config);
-    setToast({
-      message: 'Configuration saved successfully',
-      type: 'success',
-    });
+  const handleSaveConfig = async (config) => {
+    try {
+      const { updateSystemConfig } = await import('@/services/api');
+      await updateSystemConfig(config);
+      setToast({ message: 'Configuration saved successfully', type: 'success' });
+    } catch (err) {
+      setToast({
+        message: err.response?.data?.message || 'Failed to save configuration',
+        type: 'error',
+      });
+    }
     setTimeout(() => setToast(null), 3000);
   };
 
@@ -79,8 +84,8 @@ export default function AdminDashboard() {
     navigate('/admin/logs');
   };
 
-  const userName = user?.name || user?.email || 'Julian Casablancas';
-  const userRole = 'SENIOR ADMINISTRATOR';
+  const userName = user?.fullName || user?.email || 'Administrator';
+  const userRole = user?.role ? user.role.replace('_', ' ') : 'USER';
 
   return (
     <div className="admin-layout">
@@ -143,11 +148,10 @@ export default function AdminDashboard() {
                   <h2 className="activity-section__title" id="recent-activity-heading">
                     Recent Activity
                   </h2>
-                  {/* Cập nhật sự kiện onClick cho nút bấm ở đây */}
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="activity-section__view-all"
-                    onClick={handleViewAllLogs}
+                    onClick={() => navigate('/admin/logs')}
                   >
                     VIEW ALL LOGS
                   </button>

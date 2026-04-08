@@ -35,6 +35,10 @@ public enum ErrorCode {
   // 422 Unprocessable Content
   VALIDATION_ERROR(422, 42200, "Dữ liệu đầu vào không hợp lệ"),
   PASSWORD_TOO_SHORT(422, 42201, "Mật khẩu phải có ít nhất 8 ký tự"),
+  INVALID_MAX_IMAGE_FILE_SIZE(422, 42202, "Kích thước file ảnh tối đa phải trong khoảng 1-100 MB"),
+  INVALID_DEFAULT_PAGE_SIZE(422, 42203, "Kích thước trang mặc định phải trong khoảng 5-200"),
+  INVALID_ALLOWED_IMAGE_EXTENSIONS(422, 42204, "Danh sách định dạng ảnh cho phép tối đa 10 phần tử"),
+  INVALID_IMAGE_EXTENSION(422, 42205, "Định dạng ảnh chỉ được chứa chữ và số"),
 
   // 429 Too Many Requests
   TOO_MANY_REQUESTS(429, 42900, "Vượt quá giới hạn yêu cầu"),

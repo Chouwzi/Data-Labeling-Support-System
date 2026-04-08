@@ -17,17 +17,17 @@ export default function CreateGroupModal({ isOpen, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!groupName.trim()) {
       setError('Group name is required');
       return;
     }
-    
+
     if (groupName.trim().length < 2) {
       setError('Group name must be at least 2 characters');
       return;
     }
-    
+
     onSave(groupName.trim());
     setGroupName('');
     setError('');

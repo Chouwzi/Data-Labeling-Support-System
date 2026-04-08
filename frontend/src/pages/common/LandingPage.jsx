@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import BrandLogo from './components/BrandLogo';
-import './LandingPage.css';
+import BrandLogo from '@/components/common/BrandLogo';
+import '@/styles/LandingPage.css';
 
 function LandingPage() {
   const navigate = useNavigate();
@@ -130,7 +130,7 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section - Redesigned */}
+      {/* Features Section */}
       <section className="features">
         <div className="features-bg-decoration" />
         <div className="section-container">
@@ -141,9 +141,8 @@ function LandingPage() {
               Công cụ mạnh mẽ được thiết kế cho đội ngũ làm việc hiệu quả
             </p>
           </div>
-          
+
           <div className="features-showcase">
-            {/* Feature 1 & 2 - Top Row */}
             <div className="features-row">
               {features.slice(0, 2).map((feature, index) => (
                 <div key={index} className="feature-card-large">
@@ -159,8 +158,6 @@ function LandingPage() {
                 </div>
               ))}
             </div>
-            
-            {/* Feature 3 & 4 - Bottom Row */}
             <div className="features-row">
               {features.slice(2, 4).map((feature, index) => (
                 <div key={index} className="feature-card-large">
@@ -180,7 +177,7 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Workflow Section - Redesigned */}
+      {/* Workflow Section */}
       <section className="workflow">
         <div className="section-container">
           <div className="workflow-header">
@@ -190,7 +187,7 @@ function LandingPage() {
               Bắt đầu sử dụng chỉ trong vài phút
             </p>
           </div>
-          
+
           <div className="workflow-timeline">
             {steps.map((step, index) => (
               <div key={index} className="workflow-step">
@@ -208,8 +205,7 @@ function LandingPage() {
               </div>
             ))}
           </div>
-          
-          {/* Workflow Visual */}
+
           <div className="workflow-visual-container">
             <div className="visual-card">
               <div className="visual-header">

@@ -372,7 +372,7 @@ a {
   padding-right: 3rem;
 }
 
-/* Ẩn nút gợi ý mật khẩu / reveal mặc định (tránh chồng icon tùy chỉnh) */
+/* Hide default password reveal on browsers */
 .form-input--password::-webkit-credentials-auto-fill-button,
 .form-input--password::-webkit-strong-password-auto-fill-button {
   display: none !important;

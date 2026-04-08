@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { getDashboardRoute } from '@/utils/auth';
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -18,11 +19,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    // Redirect based on role
-    if (user?.role === 'ADMIN') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-    return <Navigate to="/staff/dashboard" replace />;
+    return <Navigate to={getDashboardRoute(user?.role)} replace />;
   }
 
   return children;

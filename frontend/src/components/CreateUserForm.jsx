@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Mail, User, Lock, Shield } from 'lucide-react';
+import { UserPlus, Mail, User, Lock, Shield, CheckCircle, Eye, EyeOff} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; 
 import './CreateUserForm.css';
 
@@ -11,7 +11,7 @@ const ROLES = [
 ];
 
 export default function CreateUserForm({ onSuccess }) {
-  const { user } = useAuth();
+  const { user } = useAuth(); 
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -27,7 +27,6 @@ export default function CreateUserForm({ onSuccess }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -41,29 +40,31 @@ export default function CreateUserForm({ onSuccess }) {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    
+
     if (!formData.role) {
       newErrors.role = 'Please select a role';
     }
-    
+
     return newErrors;
   };
+
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!user) {
-      setSubmitError("Phiên đăng nhập đã hết hạn.");
+      setSubmitError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       return;
     }
 
@@ -72,7 +73,7 @@ export default function CreateUserForm({ onSuccess }) {
       setErrors(validationErrors);
       return;
     }
-    
+
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -94,19 +95,17 @@ export default function CreateUserForm({ onSuccess }) {
         body: JSON.stringify(payload),
       });
 
-      // Nếu server không phản hồi JSON (lỗi 500 nặng), fetch sẽ nhảy xuống catch
       const data = await response.json();
 
       if (!response.ok) {
-        // --- Xử lý LTJ-137: Email trùng ---
         if (data.message === "USER_ALREADY_EXISTS") {
           setErrors(prev => ({
             ...prev,
-            email: 'Email này đã tồn tại trong hệ thống. Vui lòng dùng email khác!'
+            email: 'Email này đã tồn tại trong hệ thống. Vui lòng sử dụng email khác!'
           }));
-          return; 
+          return;
         }
-        throw new Error(data.message || "Có lỗi xảy ra");
+        throw new Error(data.message || `Error: ${response.status}`);
       }
 
       alert("Tạo tài khoản thành công!");
@@ -114,8 +113,7 @@ export default function CreateUserForm({ onSuccess }) {
       setFormData({ email: '', fullName: '', password: '', role: '' });
 
     } catch (err) {
-      // Khi Backend chưa bật, nó sẽ nhảy vào đây và hiện "Failed to fetch" lên UI của Trang
-      setSubmitError(err.message === "Failed to fetch" ? "Không thể kết nối tới Server (BE). Trang đã bật Backend chưa?" : err.message);
+      setSubmitError(err.message === "Failed to fetch" ? "Không thể kết nối Server. Vui lòng kiểm tra Backend!" : err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +171,7 @@ export default function CreateUserForm({ onSuccess }) {
             type={showPassword ? 'text' : 'password'}
             id="password"
             name="password"
-            className={`form-field__input ${errors.password ? 'form-field__input--error' : ''}`}
+            className={`form-field__input form-field__input--password ${errors.password ? 'form-field__input--error' : ''}`}
             placeholder="Min. 8 characters"
             value={formData.password}
             onChange={handleChange}
@@ -184,7 +182,7 @@ export default function CreateUserForm({ onSuccess }) {
             className="form-field__password-toggle"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? "Hide" : "Show"}
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
         {errors.password && <p className="form-field__error">{errors.password}</p>}
@@ -193,7 +191,7 @@ export default function CreateUserForm({ onSuccess }) {
       {/* Role Field */}
       <div className="form-field">
         <label className="form-field__label" htmlFor="role">
-          <Shield size={16} /> Role
+          <Shield size={18} /> Role
         </label>
         <select
           id="role"
@@ -210,6 +208,14 @@ export default function CreateUserForm({ onSuccess }) {
         {errors.role && <p className="form-field__error">{errors.role}</p>}
       </div>
 
+      {/* Submit Error */}
+      {submitError && (
+        <div className="form-field__error form-field__error--submit">
+          {submitError}
+        </div>
+      )}
+
+      {/* Submit Button */}
       <button
         type="submit"
         className={`create-user-form__submit ${isSubmitting ? 'loading' : ''}`}

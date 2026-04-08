@@ -1,23 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import BrandLogo from './components/BrandLogo';
-import './Login.css';
-
-const API_BASE_URL = '/api';
-
-const MOCK_ACCOUNTS = {
-  'admin@gmail.com': {
-    password: 'admin123',
-    role: 'ADMIN',
-    token: 'mock-jwt-token-admin',
-  },
-  'staff@gmail.com': {
-    password: 'staff123',
-    role: 'STAFF',
-    token: 'mock-jwt-token-staff',
-  },
-};
+import { useAuth } from '@/contexts/AuthContext';
+import BrandLogo from '@/components/common/BrandLogo';
+import { login as apiLogin } from '@/services/api';
+import { getDashboardRoute } from '@/utils/auth';
+import '@/styles/Login.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -26,11 +13,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login: authLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/dashboard';
 
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -67,38 +52,31 @@ export default function Login() {
       return;
     }
 
-    // MOCK LOGIN
-    if (MOCK_ACCOUNTS[email]) {
-      const mockAccount = MOCK_ACCOUNTS[email];
-      if (password === mockAccount.password) {
-        login(mockAccount.token, mockAccount.role, email);
-        console.log('Login success (Mock):', mockAccount.role);
-        navigate(from, { replace: true });
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await apiLogin(email, password);
+      const result = response.data.result;
 
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
-      }
+      const userData = {
+        accessToken: result.access_token || result.accessToken,
+        role: result.user?.role,
+        email: result.user?.email,
+        userId: result.user?.id,
+        fullName: result.user?.full_name || result.user?.fullName,
+      };
 
-      const data = await response.json();
-      login(data.token, data.role, email);
-      console.log('Login success:', data.role);
-      navigate(from, { replace: true });
-    } catch {
-      setError('Thông tin không chính xác');
+      authLogin(userData);
+
+      const from = location.state?.from?.pathname;
+      const target = from || getDashboardRoute(userData.role);
+      navigate(target, { replace: true });
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Đăng nhập thất bại';
+      setError(message);
     } finally {
       setLoading(false);
     }
