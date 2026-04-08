@@ -5,15 +5,14 @@ import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.systemconfig.dto.request.SystemConfigurationUpdateRequest;
 import com.uth.datalabeling.modules.systemconfig.dto.response.SystemConfigurationResponse;
 import com.uth.datalabeling.modules.systemconfig.entity.SystemConfiguration;
+import com.uth.datalabeling.modules.systemconfig.mapper.SystemConfigurationMapper;
 import com.uth.datalabeling.modules.systemconfig.repository.SystemConfigurationRepository;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,22 +24,23 @@ public class SystemConfigurationService {
   static final String DEFAULT_IMAGE_EXTENSIONS = "jpg,jpeg,png,webp";
 
   SystemConfigurationRepository systemConfigurationRepository;
+  SystemConfigurationMapper systemConfigurationMapper;
 
+  @Transactional
   public SystemConfigurationResponse getConfiguration() {
-    return toResponse(getOrCreateSingleton());
+    return systemConfigurationMapper.toResponse(getOrCreateSingleton());
   }
 
+  @Transactional
   public SystemConfigurationResponse updateConfiguration(SystemConfigurationUpdateRequest request,
       String updatedBy) {
-    SystemConfiguration config = getOrCreateSingleton();
+    validateExtensions(request.getAllowedImageExtensions());
 
-    config.setMaxImageFileSizeMb(request.getMaxImageFileSizeMb());
-    config.setAiLabelingEnabled(Boolean.TRUE.equals(request.getAiLabelingEnabled()));
-    config.setDefaultPageSize(request.getDefaultPageSize());
-    config.setAllowedImageExtensions(joinExtensions(request.getAllowedImageExtensions()));
+    SystemConfiguration config = getOrCreateSingleton();
+    systemConfigurationMapper.updateEntity(config, request);
     config.setUpdatedBy(updatedBy);
 
-    return toResponse(systemConfigurationRepository.save(config));
+    return systemConfigurationMapper.toResponse(systemConfigurationRepository.save(config));
   }
 
   private SystemConfiguration getOrCreateSingleton() {
@@ -56,39 +56,18 @@ public class SystemConfigurationService {
         .defaultPageSize(DEFAULT_PAGE_SIZE)
         .allowedImageExtensions(DEFAULT_IMAGE_EXTENSIONS)
         .updatedBy("system")
+        .version(0L)
         .build();
   }
 
-  private SystemConfigurationResponse toResponse(SystemConfiguration entity) {
-    return SystemConfigurationResponse.builder()
-        .maxImageFileSizeMb(entity.getMaxImageFileSizeMb())
-        .aiLabelingEnabled(entity.isAiLabelingEnabled())
-        .defaultPageSize(entity.getDefaultPageSize())
-        .allowedImageExtensions(splitExtensions(entity.getAllowedImageExtensions()))
-        .updatedBy(entity.getUpdatedBy())
-        .updatedAt(entity.getUpdatedAt())
-        .build();
-  }
-
-  private String joinExtensions(List<String> extensions) {
-    return extensions.stream()
-        .map(ext -> normalizeExtension(ext))
-        .distinct()
-        .collect(Collectors.joining(","));
-  }
-
-  private String normalizeExtension(String extension) {
-    String normalized = extension == null ? "" : extension.trim().toLowerCase(Locale.ROOT);
-    if (!normalized.matches("^[a-z0-9]+$")) {
-      throw new AppException(ErrorCode.INVALID_IMAGE_EXTENSION);
+  private void validateExtensions(java.util.List<String> extensions) {
+    if (extensions != null) {
+      for (String ext : extensions) {
+        String normalized = ext == null ? "" : ext.trim().toLowerCase(Locale.ROOT);
+        if (!normalized.matches("^[a-z0-9]+$")) {
+          throw new AppException(ErrorCode.INVALID_IMAGE_EXTENSION);
+        }
+      }
     }
-    return normalized;
-  }
-
-  private List<String> splitExtensions(String extensions) {
-    return Arrays.stream(extensions.split(","))
-        .map(String::trim)
-        .filter(ext -> !ext.isBlank())
-        .toList();
   }
 }
