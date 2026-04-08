@@ -50,5 +50,7 @@ public class SystemConfiguration {
   String updatedBy;
 
   @Version
-  Long version;
+  @Column(nullable = false)
+  @Builder.Default
+  Long version = 0L;
 }
