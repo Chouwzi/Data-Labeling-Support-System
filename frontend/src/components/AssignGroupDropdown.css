@@ -1,5 +1,4 @@
 /* AssignGroupDropdown - Compact dropdown for user cards */
-
 .assign-group {
   display: flex;
   align-items: center;
@@ -50,10 +49,7 @@
   box-shadow: 0 0 0 3px rgba(0, 108, 81, 0.1);
 }
 
-.assign-group__select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.assign-group__select:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .assign-group__arrow {
   position: absolute;

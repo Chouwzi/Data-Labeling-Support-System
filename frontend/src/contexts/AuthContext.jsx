@@ -6,43 +6,51 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const accessToken = localStorage.getItem('accessToken');
     const role = localStorage.getItem('role');
     const email = localStorage.getItem('email');
+    const userId = localStorage.getItem('userId');
+    const fullName = localStorage.getItem('fullName');
 
-    if (token && role) {
-      setUser({ token, role, email });
+    if (accessToken && role) {
+      setUser({ accessToken, role, email, userId, fullName });
     }
     setIsLoading(false);
   }, []);
 
-  const login = useCallback((token, role, email = '') => {
-    localStorage.setItem('token', token);
+  const login = useCallback((userData) => {
+    const { accessToken, role, email, userId, fullName } = userData;
+    localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('role', role);
-    if (email) {
-      localStorage.setItem('email', email);
-    }
-    setUser({ token, role, email });
+    if (email) localStorage.setItem('email', email);
+    if (userId) localStorage.setItem('userId', userId);
+    if (fullName) localStorage.setItem('fullName', fullName);
+    setUser({ accessToken, role, email, userId, fullName });
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('role');
     localStorage.removeItem('email');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('fullName');
     setUser(null);
   }, []);
 
-  const isAuthenticated = Boolean(user?.token);
+  const isAuthenticated = Boolean(user?.accessToken);
   const isAdmin = user?.role === 'ADMIN';
-  const isStaff = user?.role === 'STAFF';
+  const isManager = user?.role === 'MANAGER';
+  const isAnnotator = user?.role === 'ANNOTATOR';
+  const isReviewer = user?.role === 'REVIEWER';
 
   const value = {
     user,
     isAuthenticated,
     isAdmin,
-    isStaff,
+    isManager,
+    isAnnotator,
+    isReviewer,
     isLoading,
     login,
     logout

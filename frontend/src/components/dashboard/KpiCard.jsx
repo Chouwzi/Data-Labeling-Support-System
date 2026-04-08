@@ -1,5 +1,5 @@
 import { User, Folder, HardDrive, CheckCircle } from 'lucide-react';
-import './KpiCard.css';
+import '@/styles/KpiCard.css';
 
 const ICONS = {
   group: User,

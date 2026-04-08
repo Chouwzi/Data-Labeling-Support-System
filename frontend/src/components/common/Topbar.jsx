@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, Bell, HelpCircle, User, LogOut, Menu, ChevronDown } from 'lucide-react';
-import './Topbar.css';
+import '@/styles/Topbar.css';
 
 export default function Topbar({
   userName = 'Julian Casablancas',

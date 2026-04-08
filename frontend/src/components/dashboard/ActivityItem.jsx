@@ -1,5 +1,5 @@
 import { CheckCircle, AlertTriangle, UserCheck, ChevronRight } from 'lucide-react';
-import './ActivityItem.css';
+import '@/styles/ActivityItem.css';
 
 const ICONS = {
   check_circle: CheckCircle,

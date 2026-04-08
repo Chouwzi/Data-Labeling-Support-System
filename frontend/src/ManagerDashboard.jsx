@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import './Dashboard.css';
+import { useAuth } from '@/contexts/AuthContext';
+import '@/styles/Dashboard.css';
 
-export default function StaffDashboard() {
+export default function ManagerDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -23,8 +23,8 @@ export default function StaffDashboard() {
             <circle cx="32" cy="32" r="5" fill="#006c51"/>
           </svg>
           <div className="dashboard-title-group">
-            <h1 className="dashboard-title">Staff Dashboard</h1>
-            <p className="dashboard-subtitle">{user?.email || 'Staff User'}</p>
+            <h1 className="dashboard-title">MANAGER DASHBOARD</h1>
+            <p className="dashboard-subtitle">{user?.fullName || user?.email || 'Manager'}</p>
           </div>
         </div>
         <button className="logout-btn" onClick={handleLogout}>
@@ -39,45 +39,39 @@ export default function StaffDashboard() {
 
       <div className="dashboard-content fade-in-up">
         <div className="welcome-card">
-          <h2 className="welcome-title">Chào mừng bạn quay trở lại!</h2>
-          <p className="welcome-text">Tiếp tục công việc gắn nhãn của bạn.</p>
+          <h2 className="welcome-title">
+            Chào mừng, {user?.fullName || 'Manager'}!
+          </h2>
+          <p className="welcome-text">Quản lý đội ngũ và theo dõi tiến độ dự án.</p>
         </div>
 
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             </div>
             <div className="stat-info">
-              <span className="stat-value">156</span>
-              <span className="stat-label">Nhãn hoàn thành</span>
+              <span className="stat-value">—</span>
+              <span className="stat-label">Người dùng</span>
             </div>
           </div>
 
           <div className="stat-card">
             <div className="stat-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
               </svg>
             </div>
             <div className="stat-info">
-              <span className="stat-value">24</span>
-              <span className="stat-label">Giờ làm việc</span>
+              <span className="stat-value">—</span>
+              <span className="stat-label">Dự án đang hoạt động</span>
             </div>
           </div>
-        </div>
-
-        <div className="mock-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          Chế độ Mock - Dữ liệu mẫu
         </div>
       </div>
     </main>

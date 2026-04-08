@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Mail, User, Lock, Shield, CheckCircle } from 'lucide-react';
+import { UserPlus, Mail, User, Lock, Shield } from 'lucide-react';
 import './CreateUserForm.css';
 
 const ROLES = [
@@ -9,7 +9,7 @@ const ROLES = [
   { value: 'REVIEWER', label: 'Reviewer' },
 ];
 
-export default function CreateUserForm({ onSuccess }) {
+export default function CreateUserForm({ onSuccess, onSubmit }) {
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -19,11 +19,11 @@ export default function CreateUserForm({ onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -31,54 +31,59 @@ export default function CreateUserForm({ onSuccess }) {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
     } else if (formData.fullName.trim().length < 2) {
       newErrors.fullName = 'Full name must be at least 2 characters';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
     }
-    
+
     if (!formData.role) {
       newErrors.role = 'Please select a role';
     }
-    
+
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    
+
     setIsSubmitting(true);
-    
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    console.log('User data ready for submission:', formData);
-    
-    setIsSubmitting(false);
-    
-    if (onSuccess) {
-      onSuccess(formData);
+    setSubmitError('');
+
+    try {
+      if (onSubmit) {
+        await onSubmit(formData);
+      }
+
+      if (onSuccess) {
+        onSuccess(formData);
+      }
+
+      setFormData({ email: '', fullName: '', password: '', role: '' });
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to create user');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setFormData({ email: '', fullName: '', password: '', role: '' });
   };
 
   const isFormValid = formData.email && formData.fullName && formData.password && formData.role;
@@ -141,7 +146,7 @@ export default function CreateUserForm({ onSuccess }) {
             id="password"
             name="password"
             className={`form-field__input form-field__input--password ${errors.password ? 'form-field__input--error' : ''}`}
-            placeholder="Min. 6 characters"
+            placeholder="Min. 8 characters"
             value={formData.password}
             onChange={handleChange}
             autoComplete="new-password"
@@ -201,6 +206,13 @@ export default function CreateUserForm({ onSuccess }) {
           <p className="form-field__error">{errors.role}</p>
         )}
       </div>
+
+      {/* Submit Error */}
+      {submitError && (
+        <div className="form-field__error form-field__error--submit">
+          {submitError}
+        </div>
+      )}
 
       {/* Submit Button */}
       <button
