@@ -193,7 +193,154 @@
   line-height: 1.45;
 }
 
+/* Extension Tag Styles */
+.config-extensions {
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.config-extensions:focus-within {
+  background-color: #ffffff;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.config-extensions__list {
+  display: contents; /* Allow children to participate in .config-extensions flexbox directly */
+}
+
+.config-extension-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  background-color: #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.config-extension-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.config-extension-tag__remove:hover {
+  background-color: #d1d5db;
+  color: #111827;
+}
+
+.config-extensions__input {
+  flex: 1;
+  min-width: 120px;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  font-size: 0.8125rem !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.config-extensions__input::placeholder {
+  color: #9ca3af;
+}
+
 /* Save Button */
+.config-save-btn {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  color: #ffffff;
+  background-color: #059669;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.config-save-btn:hover:not(:disabled) {
+  background-color: #047857;
+  transform: translateY(-1px);
+}
+
+.config-save-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.config-save-btn--saving {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+/* Toast Styles */
+.config-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  background-color: rgba(5, 150, 105, 0.9); /* Green with opacity */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.config-toast--error {
+  background-color: rgba(220, 38, 38, 0.9); /* Red with opacity */
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .config-save-btn {
   width: 100%;
   padding: 0.875rem 1rem;
@@ -223,8 +370,10 @@
 }
 
 .config-save-btn:disabled {
-  opacity: 0.55;
+  background: #d1d5db;
+  box-shadow: none;
   cursor: not-allowed;
+  opacity: 0.7;
   transform: none;
 }
 

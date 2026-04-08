@@ -14,7 +14,12 @@ export default function SystemConfig() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [configData, setConfigData] = useState({ maxImageSize: 10, aiEnabled: true });
+  const [configData, setConfigData] = useState({
+    maxImageFileSizeMb: 20,
+    aiLabelingEnabled: true,
+    defaultPageSize: 25,
+    allowedImageExtensions: ['jpg', 'jpeg', 'png', 'webp']
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((o) => !o);
@@ -29,11 +34,16 @@ export default function SystemConfig() {
     async function loadConfig() {
       try {
         const res = await getSystemConfig();
-        const data = res.data?.result || res.data;
-        setConfigData({
-          maxImageSize: data.maxImageSize ?? 10,
-          aiEnabled: data.aiEnabled ?? true,
-        });
+        const data = res.data?.result;
+        
+        if (data) {
+          setConfigData({
+            maxImageFileSizeMb: data.maxImageFileSizeMb ?? 20,
+            aiLabelingEnabled: data.aiLabelingEnabled ?? true,
+            defaultPageSize: data.defaultPageSize ?? 25,
+            allowedImageExtensions: data.allowedImageExtensions ?? ['jpg', 'jpeg', 'png', 'webp'],
+          });
+        }
       } catch (err) {
         setError('Không thể tải cấu hình. Vui lòng thử lại.');
       } finally {
@@ -45,7 +55,12 @@ export default function SystemConfig() {
   }, []);
 
   const handleSave = async (config) => {
-    await updateSystemConfig(config);
+    try {
+      await updateSystemConfig(config);
+    } catch (err) {
+      // Re-throw to the panel to handle error toast
+      throw err;
+    }
   };
 
   const userName = user?.fullName || user?.email || 'Admin';
@@ -93,8 +108,7 @@ export default function SystemConfig() {
             <div className="config-page-grid">
               <div className="config-page-panel">
                 <SystemConfigPanel
-                  initialMaxImageSize={configData.maxImageSize}
-                  initialAiEnabled={configData.aiEnabled}
+                  initialSettings={configData}
                   onSave={handleSave}
                 />
               </div>

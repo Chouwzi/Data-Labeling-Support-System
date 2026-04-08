@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/common/Sidebar';
@@ -7,6 +7,7 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ActivityItem from '@/components/dashboard/ActivityItem';
 import SystemConfigPanel from '@/components/system/SystemConfigPanel';
 import BrandLogo from '@/components/common/BrandLogo';
+import { getSystemConfig, updateSystemConfig } from '@/services/api';
 import '@/styles/AdminDashboard.css';
 
 const ACTIVITIES = [
@@ -56,9 +57,34 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [configSettings, setConfigSettings] = useState(null);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  const [configError, setConfigError] = useState(false);
   
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        setIsLoadingConfig(true);
+        setConfigError(false);
+        const response = await getSystemConfig();
+        console.log('System Config API Response:', response.data);
+        if (response.data && response.data.result) {
+          setConfigSettings(response.data.result);
+        } else {
+          throw new Error("Invalid format");
+        }
+      } catch (err) {
+        console.error('Fetch system config error:', err);
+        setConfigError(true);
+      } finally {
+        setIsLoadingConfig(false);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -67,14 +93,16 @@ export default function AdminDashboard() {
 
   const handleSaveConfig = async (config) => {
     try {
-      const { updateSystemConfig } = await import('@/services/api');
       await updateSystemConfig(config);
       setToast({ message: 'Configuration saved successfully', type: 'success' });
+      // Refresh local state if needed (already updated by panel)
     } catch (err) {
       setToast({
         message: err.response?.data?.message || 'Failed to save configuration',
         type: 'error',
       });
+      // Throw error to the panel so it shows its own error toast too
+      throw err;
     }
     setTimeout(() => setToast(null), 3000);
   };
@@ -174,7 +202,19 @@ export default function AdminDashboard() {
             </section>
 
             <aside className="admin-right-col">
-              <SystemConfigPanel onSave={handleSaveConfig} />
+              {isLoadingConfig ? (
+                <div className="config-loading">Loading settings...</div>
+              ) : configError ? (
+                <div className="config-error-state">
+                  <p>Không thể tải cấu hình hệ thống.</p>
+                  <button onClick={() => window.location.reload()}>Thử lại</button>
+                </div>
+              ) : (
+                <SystemConfigPanel 
+                  initialSettings={configSettings}
+                  onSave={handleSaveConfig} 
+                />
+              )}
             </aside>
           </div>
         </main>

@@ -76,7 +76,10 @@ class SystemConfigurationControllerTest {
   void getConfiguration_WithAdminRole_ReturnsOk() throws Exception {
     mockMvc.perform(get("/system-config"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result.max_image_file_size_mb").value(20));
+        .andExpect(jsonPath("$.result.max_image_file_size_mb").value(20))
+        .andExpect(jsonPath("$.result.default_page_size").value(25))
+        .andExpect(jsonPath("$.result.ai_labeling_enabled").value(true))
+        .andExpect(jsonPath("$.result.allowed_image_extensions").isArray());
   }
 
   @Test

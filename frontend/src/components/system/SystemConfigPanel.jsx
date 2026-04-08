@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { CheckCircle, AlertCircle, Info } from 'lucide-react';
 import '@/styles/SystemConfigPanel.css';
 function ToggleSwitch({ checked, onChange, disabled = false, labelledBy }) {
@@ -18,12 +18,14 @@ function ToggleSwitch({ checked, onChange, disabled = false, labelledBy }) {
 }
 
 export default function SystemConfigPanel({
-  initialMaxImageSize = 10,
-  initialAiEnabled = true,
+  initialSettings,
   onSave,
 }) {
-  const [maxImageSize, setMaxImageSize] = useState(initialMaxImageSize);
-  const [aiEnabled, setAiEnabled] = useState(initialAiEnabled);
+  const [maxImageSize, setMaxImageSize] = useState('');
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [defaultPageSize, setDefaultPageSize] = useState('');
+  const [allowedExtensions, setAllowedExtensions] = useState([]);
+  const [extensionInput, setExtensionInput] = useState('');
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -32,14 +34,53 @@ export default function SystemConfigPanel({
   const [hasChanges, setHasChanges] = useState(false);
 
   const baselineRef = useRef({
-    maxImageSize: initialMaxImageSize,
-    aiEnabled: initialAiEnabled,
+    maxImageSize: '',
+    aiEnabled: false,
+    defaultPageSize: '',
+    allowedExtensions: [],
+    version: 0,
   });
 
-  const recomputeDirty = useCallback((nextSize, nextAi) => {
+  const recomputeDirty = useCallback((nextSize, nextAi, nextDefaultPageSize, nextExtensions, nextVersion) => {
     const b = baselineRef.current;
-    setHasChanges(nextSize !== b.maxImageSize || nextAi !== b.aiEnabled);
+    const extensionsChanged = JSON.stringify([...nextExtensions].sort()) !== JSON.stringify([...b.allowedExtensions].sort());
+    setHasChanges(
+      nextSize !== b.maxImageSize || 
+      nextAi !== b.aiEnabled || 
+      nextDefaultPageSize !== b.defaultPageSize ||
+      extensionsChanged
+    );
   }, []);
+
+  // Update effect when initialSettings change (e.g. after fetch)
+  useEffect(() => {
+    if (!initialSettings) {
+      return;
+    }
+
+    console.log('SystemConfigPanel receiving settings:', initialSettings);
+
+    // Mapping từ snake_case (Backend Jackson config) sang Component State
+    const nextSize = initialSettings.max_image_file_size_mb;
+    const nextAi = initialSettings.ai_labeling_enabled;
+    const nextPageSize = initialSettings.default_page_size;
+    const nextExtensions = initialSettings.allowed_image_extensions;
+    const nextVersion = initialSettings.version;
+
+    if (nextSize !== undefined) setMaxImageSize(nextSize);
+    if (nextAi !== undefined) setAiEnabled(nextAi);
+    if (nextPageSize !== undefined) setDefaultPageSize(nextPageSize);
+    if (nextExtensions !== undefined) setAllowedExtensions(nextExtensions);
+    
+    baselineRef.current = {
+      maxImageSize: nextSize,
+      aiEnabled: nextAi,
+      defaultPageSize: nextPageSize,
+      allowedExtensions: nextExtensions,
+      version: nextVersion,
+    };
+    setHasChanges(false);
+  }, [initialSettings]);
 
   const handleNumberChange = useCallback(
     (e) => {
@@ -52,38 +93,61 @@ export default function SystemConfigPanel({
       const n = parseInt(raw, 10);
       if (!Number.isNaN(n)) {
         setMaxImageSize(n);
-        recomputeDirty(n, aiEnabled);
+        recomputeDirty(n, aiEnabled, defaultPageSize, allowedExtensions);
       }
     },
-    [aiEnabled, recomputeDirty]
+    [aiEnabled, defaultPageSize, allowedExtensions, recomputeDirty]
   );
 
   const handleNumberBlur = useCallback(() => {
     if (maxImageSize === '' || maxImageSize < 1) {
       const n = 1;
       setMaxImageSize(n);
-      recomputeDirty(n, aiEnabled);
+      recomputeDirty(n, aiEnabled, defaultPageSize, allowedExtensions);
     }
-  }, [maxImageSize, aiEnabled, recomputeDirty]);
+  }, [maxImageSize, aiEnabled, defaultPageSize, allowedExtensions, recomputeDirty]);
 
   const handleAiToggle = useCallback(
     (checked) => {
       setAiEnabled(checked);
       const size = maxImageSize === '' ? baselineRef.current.maxImageSize : maxImageSize;
-      recomputeDirty(size, checked);
+      recomputeDirty(size, checked, defaultPageSize, allowedExtensions);
     },
-    [maxImageSize, recomputeDirty]
+    [maxImageSize, defaultPageSize, allowedExtensions, recomputeDirty]
   );
 
   const handleMfaToggle = useCallback((checked) => {
     setMfaEnabled(checked);
   }, []);
 
+  const handleAddExtension = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const value = extensionInput.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (value && !allowedExtensions.includes(value)) {
+        const nextExts = [...allowedExtensions, value];
+        setAllowedExtensions(nextExts);
+        setExtensionInput('');
+        recomputeDirty(maxImageSize, aiEnabled, defaultPageSize, nextExts);
+      } else {
+        setExtensionInput('');
+      }
+    }
+  };
+
+  const removeExtension = (ext) => {
+    const nextExts = allowedExtensions.filter(e => e !== ext);
+    setAllowedExtensions(nextExts);
+    recomputeDirty(maxImageSize, aiEnabled, defaultPageSize, nextExts);
+  };
+
   const handleSave = useCallback(async () => {
     const size = maxImageSize === '' ? 0 : Number(maxImageSize);
-    if (!size || size <= 0) {
+    const pageSize = defaultPageSize === '' ? 0 : Number(defaultPageSize);
+
+    if (!size || size <= 0 || !pageSize || pageSize <= 0) {
       setToastKind('error');
-      setToastMessage('Max image size must be greater than 0');
+      setToastMessage('Giá trị nhập vào không hợp lệ');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3200);
       return;
@@ -92,28 +156,41 @@ export default function SystemConfigPanel({
     setIsSaving(true);
 
     try {
-      const config = { maxImageSize: size, aiEnabled };
+      // Mapping back to snake_case for Backend Jackson API
+      const config = { 
+        max_image_file_size_mb: size, 
+        ai_labeling_enabled: aiEnabled,
+        default_page_size: pageSize,
+        allowed_image_extensions: allowedExtensions,
+        version: baselineRef.current.version
+      };
+      
       if (onSave) {
         await onSave(config);
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 600));
       }
 
-      baselineRef.current = { maxImageSize: size, aiEnabled };
+      baselineRef.current = { 
+        maxImageSize: size, 
+        aiEnabled, 
+        defaultPageSize: pageSize, 
+        allowedExtensions,
+        version: baselineRef.current.version + 1
+      };
+      
       setToastKind('success');
-      setToastMessage('Settings saved successfully');
+      setToastMessage('Cấu hình đã được lưu thành công');
       setShowToast(true);
       setHasChanges(false);
       setTimeout(() => setShowToast(false), 3200);
     } catch {
       setToastKind('error');
-      setToastMessage('Could not save settings');
+      setToastMessage('Không thể lưu cấu hình. Vui lòng thử lại.');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3200);
     } finally {
       setIsSaving(false);
     }
-  }, [maxImageSize, aiEnabled, onSave]);
+  }, [maxImageSize, aiEnabled, defaultPageSize, allowedExtensions, onSave]);
 
   return (
     <div className="config-panel">
@@ -153,6 +230,67 @@ export default function SystemConfigPanel({
           </p>
         </div>
 
+        <div className="config-field">
+          <label className="config-field__label" htmlFor="default-page-size">
+            Default Page Size
+          </label>
+          <div className="config-field__row">
+            <div className="config-field__input-inner">
+              <input
+                id="default-page-size"
+                type="number"
+                inputMode="numeric"
+                min={5}
+                max={200}
+                className="config-field__input config-field__input--number"
+                value={defaultPageSize === '' ? '' : defaultPageSize}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                  setDefaultPageSize(val);
+                  recomputeDirty(maxImageSize, aiEnabled, val, allowedExtensions);
+                }}
+                aria-describedby="page-size-hint"
+              />
+            </div>
+          </div>
+          <p className="config-field__hint" id="page-size-hint">
+            Number of items per page in data lists.
+          </p>
+        </div>
+
+        <div className="config-field">
+          <label className="config-field__label">Allowed Image Extensions</label>
+          <div className="config-extensions">
+            <div className="config-extensions__list">
+              {Array.isArray(allowedExtensions) && allowedExtensions.map((ext) => (
+                <span key={ext} className="config-extension-tag">
+                  .{ext}
+                  <button
+                    type="button"
+                    className="config-extension-tag__remove"
+                    onClick={() => removeExtension(ext)}
+                    aria-label={`Remove .${ext}`}
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              type="text"
+              className="config-extensions__input"
+              placeholder="Add extension (e.g. svg)..."
+              value={extensionInput}
+              onChange={(e) => setExtensionInput(e.target.value)}
+              onKeyDown={handleAddExtension}
+              aria-describedby="extensions-hint"
+            />
+          </div>
+          <p className="config-field__hint" id="extensions-hint">
+            Press Enter or comma to add. Only letters and numbers allowed.
+          </p>
+        </div>
+
         <div className="config-toggle">
           <div className="config-toggle__content">
             <p className="config-toggle__label" id="ai-toggle-label">
@@ -185,23 +323,11 @@ export default function SystemConfigPanel({
 
         <button
           type="button"
-          className={`config-save-btn primary-gradient ${isSaving ? 'config-save-btn--loading' : ''}`}
+          className={`config-save-btn ${isSaving ? 'config-save-btn--saving' : ''}`}
           onClick={handleSave}
-          disabled={
-            !hasChanges ||
-            isSaving ||
-            maxImageSize === '' ||
-            Number(maxImageSize) <= 0
-          }
+          disabled={!hasChanges || isSaving}
         >
-          {isSaving ? (
-            <>
-              <span className="config-save-btn__spinner" aria-hidden="true" />
-              <span>Saving&hellip;</span>
-            </>
-          ) : (
-            'Save Configuration'
-          )}
+          {isSaving ? 'Saving...' : 'Save Configuration'}
         </button>
       </div>
 
