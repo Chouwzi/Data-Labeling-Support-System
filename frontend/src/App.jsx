@@ -4,6 +4,7 @@ import Login from '@/pages/auth/Login';
 import LandingPage from '@/pages/common/LandingPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
+import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import CreateProject from '@/pages/manager/CreateProject';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
@@ -138,6 +139,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/taxonomy"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <LabelTaxonomy />
           </ProtectedRoute>
         }
       />

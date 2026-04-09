@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "axios": "^1.14.0",
+    "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "react": "^19.2.0",
+    "react-colorful": "^5.6.1",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.14.0"
   },
