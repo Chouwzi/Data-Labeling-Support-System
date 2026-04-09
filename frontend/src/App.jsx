@@ -4,6 +4,7 @@ import Login from '@/pages/auth/Login';
 import LandingPage from '@/pages/common/LandingPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
+import CreateProject from '@/pages/manager/CreateProject';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import SystemConfig from '@/pages/admin/SystemConfig';
@@ -102,6 +103,38 @@ function App() {
       {/* Other role dashboards */}
       <Route
         path="/manager"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/projects/create"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <CreateProject />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/projects"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/annotators"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ManagerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/reports"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <ManagerDashboard />
