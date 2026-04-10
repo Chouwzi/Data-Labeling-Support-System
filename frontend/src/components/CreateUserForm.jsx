@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { UserPlus, Mail, User, Lock, Shield, CheckCircle, Eye, EyeOff} from 'lucide-react';
+import { UserPlus, Mail, User, Lock, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; 
 import './CreateUserForm.css';
 
@@ -84,7 +85,6 @@ export default function CreateUserForm({ onSuccess }) {
       role: formData.role,
       active: true
     };
-
     try {
       const response = await fetch('http://localhost:8080/api/v1/users', {
         method: 'POST',
@@ -109,11 +109,29 @@ export default function CreateUserForm({ onSuccess }) {
       }
 
       alert("Tạo tài khoản thành công!");
+
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.accessToken || localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Error: ${response.status}`);
+      }
       if (onSuccess) onSuccess(data);
       setFormData({ email: '', fullName: '', password: '', role: '' });
 
     } catch (err) {
+
       setSubmitError(err.message === "Failed to fetch" ? "Không thể kết nối Server. Vui lòng kiểm tra Backend!" : err.message);
+      setSubmitError(err.message);
     } finally {
       setIsSubmitting(false);
     }
