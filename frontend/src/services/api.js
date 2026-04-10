@@ -58,6 +58,27 @@ export const updateUser = (userId, data) => api.put(`/users/${userId}`, data);
 
 export const deleteUser = (userId) => api.delete(`/users/${userId}`);
 
+export const updateUserRole = (user, newRole) => {
+  const payload = {
+    email: user.email,
+    full_name: user.fullName,
+    role: newRole,
+  };
+  console.log('Sending payload (updateUserRole):', payload);
+  return api.put(`/users/${user.id}`, payload);
+};
+
+export const toggleUserStatus = (user, newActive) => {
+  const payload = {
+    email: user.email,
+    full_name: user.fullName,
+    role: user.role,
+    active: newActive,
+  };
+  console.log('Sending payload (toggleUserStatus):', payload);
+  return api.put(`/users/${user.id}`, payload);
+};
+
 // =====================
 // System Config
 // =====================
