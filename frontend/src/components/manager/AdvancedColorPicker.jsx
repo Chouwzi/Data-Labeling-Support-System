@@ -9,12 +9,6 @@ const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 const TAB_SOLID = 'solid';
 const TAB_QUICK = 'quick';
 
-/**
- * Tabbed professional solid color picker.
- * Tab 1 — Solid Color: 2D saturation/brightness + hue slider
- * Tab 2 — Màu đồng nhất: 5×3 quick palette
- * Shared footer: preview + hex + eyedropper (always synced)
- */
 const QUICK_PALETTE_15 = [
   { hex: '#DC2626', label: 'Red' },
   { hex: '#EA580C', label: 'Orange' },
@@ -96,14 +90,33 @@ export default function AdvancedColorPicker({
     [onChange]
   );
 
+  const handleToggle = useCallback(
+    (action) => {
+      const next = !open;
+      setOpen(next);
+      fetch('http://127.0.0.1:7873/ingest/aefa275a-5daf-459f-9115-0a7581e8760f', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'e8d081',
+          location: 'AdvancedColorPicker.jsx:handleToggle',
+          message: 'handleToggle fired',
+          data: { action, open, next, disabled, value },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    },
+    [open, disabled, value]
+  );
+
   return (
-    <div className="advanced-color-picker" ref={rootRef}>
+    <div className={`advanced-color-picker${open ? ' advanced-color-picker--open' : ''}`} ref={rootRef}>
       <div className="advanced-color-picker__trigger-row">
         <button
           type="button"
           className="advanced-color-picker__swatch-btn"
           style={{ backgroundColor: pickerHex }}
-          onClick={() => !disabled && setOpen((o) => !o)}
+          onClick={() => handleToggle('swatch')}
           disabled={disabled}
           aria-expanded={open}
           aria-haspopup="dialog"
@@ -117,10 +130,7 @@ export default function AdvancedColorPicker({
             value={formatHexDisplay(value)}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === '' || v === '#') {
-                onChange('#');
-                return;
-              }
+              if (v === '' || v === '#') { onChange('#'); return; }
               const next = v.startsWith('#') ? v : `#${v}`;
               onChange(next.slice(0, 7).toUpperCase());
             }}
@@ -137,7 +147,7 @@ export default function AdvancedColorPicker({
         <button
           type="button"
           className="advanced-color-picker__chevron-btn"
-          onClick={() => !disabled && setOpen((o) => !o)}
+          onClick={() => handleToggle('chevron')}
           disabled={disabled}
           aria-label="Toggle color picker"
         >
@@ -203,25 +213,6 @@ export default function AdvancedColorPicker({
                     exit={{ opacity: 0, x: 8 }}
                     transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <div className="advanced-color-picker__tone-area">
-                      <HexColorPicker
-                        color={pickerHex}
-                        onChange={(h) => onChange(h.toUpperCase())}
-                      />
-                    </div>
-                  </MotionDiv>
-                ) : (
-                  <MotionDiv
-                    key="quick"
-                    id="color-panel-quick"
-                    role="tabpanel"
-                    aria-labelledby="color-tab-quick"
-                    className="advanced-color-picker__tab-panel"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  >
                     <div
                       className="advanced-color-picker__palette advanced-color-picker__palette--quick"
                       role="group"
@@ -252,6 +243,25 @@ export default function AdvancedColorPicker({
                       })}
                     </div>
                   </MotionDiv>
+                ) : (
+                  <MotionDiv
+                    key="quick"
+                    id="color-panel-quick"
+                    role="tabpanel"
+                    aria-labelledby="color-tab-quick"
+                    className="advanced-color-picker__tab-panel"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <div className="advanced-color-picker__tone-area">
+                      <HexColorPicker
+                        color={pickerHex}
+                        onChange={(h) => onChange(h.toUpperCase())}
+                      />
+                    </div>
+                  </MotionDiv>
                 )}
               </AnimatePresence>
             </div>
@@ -274,10 +284,7 @@ export default function AdvancedColorPicker({
                   placeholder="#006C51"
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (v === '' || v === '#') {
-                      onChange('#');
-                      return;
-                    }
+                    if (v === '' || v === '#') { onChange('#'); return; }
                     const next = v.startsWith('#') ? v : `#${v}`;
                     onChange(next.slice(0, 7).toUpperCase());
                   }}

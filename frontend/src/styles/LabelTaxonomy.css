@@ -1,0 +1,808 @@
+/* Label Taxonomy — manager shell + catalog */
+
+.label-taxonomy-page {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.label-taxonomy-page__shell {
+  margin-bottom: 0.5rem;
+}
+
+.label-taxonomy-page__intro {
+  margin-bottom: 1.5rem;
+}
+
+/* ── Back button ── */
+.label-taxonomy-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 0.875rem;
+  background: rgba(17, 24, 39, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 0.625rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.label-taxonomy-back:hover {
+  background: #ecfdf5;
+  border-color: rgba(5, 150, 105, 0.25);
+  color: #059669;
+}
+
+.label-taxonomy-back__emphasis {
+  color: #111827;
+  font-weight: 700;
+}
+
+.label-taxonomy-back:hover .label-taxonomy-back__emphasis {
+  color: #047857;
+}
+
+/* ── Asymmetric grid ── */
+.label-taxonomy-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .label-taxonomy-grid { grid-template-columns: 1fr; }
+}
+
+/* Card — surface-container-lowest (white) per design system */
+.label-taxonomy-grid__studio.manager-stack-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background-color: var(--color-surface-container-lowest, #ffffff);
+  border: 1px solid var(--color-outline-variant, rgba(0,0,0,0.08));
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.label-taxonomy-studio__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.label-taxonomy-studio__icon-wrap {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.label-taxonomy-studio__title { margin: 0; }
+.label-taxonomy-studio__subtitle { margin: 0.25rem 0 0 0; }
+
+/* ── Live preview card ── */
+.label-taxonomy-preview {
+  padding: 0.75rem 0 0 0;
+}
+
+.label-taxonomy-preview__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin: 0 0 0.5rem 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-preview__card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.625rem;
+}
+
+.label-taxonomy-preview__swatch {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.label-taxonomy-preview__name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-preview__hex {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+}
+
+/* ── Tip ── */
+.label-taxonomy-tip {
+  padding: 0.875rem 1rem;
+  background: rgba(5, 150, 105, 0.06);
+  border: 1px solid rgba(5, 150, 105, 0.15);
+  border-radius: 0.625rem;
+}
+
+.label-taxonomy-tip__text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+/* ── Catalog ── */
+.label-taxonomy-catalog-card.project-table-card {
+  overflow: visible;
+}
+
+.label-taxonomy-catalog-card .project-table-card__header {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.label-taxonomy-catalog__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.label-taxonomy-stat-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: #ecfdf5;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-radius: 9999px;
+}
+
+.label-taxonomy-stat-pill__num {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #059669;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-stat-pill__text {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #047857;
+}
+
+/* ── Distribution bar ── */
+.label-taxonomy-distribution {
+  padding: 0 1.5rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.label-taxonomy-distribution__track {
+  display: flex;
+  height: 0.5rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.label-taxonomy-distribution__segment {
+  min-width: 4px;
+  transition: flex-grow 0.2s ease;
+}
+
+.label-taxonomy-distribution__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.label-taxonomy-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.label-taxonomy-legend-item__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.label-taxonomy-legend-item__name {
+  font-weight: 600;
+  color: #374151;
+}
+
+.label-taxonomy-legend-item__count {
+  font-variant-numeric: tabular-nums;
+  color: #9ca3af;
+}
+
+/* ── Empty state ── */
+.label-taxonomy-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.label-taxonomy-empty__icon {
+  width: 5rem;
+  height: 5rem;
+  margin: 0 auto 1rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label-taxonomy-empty__svg { color: #9ca3af; }
+
+.label-taxonomy-empty__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-empty__desc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 auto;
+  max-width: 22rem;
+  line-height: 1.5;
+}
+
+/* ── Table wrap ── */
+.label-taxonomy-table-wrap { overflow-x: auto; }
+
+.label-taxonomy-table__swatch {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.label-taxonomy-table__hex {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.label-taxonomy-table__usage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.label-taxonomy-table__actions { gap: 0.375rem; }
+
+.label-taxonomy-table__inline-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.label-taxonomy-table__inline-btn--danger {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.label-taxonomy-table__inline-btn--danger:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45) !important;
+}
+
+.label-taxonomy-table__edit td {
+  background: #f9fafb;
+  padding: 1.25rem 1.5rem !important;
+  vertical-align: top;
+  overflow: visible;
+}
+
+.label-taxonomy-table__edit td:has(.advanced-color-picker--open) {
+  position: relative;
+  z-index: 15;
+}
+
+.label-taxonomy-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  max-width: 22rem;
+}
+
+.label-taxonomy-edit__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label-taxonomy-edit__name { width: 100%; }
+
+.label-taxonomy-edit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.label-taxonomy-edit__save { padding: 0.625rem 1rem !important; }
+
+/* Submit button — primary-container style (green) per design system */
+.create-project-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #00a67e 0%, #00856a 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 108, 81, 0.3);
+}
+
+.create-project-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 108, 81, 0.4);
+}
+
+.create-project-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.create-project-submit-btn__spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Catalog footer ── */
+.label-taxonomy-catalog__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.label-taxonomy-catalog__footer svg {
+  flex-shrink: 0;
+  color: #059669;
+}
+
+/* ── Toasts ── */
+.label-taxonomy-toasts {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.label-taxonomy-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.label-taxonomy-toast--success { background: #ffffff; color: #059669; }
+.label-taxonomy-toast--info { background: #ffffff; color: #4b5563; }
+
+/* =============================================
+   ADVANCED COLOR PICKER — TABBED
+   ============================================= */
+.advanced-color-picker {
+  position: relative;
+  width: 100%;
+}
+
+.advanced-color-picker--open {
+  z-index: 2;
+}
+
+/* ── Trigger row ── */
+.advanced-color-picker__trigger-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-surface-container-lowest, #ffffff);
+  box-shadow: 0 0 0 1px rgba(22, 29, 26, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+
+.advanced-color-picker__trigger-row:focus-within {
+  box-shadow: 0 0 0 2px rgba(0, 108, 81, 0.35), 0 0 0 4px rgba(0, 108, 81, 0.12);
+}
+
+.advanced-color-picker__swatch-btn {
+  width: 2.75rem;
+  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.advanced-color-picker__swatch-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.advanced-color-picker__hex-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.advanced-color-picker__hex-input {
+  width: 100%;
+  border: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #111827;
+  outline: none;
+  background: transparent;
+}
+
+.advanced-color-picker__chevron-btn {
+  min-width: 2.75rem;
+  flex-shrink: 0;
+  padding: 0 0.75rem;
+  border: none;
+  border-left: 1px solid rgba(22, 29, 26, 0.06);
+  background: rgba(22, 29, 26, 0.03);
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.advanced-color-picker__chevron-btn:hover:not(:disabled) {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.advanced-color-picker__chevron-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.advanced-color-picker__chevron { transition: transform 0.2s ease; }
+
+/* ── Popover — surface-container-lowest, soft edge ── */
+.advanced-color-picker__popover {
+  position: absolute;
+  z-index: var(--z-dropdown, 500);
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--color-surface-container-lowest, #ffffff);
+  border-radius: 1rem;
+  box-shadow:
+    0 12px 40px rgba(22, 29, 26, 0.08),
+    0 0 0 1px rgba(22, 29, 26, 0.06);
+  overflow: visible;
+}
+
+/* On narrow viewports / small containers, cap width gracefully */
+@media (min-width: 380px) {
+  .advanced-color-picker__popover {
+    width: min(100%, 304px);
+    right: auto;
+  }
+}
+
+/* ── Tab bar ── */
+.advanced-color-picker__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 1rem;
+  border-bottom: 1px solid rgba(22, 29, 26, 0.06);
+  background: var(--color-surface-container-lowest, #ffffff);
+}
+
+.advanced-color-picker__tab {
+  flex: 1;
+  position: relative;
+  padding: 0.75rem 0.5rem 0.625rem;
+  margin: 0;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(22, 29, 26, 0.45);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  text-align: center;
+}
+
+.advanced-color-picker__tab:hover {
+  color: rgba(22, 29, 26, 0.65);
+}
+
+.advanced-color-picker__tab--active {
+  font-weight: 700;
+  color: #161d1a;
+}
+
+.advanced-color-picker__tab--active::after {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: #059669;
+}
+
+/* ── Panel wrap — smooth height transitions via Framer Motion layout ── */
+.advanced-color-picker__panel-wrap {
+  position: relative;
+  padding: 0.875rem 1rem 1rem;
+}
+
+/* react-colorful: fills available space with sat/bri square + hue strip */
+.advanced-color-picker__tone-area {
+  width: 100%;
+}
+
+.advanced-color-picker__tone-area .react-colorful {
+  width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.advanced-color-picker__tone-area .react-colorful__saturation {
+  flex: 1;
+  min-height: 148px;
+  border-radius: 0.75rem !important;
+  box-shadow: inset 0 0 0 1px rgba(22, 29, 26, 0.06);
+}
+
+.advanced-color-picker__tone-area .react-colorful__hue {
+  height: 14px;
+  border-radius: 9999px !important;
+  box-shadow: inset 0 0 0 1px rgba(22, 29, 26, 0.06);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.advanced-color-picker__tone-area .react-colorful__hue:active {
+  cursor: grabbing;
+}
+
+.advanced-color-picker__tone-area .react-colorful__pointer {
+  width: 18px !important;
+  height: 18px !important;
+  border: 3px solid #ffffff !important;
+  box-shadow: 0 2px 8px rgba(22, 29, 26, 0.2) !important;
+  cursor: grab;
+}
+
+.advanced-color-picker__tone-area .react-colorful__pointer:active {
+  cursor: grabbing;
+}
+
+/* ── Tab panel (content area for each tab) ── */
+.advanced-color-picker__tab-panel {
+  width: 100%;
+}
+
+/* ── Quick palette: 5×3 ── */
+.advanced-color-picker__palette--quick {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+/* ── Individual swatch circle ── */
+.advanced-color-picker__swatch {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.15s ease;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.advanced-color-picker__swatch:hover {
+  transform: scale(1.15);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.advanced-color-picker__swatch:active { transform: scale(1.04); }
+
+/* Active ring — green-tech accent */
+.advanced-color-picker__swatch--active {
+  box-shadow:
+    0 0 0 2.5px #ffffff,
+    0 0 0 5px #006c51,
+    0 4px 14px rgba(0, 108, 81, 0.35);
+}
+
+.advanced-color-picker__swatch--active:hover {
+  box-shadow:
+    0 0 0 2.5px #ffffff,
+    0 0 0 5px #006c51,
+    0 6px 20px rgba(0, 108, 81, 0.4);
+}
+
+/* Checkmark inside active swatch */
+.advanced-color-picker__swatch-check {
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  pointer-events: none;
+}
+
+/* ── Footer divider (outline-variant @ ~12%) ── */
+.advanced-color-picker__footer-divider {
+  height: 1px;
+  margin: 0.875rem 1rem 0;
+  background: rgba(190, 201, 194, 0.15);
+}
+
+/* ── Bottom bar — unified padding matching panel-wrap (1rem) ── */
+.advanced-color-picker__bottom-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.1rem 0.875rem;
+  background: var(--color-surface-container-lowest, #ffffff);
+}
+
+/* Compound field — same style as form-field__input (Design System) */
+.advanced-color-picker__compound-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1.5px solid #e5e7eb;
+  background: #f9fafb;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.advanced-color-picker__compound-field:focus-within {
+  border-color: #059669;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.advanced-color-picker__compound-preview {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.advanced-color-picker__compound-hex {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #111827;
+  outline: none;
+}
+
+/* Eyedropper button — matches form-field__input height (~2.75rem), centered icon */
+.advanced-color-picker__eyedropper {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.625rem;
+  background: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.advanced-color-picker__eyedropper:hover:not(:disabled) {
+  background: #ecfdf5;
+  border-color: rgba(5, 150, 105, 0.3);
+  color: #059669;
+}
+
+.advanced-color-picker__eyedropper:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
