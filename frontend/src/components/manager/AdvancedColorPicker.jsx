@@ -2,12 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HexColorPicker } from 'react-colorful';
 import { Check, ChevronDown, Pipette } from 'lucide-react';
+import './AdvancedColorPicker.css';
 
 const MotionDiv = motion.div;
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 
+/** Tab 1: quick 5×3 palette (solid hex presets) */
 const TAB_SOLID = 'solid';
-const TAB_QUICK = 'quick';
+/** Tab 2: saturation / brightness + hue (still outputs one solid hex) */
+const TAB_UNIFORM = 'uniform';
 
 const QUICK_PALETTE_15 = [
   { hex: '#DC2626', label: 'Red' },
@@ -52,7 +55,6 @@ export default function AdvancedColorPicker({
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(TAB_SOLID);
   const rootRef = useRef(null);
-
   const pickerHex = normalizeHex(value);
 
   useEffect(() => {
@@ -73,50 +75,54 @@ export default function AdvancedColorPicker({
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
+  const handleHexInput = useCallback(
+    (raw) => {
+      const v = raw.trim();
+      if (v === '' || v === '#') {
+        onChange('#');
+        return;
+      }
+      const next = v.startsWith('#') ? v : `#${v}`;
+      onChange(next.slice(0, 7).toUpperCase());
+    },
+    [onChange]
+  );
+
   const handleEyedropper = useCallback(async () => {
     if (disabled || typeof window === 'undefined' || !window.EyeDropper) return;
     try {
       const result = await new window.EyeDropper().open();
       if (result?.sRGBHex) onChange(result.sRGBHex.toUpperCase());
     } catch {
-      /* dismissed */
+      // dismissed
     }
   }, [disabled, onChange]);
 
-  const handlePaletteClick = useCallback(
-    (hex) => {
-      onChange(hex.toUpperCase());
-    },
-    [onChange]
-  );
+  const panelMotion = {
+    initial: { opacity: 0, x: -8 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 8 },
+    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+  };
 
-  const handleToggle = useCallback(
-    (action) => {
-      const next = !open;
-      setOpen(next);
-      fetch('http://127.0.0.1:7873/ingest/aefa275a-5daf-459f-9115-0a7581e8760f', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'e8d081',
-          location: 'AdvancedColorPicker.jsx:handleToggle',
-          message: 'handleToggle fired',
-          data: { action, open, next, disabled, value },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    },
-    [open, disabled, value]
-  );
+  const panelMotionReverse = {
+    initial: { opacity: 0, x: 8 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -8 },
+    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+  };
 
   return (
-    <div className={`advanced-color-picker${open ? ' advanced-color-picker--open' : ''}`} ref={rootRef}>
+    <div
+      className={`advanced-color-picker${open ? ' advanced-color-picker--open' : ''}`}
+      ref={rootRef}
+    >
       <div className="advanced-color-picker__trigger-row">
         <button
           type="button"
           className="advanced-color-picker__swatch-btn"
           style={{ backgroundColor: pickerHex }}
-          onClick={() => handleToggle('swatch')}
+          onClick={() => setOpen(!open)}
           disabled={disabled}
           aria-expanded={open}
           aria-haspopup="dialog"
@@ -128,12 +134,7 @@ export default function AdvancedColorPicker({
             type="text"
             className="advanced-color-picker__hex-input"
             value={formatHexDisplay(value)}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === '' || v === '#') { onChange('#'); return; }
-              const next = v.startsWith('#') ? v : `#${v}`;
-              onChange(next.slice(0, 7).toUpperCase());
-            }}
+            onChange={(e) => handleHexInput(e.target.value)}
             onBlur={() =>
               onChange(HEX_RE.test(value) ? value.toUpperCase() : pickerHex.toUpperCase())
             }
@@ -147,7 +148,7 @@ export default function AdvancedColorPicker({
         <button
           type="button"
           className="advanced-color-picker__chevron-btn"
-          onClick={() => handleToggle('chevron')}
+          onClick={() => setOpen(!open)}
           disabled={disabled}
           aria-label="Toggle color picker"
         >
@@ -165,9 +166,9 @@ export default function AdvancedColorPicker({
             className="advanced-color-picker__popover"
             role="dialog"
             aria-label={ariaLabel}
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             <div
@@ -181,7 +182,7 @@ export default function AdvancedColorPicker({
                 id="color-tab-solid"
                 aria-selected={activeTab === TAB_SOLID}
                 aria-controls="color-panel-solid"
-                className={`advanced-color-picker__tab ${activeTab === TAB_SOLID ? 'advanced-color-picker__tab--active' : ''}`}
+                className={`advanced-color-picker__tab${activeTab === TAB_SOLID ? ' advanced-color-picker__tab--active' : ''}`}
                 onClick={() => setActiveTab(TAB_SOLID)}
               >
                 Solid Color
@@ -189,17 +190,17 @@ export default function AdvancedColorPicker({
               <button
                 type="button"
                 role="tab"
-                id="color-tab-quick"
-                aria-selected={activeTab === TAB_QUICK}
-                aria-controls="color-panel-quick"
-                className={`advanced-color-picker__tab ${activeTab === TAB_QUICK ? 'advanced-color-picker__tab--active' : ''}`}
-                onClick={() => setActiveTab(TAB_QUICK)}
+                id="color-tab-uniform"
+                aria-selected={activeTab === TAB_UNIFORM}
+                aria-controls="color-panel-uniform"
+                className={`advanced-color-picker__tab${activeTab === TAB_UNIFORM ? ' advanced-color-picker__tab--active' : ''}`}
+                onClick={() => setActiveTab(TAB_UNIFORM)}
               >
                 Màu đồng nhất
               </button>
             </div>
 
-            <div className="advanced-color-picker__panel-wrap">
+            <div className="advanced-color-picker__panel-shell">
               <AnimatePresence mode="wait" initial={false}>
                 {activeTab === TAB_SOLID ? (
                   <MotionDiv
@@ -208,15 +209,12 @@ export default function AdvancedColorPicker({
                     role="tabpanel"
                     aria-labelledby="color-tab-solid"
                     className="advanced-color-picker__tab-panel"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 8 }}
-                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    {...panelMotion}
                   >
                     <div
-                      className="advanced-color-picker__palette advanced-color-picker__palette--quick"
+                      className="advanced-color-picker__palette-grid"
                       role="group"
-                      aria-label="Quick color presets"
+                      aria-label="Quick solid color presets"
                     >
                       {QUICK_PALETTE_15.map(({ hex, label }) => {
                         const active = hex.toLowerCase() === pickerHex;
@@ -224,9 +222,9 @@ export default function AdvancedColorPicker({
                           <button
                             key={hex}
                             type="button"
-                            className={`advanced-color-picker__swatch ${active ? 'advanced-color-picker__swatch--active' : ''}`}
+                            className={`advanced-color-picker__swatch${active ? ' advanced-color-picker__swatch--active' : ''}`}
                             style={{ backgroundColor: hex }}
-                            onClick={() => handlePaletteClick(hex)}
+                            onClick={() => onChange(hex.toUpperCase())}
                             aria-label={label}
                             aria-pressed={active}
                             title={`${label} — ${hex}`}
@@ -245,28 +243,25 @@ export default function AdvancedColorPicker({
                   </MotionDiv>
                 ) : (
                   <MotionDiv
-                    key="quick"
-                    id="color-panel-quick"
+                    key="uniform"
+                    id="color-panel-uniform"
                     role="tabpanel"
-                    aria-labelledby="color-tab-quick"
-                    className="advanced-color-picker__tab-panel"
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    aria-labelledby="color-tab-uniform"
+                    className="advanced-color-picker__tab-panel advanced-color-picker__tab-panel--uniform"
+                    {...panelMotionReverse}
                   >
                     <div className="advanced-color-picker__tone-area">
                       <HexColorPicker
+                        className="advanced-color-picker__hex-picker-root"
                         color={pickerHex}
                         onChange={(h) => onChange(h.toUpperCase())}
+                        style={{ width: '100%', height: '100%' }}
                       />
                     </div>
                   </MotionDiv>
                 )}
               </AnimatePresence>
             </div>
-
-            <div className="advanced-color-picker__footer-divider" role="separator" />
 
             <div className="advanced-color-picker__bottom-bar">
               <div className="advanced-color-picker__compound-field">
@@ -282,12 +277,7 @@ export default function AdvancedColorPicker({
                   className="advanced-color-picker__compound-hex"
                   value={formatHexDisplay(value)}
                   placeholder="#006C51"
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '' || v === '#') { onChange('#'); return; }
-                    const next = v.startsWith('#') ? v : `#${v}`;
-                    onChange(next.slice(0, 7).toUpperCase());
-                  }}
+                  onChange={(e) => handleHexInput(e.target.value)}
                   onBlur={() =>
                     onChange(HEX_RE.test(value) ? value.toUpperCase() : pickerHex.toUpperCase())
                   }

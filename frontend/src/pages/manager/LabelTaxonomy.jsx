@@ -20,9 +20,9 @@ import '@/styles/ManagerDashboard.css';
 import '@/styles/LabelTaxonomy.css';
 
 const INITIAL_LABELS = [
-  { id: 1, name: 'Building', hex: '#006C51', usage: 1243 },
-  { id: 2, name: 'Road', hex: '#A03F37', usage: 843 },
-  { id: 3, name: 'Vegetation', hex: '#466558', usage: 2587 },
+  { id: 1, name: 'Building', hex: '#006C51' },
+  { id: 2, name: 'Road', hex: '#A03F37' },
+  { id: 3, name: 'Vegetation', hex: '#466558' },
 ];
 
 function hexToRgb(hex) {
@@ -101,7 +101,7 @@ export default function LabelTaxonomy() {
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const newLabel = { id: Date.now(), name: trimmed, hex: formHex.toUpperCase(), usage: 0 };
+    const newLabel = { id: Date.now(), name: trimmed, hex: formHex.toUpperCase() };
     setLabels((prev) => [newLabel, ...prev]);
     setFormName('');
     setFormHex('#006C51');
@@ -148,7 +148,7 @@ export default function LabelTaxonomy() {
     cancelEdit();
   };
 
-  const totalUsage = labels.reduce((sum, l) => sum + l.usage, 0);
+  const totalUsage = 0;
   const userName = user?.fullName || user?.email || 'Manager';
   const userRole = user?.role === 'MANAGER' ? 'Lead Curator' : user?.role || 'MANAGER';
 
@@ -321,45 +321,8 @@ export default function LabelTaxonomy() {
                         <span className="label-taxonomy-stat-pill__num">{labels.length}</span>
                         <span className="label-taxonomy-stat-pill__text">Labels</span>
                       </div>
-                      <div className="label-taxonomy-stat-pill">
-                        <span className="label-taxonomy-stat-pill__num">
-                          {totalUsage.toLocaleString()}
-                        </span>
-                        <span className="label-taxonomy-stat-pill__text">Total uses</span>
-                      </div>
                     </div>
                   </div>
-
-                  {labels.length > 0 && (
-                    <div className="label-taxonomy-distribution">
-                      <div className="label-taxonomy-distribution__track">
-                        {labels.map((label) => (
-                          <div
-                            key={label.id}
-                            className="label-taxonomy-distribution__segment"
-                            style={{ backgroundColor: label.hex, flexGrow: label.usage || 1 }}
-                            title={`${label.name}: ${label.usage.toLocaleString()} uses`}
-                          />
-                        ))}
-                      </div>
-                      <div className="label-taxonomy-distribution__legend">
-                        {labels.map((label) => (
-                          <div key={label.id} className="label-taxonomy-legend-item">
-                            <span
-                              className="label-taxonomy-legend-item__dot"
-                              style={{ backgroundColor: label.hex }}
-                            />
-                            <span className="label-taxonomy-legend-item__name">{label.name}</span>
-                            <span className="label-taxonomy-legend-item__count">
-                              {label.usage > 0
-                                ? `${((label.usage / (totalUsage || 1)) * 100).toFixed(0)}%`
-                                : '—'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {labels.length === 0 ? (
                     <div className="label-taxonomy-empty">
@@ -372,14 +335,14 @@ export default function LabelTaxonomy() {
                       </p>
                     </div>
                   ) : (
-                    <div className="label-taxonomy-table-wrap">
+                    <div className="label-taxonomy-table-wrap label-taxonomy-table-container">
                       <table className="project-table" role="table">
                         <thead>
                           <tr>
                             <th scope="col">Label</th>
                             <th scope="col">Color</th>
                             <th scope="col">Usage</th>
-                            <th scope="col" style={{ textAlign: 'right' }}>Actions</th>
+                            <th scope="col" className="text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -452,11 +415,9 @@ export default function LabelTaxonomy() {
                                   <code className="label-taxonomy-table__hex">{label.hex}</code>
                                 </td>
                                 <td>
-                                  <span className="label-taxonomy-table__usage">
-                                    {label.usage.toLocaleString()}
-                                  </span>
+                                  <span className="label-taxonomy-table__usage">—</span>
                                 </td>
-                                <td style={{ textAlign: 'right' }}>
+                                <td className="text-right">
                                   <div className="project-table__actions label-taxonomy-table__actions">
                                     {deletingId === label.id ? (
                                       <>

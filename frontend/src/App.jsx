@@ -5,7 +5,6 @@ import LandingPage from '@/pages/common/LandingPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
-import CreateProject from '@/pages/manager/CreateProject';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import SystemConfig from '@/pages/admin/SystemConfig';
@@ -110,14 +109,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/manager/projects/create"
-        element={
-          <ProtectedRoute allowedRoles={['MANAGER']}>
-            <CreateProject />
-          </ProtectedRoute>
-        }
-      />
+      {/* Manager projects — rendered as modal inside ManagerDashboard */}
       <Route
         path="/manager/projects"
         element={
