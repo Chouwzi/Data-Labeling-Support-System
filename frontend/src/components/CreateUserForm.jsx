@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { UserPlus, Mail, User, Lock, Shield } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext'; 
 import './CreateUserForm.css';
 
 const ROLES = [
@@ -9,7 +10,8 @@ const ROLES = [
   { value: 'REVIEWER', label: 'Reviewer' },
 ];
 
-export default function CreateUserForm({ onSuccess, onSubmit }) {
+export default function CreateUserForm({ onSuccess }) {
+  const { user } = useAuth(); 
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
@@ -57,8 +59,15 @@ export default function CreateUserForm({ onSuccess, onSubmit }) {
     return newErrors;
   };
 
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!user) {
+      setSubmitError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      return;
+    }
 
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
@@ -69,18 +78,35 @@ export default function CreateUserForm({ onSuccess, onSubmit }) {
     setIsSubmitting(true);
     setSubmitError('');
 
+    const payload = {
+      email: formData.email.trim(),
+      full_name: formData.fullName.trim(),
+      password: formData.password,
+      role: formData.role,
+      active: true
+    };
+
     try {
-      if (onSubmit) {
-        await onSubmit(formData);
+      const response = await fetch('http://localhost:8080/api/v1/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.accessToken || localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Error: ${response.status}`);
       }
 
-      if (onSuccess) {
-        onSuccess(formData);
-      }
-
+      if (onSuccess) onSuccess(data);
       setFormData({ email: '', fullName: '', password: '', role: '' });
+
     } catch (err) {
-      setSubmitError(err.message || 'Failed to create user');
+      setSubmitError(err.message);
     } finally {
       setIsSubmitting(false);
     }
