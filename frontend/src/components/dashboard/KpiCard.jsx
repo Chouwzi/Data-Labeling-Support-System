@@ -73,7 +73,7 @@ export default function KpiCard({
   }
 
   return (
-    <div className={`kpi-card ${trend ? 'kpi-card--with-trend' : ''}`}>
+    <div className={`kpi-card kpi-card--summary ${trend ? 'kpi-card--with-trend' : ''}`}>
       <div className="kpi-card__header">
         <div className="kpi-card__icon">
           <IconComponent size={20} />
