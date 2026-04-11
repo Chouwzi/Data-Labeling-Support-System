@@ -36,112 +36,112 @@ import static org.mockito.Mockito.when;
 
 class ActivityLogAspectTest {
 
-    private ActivityLogRepository activityLogRepository;
-    private UserRepository userRepository;
-    private ActivityLogAspect aspect;
+  private ActivityLogRepository activityLogRepository;
+  private UserRepository userRepository;
+  private ActivityLogAspect aspect;
 
-    @BeforeEach
-    void setUp() {
-        activityLogRepository = mock(ActivityLogRepository.class);
-        userRepository = mock(UserRepository.class);
-        aspect = new ActivityLogAspect(activityLogRepository, userRepository);
+  @BeforeEach
+  void setUp() {
+    activityLogRepository = mock(ActivityLogRepository.class);
+    userRepository = mock(UserRepository.class);
+    aspect = new ActivityLogAspect(activityLogRepository, userRepository);
+  }
+
+  @AfterEach
+  void tearDown() {
+    RequestContextHolder.resetRequestAttributes();
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void logActivity_ShouldPersistAuditLogWithOldAndNewValues() throws Throwable {
+    UUID userId = UUID.randomUUID();
+    UUID entityId = UUID.randomUUID();
+    User user = User.builder()
+        .id(userId)
+        .email("admin@example.com")
+        .fullName("Admin")
+        .password("secret")
+        .role("ADMIN")
+        .active(true)
+        .build();
+
+    when(userRepository.findByEmail("admin@example.com")).thenReturn(java.util.Optional.of(user));
+    when(userRepository.findById(entityId)).thenReturn(java.util.Optional.of(user));
+    when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/" + entityId);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request, response));
+
+    Authentication authentication = new UsernamePasswordAuthenticationToken(
+        "admin@example.com",
+        "password",
+        List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+    MethodSignature signature = mock(MethodSignature.class);
+    Method method = DummyTarget.class.getDeclaredMethod("updateUser", UUID.class);
+    LogActivity annotation = method.getAnnotation(LogActivity.class);
+
+    when(joinPoint.getArgs()).thenReturn(new Object[] { entityId });
+    when(joinPoint.getSignature()).thenReturn(signature);
+    when(signature.getParameterNames()).thenReturn(new String[] { "userId" });
+    when(joinPoint.proceed()).thenReturn("ok");
+    when(signature.getMethod()).thenReturn(method);
+
+    Object result = aspect.logActivity(joinPoint, annotation);
+
+    assertEquals("ok", result);
+
+    ArgumentCaptor<ActivityLog> captor = ArgumentCaptor.forClass(ActivityLog.class);
+    verify(activityLogRepository).save(captor.capture());
+
+    ActivityLog saved = captor.getValue();
+    assertEquals(userId, saved.getUserId());
+    assertEquals("UPDATE_USER", saved.getAction());
+    assertEquals("/api/v1/users/" + entityId, saved.getEndpoint());
+    assertEquals("GET", saved.getMethod());
+    assertEquals(200, saved.getStatus());
+    assertEquals(entityId, saved.getEntityId());
+    assertEquals("USER", saved.getEntityType());
+    assertNotNull(saved.getOldValue());
+    assertNotNull(saved.getNewValue());
+    assertNotNull(saved.getCreatedAt());
+  }
+
+  @Test
+  void logActivity_WhenAuthenticatedUserMissing_ShouldStillSaveLogWithNullUserId() throws Throwable {
+    UUID entityId = UUID.randomUUID();
+    when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/" + entityId);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request, response));
+
+    ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
+    MethodSignature signature = mock(MethodSignature.class);
+    Method method = DummyTarget.class.getDeclaredMethod("updateUser", UUID.class);
+    LogActivity annotation = method.getAnnotation(LogActivity.class);
+
+    when(joinPoint.getArgs()).thenReturn(new Object[] { entityId });
+    when(joinPoint.getSignature()).thenReturn(signature);
+    when(signature.getParameterNames()).thenReturn(new String[] { "userId" });
+    when(joinPoint.proceed()).thenReturn("ok");
+    when(signature.getMethod()).thenReturn(method);
+
+    Object result = aspect.logActivity(joinPoint, annotation);
+
+    assertEquals("ok", result);
+    ArgumentCaptor<ActivityLog> captor = ArgumentCaptor.forClass(ActivityLog.class);
+    verify(activityLogRepository).save(captor.capture());
+    assertEquals(null, captor.getValue().getUserId());
+  }
+
+  private static class DummyTarget {
+    @LogActivity(action = "UPDATE_USER", entityType = "USER", entityIdParam = "userId")
+    public void updateUser(UUID userId) {
     }
-
-    @AfterEach
-    void tearDown() {
-        RequestContextHolder.resetRequestAttributes();
-        SecurityContextHolder.clearContext();
-    }
-
-    @Test
-    void logActivity_ShouldPersistAuditLogWithOldAndNewValues() throws Throwable {
-        UUID userId = UUID.randomUUID();
-        UUID entityId = UUID.randomUUID();
-        User user = User.builder()
-                .id(userId)
-                .email("admin@example.com")
-                .fullName("Admin")
-                .password("secret")
-                .role("ADMIN")
-                .active(true)
-                .build();
-
-        when(userRepository.findByEmail("admin@example.com")).thenReturn(java.util.Optional.of(user));
-        when(userRepository.findById(entityId)).thenReturn(java.util.Optional.of(user));
-        when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/" + entityId);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request, response));
-
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                "admin@example.com",
-                "password",
-                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
-        MethodSignature signature = mock(MethodSignature.class);
-        Method method = DummyTarget.class.getDeclaredMethod("updateUser", UUID.class);
-        LogActivity annotation = method.getAnnotation(LogActivity.class);
-
-        when(joinPoint.getArgs()).thenReturn(new Object[]{entityId});
-        when(joinPoint.getSignature()).thenReturn(signature);
-        when(signature.getParameterNames()).thenReturn(new String[]{"userId"});
-        when(joinPoint.proceed()).thenReturn("ok");
-        when(signature.getMethod()).thenReturn(method);
-
-        Object result = aspect.logActivity(joinPoint, annotation);
-
-        assertEquals("ok", result);
-
-        ArgumentCaptor<ActivityLog> captor = ArgumentCaptor.forClass(ActivityLog.class);
-        verify(activityLogRepository).save(captor.capture());
-
-        ActivityLog saved = captor.getValue();
-        assertEquals(userId, saved.getUserId());
-        assertEquals("UPDATE_USER", saved.getAction());
-        assertEquals("/api/v1/users/" + entityId, saved.getEndpoint());
-        assertEquals("GET", saved.getMethod());
-        assertEquals(200, saved.getStatus());
-        assertEquals(entityId, saved.getEntityId());
-        assertEquals("USER", saved.getEntityType());
-        assertNotNull(saved.getOldValue());
-        assertNotNull(saved.getNewValue());
-        assertNotNull(saved.getCreatedAt());
-    }
-
-    @Test
-    void logActivity_WhenAuthenticatedUserMissing_ShouldStillSaveLogWithNullUserId() throws Throwable {
-        UUID entityId = UUID.randomUUID();
-        when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/" + entityId);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request, response));
-
-        ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
-        MethodSignature signature = mock(MethodSignature.class);
-        Method method = DummyTarget.class.getDeclaredMethod("updateUser", UUID.class);
-        LogActivity annotation = method.getAnnotation(LogActivity.class);
-
-        when(joinPoint.getArgs()).thenReturn(new Object[]{entityId});
-        when(joinPoint.getSignature()).thenReturn(signature);
-        when(signature.getParameterNames()).thenReturn(new String[]{"userId"});
-        when(joinPoint.proceed()).thenReturn("ok");
-        when(signature.getMethod()).thenReturn(method);
-
-        Object result = aspect.logActivity(joinPoint, annotation);
-
-        assertEquals("ok", result);
-        ArgumentCaptor<ActivityLog> captor = ArgumentCaptor.forClass(ActivityLog.class);
-        verify(activityLogRepository).save(captor.capture());
-        assertEquals(null, captor.getValue().getUserId());
-    }
-
-    private static class DummyTarget {
-        @LogActivity(action = "UPDATE_USER", entityType = "USER", entityIdParam = "userId")
-        public void updateUser(UUID userId) {
-        }
-    }
+  }
 }

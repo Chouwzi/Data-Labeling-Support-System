@@ -29,64 +29,64 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ActivityLogController.class)
-@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class})
+@Import({ SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class })
 class ActivityLogControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired
+  private MockMvc mockMvc;
 
-    @MockitoBean
-    private ActivityLogService service;
+  @MockitoBean
+  private ActivityLogService service;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+  @MockitoBean
+  private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private UserDetailsService userDetailsService;
+  @MockitoBean
+  private UserDetailsService userDetailsService;
 
-    @MockitoBean
-    private UserRepository userRepository;
+  @MockitoBean
+  private UserRepository userRepository;
 
-    @MockitoBean
-    private ActivityLogRepository activityLogRepository;
+  @MockitoBean
+  private ActivityLogRepository activityLogRepository;
 
-    private List<ActivityLogResponse> mockLogs;
+  private List<ActivityLogResponse> mockLogs;
 
-    @BeforeEach
-    void setUp() {
-        mockLogs = List.of(ActivityLogResponse.builder()
-                .action("VIEW_AUDIT_LOGS")
-                .endpoint("/api/v1/audit-logs")
-                .method("GET")
-                .status(200)
-                .ipAddress("127.0.0.1")
-                .userId(UUID.randomUUID())
-                .durationMs(8L)
-                .createdAt(LocalDateTime.of(2026, 4, 11, 10, 15))
-                .build());
+  @BeforeEach
+  void setUp() {
+    mockLogs = List.of(ActivityLogResponse.builder()
+        .action("VIEW_AUDIT_LOGS")
+        .endpoint("/api/v1/audit-logs")
+        .method("GET")
+        .status(200)
+        .ipAddress("127.0.0.1")
+        .userId(UUID.randomUUID())
+        .durationMs(8L)
+        .createdAt(LocalDateTime.of(2026, 4, 11, 10, 15))
+        .build());
 
-        Mockito.when(service.getLogs(0, 20)).thenReturn(mockLogs);
-    }
+    Mockito.when(service.getLogs(0, 20)).thenReturn(mockLogs);
+  }
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void getLogs_WithAdminRole_ReturnsOk() throws Exception {
-        mockMvc.perform(get("/audit-logs").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result[0].action").value("VIEW_AUDIT_LOGS"))
-                .andExpect(jsonPath("$.result[0].endpoint").value("/api/v1/audit-logs"));
-    }
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  void getLogs_WithAdminRole_ReturnsOk() throws Exception {
+    mockMvc.perform(get("/audit-logs").accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.result[0].action").value("VIEW_AUDIT_LOGS"))
+        .andExpect(jsonPath("$.result[0].endpoint").value("/api/v1/audit-logs"));
+  }
 
-    @Test
-    @WithMockUser(roles = "ANNOTATOR")
-    void getLogs_WithNonAdminRole_ReturnsForbidden() throws Exception {
-        mockMvc.perform(get("/audit-logs"))
-                .andExpect(status().isForbidden());
-    }
+  @Test
+  @WithMockUser(roles = "ANNOTATOR")
+  void getLogs_WithNonAdminRole_ReturnsForbidden() throws Exception {
+    mockMvc.perform(get("/audit-logs"))
+        .andExpect(status().isForbidden());
+  }
 
-    @Test
-    void getLogs_WithoutAuth_ReturnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/audit-logs"))
-                .andExpect(status().isUnauthorized());
-    }
+  @Test
+  void getLogs_WithoutAuth_ReturnsUnauthorized() throws Exception {
+    mockMvc.perform(get("/audit-logs"))
+        .andExpect(status().isUnauthorized());
+  }
 }
