@@ -20,6 +20,45 @@
   gap: 1rem;
 }
 
+/* Manager shell (image_1): search | Support/Docs | actions */
+.topbar__inner:has(.topbar__center) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.topbar__inner:has(.topbar__center) .topbar__right {
+  justify-self: end;
+}
+
+.topbar__center {
+  display: none;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+  justify-content: center;
+  padding: 0 1rem;
+}
+
+@media (min-width: 900px) {
+  .topbar__center {
+    display: flex;
+  }
+}
+
+.topbar__center-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.topbar__center-link:hover {
+  color: #059669;
+}
+
 .topbar__left {
   display: flex;
   align-items: center;

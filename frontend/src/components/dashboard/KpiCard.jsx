@@ -79,7 +79,7 @@ export default function KpiCard({
           <IconComponent size={20} />
         </div>
         {trend && (
-          <span className="kpi-card__trend">{trend}</span>
+          <span className="kpi-card__trend">{trend} this week</span>
         )}
       </div>
       <p className="kpi-card__label">{title}</p>
