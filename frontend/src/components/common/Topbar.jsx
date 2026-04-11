@@ -6,6 +6,8 @@ export default function Topbar({
   userName = 'Julian Casablancas',
   userRole = 'Senior Administrator',
   userAvatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+  searchPlaceholder = 'Search system configuration...',
+  showCenterLinks = false,
   onMenuClick,
   onLogout,
 }) {
@@ -48,11 +50,22 @@ export default function Topbar({
             <input
               type="text"
               className="topbar__search-input"
-              placeholder="Search system configuration..."
-              aria-label="Search system configuration"
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
             />
           </div>
         </div>
+
+        {showCenterLinks && (
+          <nav className="topbar__center" aria-label="Quick links">
+            <a href="#" className="topbar__center-link">
+              Support
+            </a>
+            <a href="#" className="topbar__center-link">
+              Docs
+            </a>
+          </nav>
+        )}
 
         <div className="topbar__right">
           <div className="topbar__actions">

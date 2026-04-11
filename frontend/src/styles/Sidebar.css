@@ -41,6 +41,11 @@
   overflow-y: auto;
 }
 
+/* Manager dashboard (image_1): solid mint shell */
+.sidebar--manager {
+  background-color: #ecfdf5;
+}
+
 .sidebar__content {
   padding: 2rem 1.5rem;
   flex: 1;

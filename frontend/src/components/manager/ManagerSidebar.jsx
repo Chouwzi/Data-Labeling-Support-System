@@ -1,0 +1,79 @@
+import { Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, FolderKanban, Users, BarChart3 } from 'lucide-react';
+import BrandLogo from '@/components/common/BrandLogo';
+import '@/styles/Sidebar.css';
+
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/manager' },
+  { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/manager/projects' },
+  { id: 'annotators', label: 'Annotators', icon: Users, path: '/manager/annotators' },
+  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/manager/reports' },
+];
+
+/**
+ * Manager shell sidebar — same visual system as Admin (image_1): mint tint, white active pill, emerald accent.
+ */
+export default function ManagerSidebar({ isOpen = false, onNavigate }) {
+  const location = useLocation();
+
+  const handleNavClick = () => {
+    onNavigate?.();
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`sidebar__backdrop ${isOpen ? 'sidebar__backdrop--visible' : ''}`}
+        aria-hidden={!isOpen}
+        tabIndex={-1}
+        onClick={() => onNavigate?.()}
+        aria-label="Close menu"
+      />
+      <aside
+        className={`sidebar sidebar--manager ${isOpen ? 'sidebar--open' : ''}`}
+        aria-label="Manager navigation"
+      >
+        <div className="sidebar__content">
+          <div className="sidebar__brand">
+            <div className="sidebar__logo-mark">
+              <BrandLogo size={40} />
+            </div>
+            <h1 className="sidebar__logo-text">DataLabel Pro</h1>
+          </div>
+
+          <nav className="sidebar__nav" aria-label="Manager sections">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                location.pathname === item.path ||
+                (item.path !== '/manager' && location.pathname.startsWith(item.path));
+
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  className={`sidebar__nav-item ${isActive ? 'sidebar__nav-item--active' : ''}`}
+                  onClick={handleNavClick}
+                >
+                  <Icon size={20} className={isActive ? 'active-icon' : ''} />
+                  <span className="sidebar__nav-label">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="sidebar__footer">
+          <div className="sidebar__status">
+            <p className="sidebar__status-label">PIPELINE STATUS</p>
+            <div className="sidebar__status-row">
+              <div className="sidebar__status-dot" aria-hidden="true" />
+              <span className="sidebar__status-text">All systems operational</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
