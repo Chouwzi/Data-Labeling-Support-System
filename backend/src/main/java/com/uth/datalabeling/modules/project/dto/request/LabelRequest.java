@@ -1,5 +1,7 @@
 package com.uth.datalabeling.modules.project.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
@@ -16,5 +18,6 @@ public class LabelRequest {
 
     @NotBlank(message = "MISSING_REQUIRED_FIELD")
     @Pattern(regexp = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", message = "VALIDATION_ERROR")
+    @JsonProperty("color_hex")
     String colorHex;
 }

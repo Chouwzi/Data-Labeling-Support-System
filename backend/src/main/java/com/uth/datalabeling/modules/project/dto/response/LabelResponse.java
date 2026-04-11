@@ -3,6 +3,8 @@ package com.uth.datalabeling.modules.project.dto.response;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -13,8 +15,15 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class LabelResponse {
     UUID id;
+
     String name;
+
+    @JsonProperty("color_hex")
     String colorHex;
+
+    @JsonProperty("parent_id")
     UUID parentId;
+
+    @JsonProperty("created_at")
     LocalDateTime createdAt;
 }

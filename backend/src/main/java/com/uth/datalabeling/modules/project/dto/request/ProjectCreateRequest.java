@@ -3,31 +3,37 @@ package com.uth.datalabeling.modules.project.dto.request;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * Yêu cầu tạo mới Dự án.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProjectCreateRequest {
-    @NotBlank(message = "MISSING_REQUIRED_FIELD")
-    @Size(min = 3, max = 100, message = "VALIDATION_ERROR")
+
+    @NotBlank(message = "NAME_REQUIRED")
+    @Size(min = 3, max = 100, message = "INVALID_PROJECT_NAME")
     String name;
 
+    @Size(max = 500, message = "INVALID_DESCRIPTION")
     String description;
 
-    @Size(max = 500, message = "VALIDATION_ERROR")
+    @JsonProperty("guideline_url")
     String guidelineUrl;
 
+    @JsonProperty("dataset_id")
     UUID datasetId;
 
-    @NotEmpty(message = "MISSING_REQUIRED_FIELD")
     @Valid
     List<LabelRequest> labels;
 }

@@ -1,16 +1,20 @@
 package com.uth.datalabeling.modules.project.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+/**
+ * Thực thể Dự án.
+ */
 @Entity
 @Table(name = "projects")
 @Data
@@ -19,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Project {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     UUID id;
@@ -26,41 +31,39 @@ public class Project {
     @Column(nullable = false)
     String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 500)
     String description;
 
-    @Column(name = "guideline_url")
     String guidelineUrl;
+
+    @Column(nullable = false)
+    UUID managerId;
+
+    UUID datasetId;
 
     @Column(nullable = false)
     String status;
 
-    @Column(name = "manager_id", nullable = false)
-    UUID managerId;
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    List<Label> labels = new ArrayList<>();
 
-    @Column(name = "dataset_id")
-    UUID datasetId;
-
+    // Chống xung đột dữ liệu (Optimistic Locking)
     @Version
-    Long version;
+    Integer version;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(updatable = false)
     LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
     LocalDateTime updatedAt;
 
-    @Column(name = "created_by")
+    @Column(updatable = false)
     UUID createdBy;
 
-    @Column(name = "updated_by")
     UUID updatedBy;
 
-    @Column(name = "deleted_at")
+    // Soft delete timestamp
     LocalDateTime deletedAt;
-
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<Label> labels;
 }

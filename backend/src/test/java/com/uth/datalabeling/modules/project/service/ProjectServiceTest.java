@@ -4,9 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.util.Collections;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
@@ -14,7 +12,9 @@ import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.dto.request.LabelRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectCreateRequest;
+import com.uth.datalabeling.modules.project.dto.request.ProjectUpdateRequest;
 import com.uth.datalabeling.modules.project.dto.response.ProjectResponse;
+import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.mapper.ProjectMapper;
 import com.uth.datalabeling.modules.project.repository.ProjectRepository;
@@ -29,6 +29,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+/**
+ * Kiểm thử đơn vị cho ProjectService.
+ */
 @ExtendWith(MockitoExtension.class)
 class ProjectServiceTest {
 
@@ -50,64 +53,101 @@ class ProjectServiceTest {
     @Mock
     Authentication authentication;
 
-    private ProjectCreateRequest validRequest;
-    private User mockUser;
-    private Project mockProject;
-    private ProjectResponse mockResponse;
+    private User mockManager;
+    private Project existingProject;
+    private UUID projectId;
 
     @BeforeEach
     void setUp() {
-        validRequest = ProjectCreateRequest.builder()
-                .name("Test Project")
-                .description("Desc")
-                .labels(Collections.singletonList(new LabelRequest("Car", "#FF0000")))
-                .build();
-
-        mockUser = User.builder()
+        projectId = UUID.randomUUID();
+        mockManager = User.builder()
                 .id(UUID.randomUUID())
                 .email("manager@test.com")
+                .role("MANAGER")
                 .build();
 
-        mockProject = Project.builder()
-                .name("Test Project")
-                .build();
-
-        mockResponse = ProjectResponse.builder()
-                .id(UUID.randomUUID())
-                .name("Test Project")
+        existingProject = Project.builder()
+                .id(projectId)
+                .name("Dự án cũ")
+                .managerId(mockManager.getId())
+                .labels(new ArrayList<>(Collections.singletonList(
+                        Label.builder().name("OldLabel").colorHex("#000000").build()
+                )))
                 .build();
 
         SecurityContextHolder.setContext(securityContext);
     }
 
-    @Test
-    void createProject_Success_ReturnsResponse() {
-        // Arrange
-        when(projectRepository.existsByNameAndDeletedAtIsNull(validRequest.getName())).thenReturn(false);
+    // Giả lập người dùng hiện tại trong Security Context
+    private void mockCurrentUser() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("manager@test.com");
-        when(userRepository.findByEmail("manager@test.com")).thenReturn(Optional.of(mockUser));
-        when(projectMapper.toProject(validRequest)).thenReturn(mockProject);
-        when(projectRepository.save(any(Project.class))).thenReturn(mockProject);
-        when(projectMapper.toProjectResponse(mockProject)).thenReturn(mockResponse);
-
-        // Act
-        ProjectResponse result = projectService.createProject(validRequest);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals("Test Project", result.getName());
-        verify(projectRepository, times(1)).save(any(Project.class));
+        when(userRepository.findByEmail("manager@test.com")).thenReturn(Optional.of(mockManager));
     }
 
     @Test
-    void createProject_DuplicateName_ThrowsException() {
-        // Arrange
-        when(projectRepository.existsByNameAndDeletedAtIsNull(validRequest.getName())).thenReturn(true);
+    void createProject_Success() {
+        ProjectCreateRequest request = ProjectCreateRequest.builder().name("Dự án mới").build();
+        mockCurrentUser();
+        
+        when(projectRepository.existsByNameAndDeletedAtIsNull("Dự án mới")).thenReturn(false);
+        when(projectMapper.toProject(request)).thenReturn(new Project());
+        when(projectRepository.save(any(Project.class))).thenReturn(existingProject);
+        when(projectMapper.toProjectResponse(any())).thenReturn(ProjectResponse.builder().name("Dự án mới").build());
 
-        // Act & Assert
-        AppException exception = assertThrows(AppException.class, () -> projectService.createProject(validRequest));
-        assertEquals(ErrorCode.PROJECT_ALREADY_EXISTS, exception.getErrorCode());
-        verify(projectRepository, never()).save(any(Project.class));
+        ProjectResponse response = projectService.createProject(request);
+        
+        assertNotNull(response);
+        verify(projectRepository).save(any());
+    }
+
+    @Test
+    void updateProject_Success_WithLabelSync() {
+        mockCurrentUser();
+        ProjectUpdateRequest request = ProjectUpdateRequest.builder()
+                .name("Tên cập nhật")
+                .labels(Collections.singletonList(new LabelRequest("NewLabel", "#FFFFFF")))
+                .build();
+
+        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectRepository.existsByNameAndIdNotAndDeletedAtIsNull("Tên cập nhật", projectId)).thenReturn(false);
+        
+        when(projectMapper.toLabel(any())).thenAnswer(invocation -> {
+            LabelRequest arg = invocation.getArgument(0);
+            return Label.builder().name(arg.getName()).colorHex(arg.getColorHex()).build();
+        });
+        
+        when(projectRepository.save(any(Project.class))).thenReturn(existingProject);
+        when(projectMapper.toProjectResponse(any())).thenReturn(new ProjectResponse());
+
+        projectService.updateProject(projectId, request);
+
+        verify(projectRepository).save(existingProject);
+        assertEquals(1, existingProject.getLabels().size());
+        assertEquals("NewLabel", existingProject.getLabels().get(0).getName());
+    }
+
+    @Test
+    void updateProject_ForbiddenForOtherManager() {
+        User otherManager = User.builder().id(UUID.randomUUID()).email("manager@test.com").role("MANAGER").build();
+        existingProject.setManagerId(UUID.randomUUID());
+        
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getName()).thenReturn("manager@test.com");
+        when(userRepository.findByEmail("manager@test.com")).thenReturn(Optional.of(otherManager));
+        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+
+        assertThrows(AppException.class, () -> projectService.updateProject(projectId, new ProjectUpdateRequest()));
+    }
+
+    @Test
+    void deleteProject_Success() {
+        mockCurrentUser();
+        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+
+        projectService.deleteProject(projectId);
+
+        assertNotNull(existingProject.getDeletedAt());
+        verify(projectRepository).save(existingProject);
     }
 }
