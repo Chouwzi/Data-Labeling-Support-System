@@ -1,4 +1,4 @@
-package com.uth.datalabeling.activitylog.dto;
+package com.uth.datalabeling.modules.activitylog.dto;
 
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 public class ActivityLogResponse {
-
     private String action;
 
     private String endpoint;
@@ -25,8 +24,11 @@ public class ActivityLogResponse {
     private Long durationMs;
 
     private UUID entityId;
+
     private String entityType;
+
     private String oldValue;
+
     private String newValue;
 
     private LocalDateTime createdAt;

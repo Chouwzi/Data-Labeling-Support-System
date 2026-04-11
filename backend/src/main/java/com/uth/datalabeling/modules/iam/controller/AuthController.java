@@ -1,9 +1,9 @@
 package com.uth.datalabeling.modules.iam.controller;
 
-import com.uth.datalabeling.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.common.response.ApiResponse;
+import com.uth.datalabeling.modules.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.modules.iam.dto.request.LoginRequest;
 import com.uth.datalabeling.modules.iam.dto.response.LoginResponse;
 import com.uth.datalabeling.modules.iam.entity.User;
@@ -30,49 +30,47 @@ import org.springframework.web.bind.annotation.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthController {
 
-    AuthenticationManager authenticationManager;
-    JwtTokenProvider jwtTokenProvider;
-    UserRepository userRepository;
-    UserMapper userMapper;
+        AuthenticationManager authenticationManager;
+        JwtTokenProvider jwtTokenProvider;
+        UserRepository userRepository;
+        UserMapper userMapper;
 
-    // Xử lý yêu cầu đăng nhập và trả về token cùng thông tin người dùng
-    @PostMapping("/login")
-    @LogActivity(action = "USER_LOGIN")
-    @ResponseStatus(HttpStatus.OK)
-    public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        // Xử lý yêu cầu đăng nhập và trả về token cùng thông tin người dùng
+        @PostMapping("/login")
+        @LogActivity(action = "USER_LOGIN")
+        @ResponseStatus(HttpStatus.OK)
+        public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
 
-        try {
+                try {
 
-            // Xác thực người dùng
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
-            );
+                        // Xác thực người dùng
+                        Authentication authentication = authenticationManager.authenticate(
+                                        new UsernamePasswordAuthenticationToken(
+                                                        request.getEmail(),
+                                                        request.getPassword()));
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Tạo JWT token
-            String token = jwtTokenProvider.generateToken(authentication);
+                        // Tạo JWT token
+                        String token = jwtTokenProvider.generateToken(authentication);
 
-            // Lấy thông tin user
-            User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                        // Lấy thông tin user
+                        User user = userRepository.findByEmail(request.getEmail())
+                                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-            LoginResponse loginResponse = LoginResponse.builder()
-                    .accessToken(token)
-                    .tokenType("Bearer")
-                    .expiresIn(jwtTokenProvider.getExpiration())
-                    .user(userMapper.toUserResponse(user))
-                    .build();
+                        LoginResponse loginResponse = LoginResponse.builder()
+                                        .accessToken(token)
+                                        .tokenType("Bearer")
+                                        .expiresIn(jwtTokenProvider.getExpiration())
+                                        .user(userMapper.toUserResponse(user))
+                                        .build();
 
-            return ApiResponse.<LoginResponse>builder()
-                    .result(loginResponse)
-                    .build();
+                        return ApiResponse.<LoginResponse>builder()
+                                        .result(loginResponse)
+                                        .build();
 
-        } catch (AuthenticationException ex) {
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+                } catch (AuthenticationException ex) {
+                        throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+                }
         }
-    }
 }

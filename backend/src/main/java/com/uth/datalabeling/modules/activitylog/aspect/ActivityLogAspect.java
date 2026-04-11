@@ -1,4 +1,4 @@
-package com.uth.datalabeling.activitylog.aspect;
+package com.uth.datalabeling.modules.activitylog.aspect;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -11,10 +11,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uth.datalabeling.activitylog.annotation.LogActivity;
-import com.uth.datalabeling.activitylog.entity.ActivityLog;
-import com.uth.datalabeling.activitylog.repository.ActivityLogRepository;
 import com.uth.datalabeling.common.exception.AppException;
+import com.uth.datalabeling.modules.activitylog.annotation.LogActivity;
+import com.uth.datalabeling.modules.activitylog.entity.ActivityLog;
+import com.uth.datalabeling.modules.activitylog.repository.ActivityLogRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 
@@ -24,25 +24,27 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Aspect
 @Component
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ActivityLogAspect {
 
-    private final ActivityLogRepository repository;
-    private final UserRepository userRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper()
-        .findAndRegisterModules();
+    ActivityLogRepository repository;
+    UserRepository userRepository;
+    ObjectMapper objectMapper = new ObjectMapper()
+            .findAndRegisterModules();
 
     @Around("@annotation(logActivity)")
     public Object logActivity(ProceedingJoinPoint joinPoint, LogActivity logActivity) throws Throwable {
 
         long start = System.currentTimeMillis();
 
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
         HttpServletRequest request = attributes != null ? attributes.getRequest() : null;
         HttpServletResponse response = attributes != null ? attributes.getResponse() : null;
@@ -67,7 +69,7 @@ public class ActivityLogAspect {
                 }
             }
 
-            // LẤY OLD VALUE
+            // LẤY giá trị cũ (Old value)
             if (entityId != null && !logActivity.entityType().isEmpty()) {
                 oldValue = getOldEntity(logActivity.entityType(), entityId);
             }
@@ -95,7 +97,7 @@ public class ActivityLogAspect {
                 status = response.getStatus();
             }
 
-            //  USER ID
+            // USER ID
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
             UUID userId = null;
@@ -161,6 +163,7 @@ public class ActivityLogAspect {
 
         return result;
     }
+
     private Object getOldEntity(String entityType, UUID id) {
 
         switch (entityType) {

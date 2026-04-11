@@ -1,4 +1,4 @@
-package com.uth.datalabeling.activitylog.annotation;
+package com.uth.datalabeling.modules.activitylog.annotation;
 
 import java.lang.annotation.*;
 
@@ -8,7 +8,10 @@ import java.lang.annotation.*;
 public @interface LogActivity {
 
     String action();
+
     String description() default "";
+
     String entityType() default "";
+
     String entityIdParam() default "";
 }
