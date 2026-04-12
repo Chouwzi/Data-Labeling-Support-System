@@ -21,6 +21,7 @@ public enum ErrorCode {
   // 404 Not Found
   NOT_FOUND(404, 40400, "Không tìm thấy tài nguyên"),
   USER_NOT_FOUND(404, 40401, "Không tìm thấy người dùng"),
+  PROJECT_NOT_FOUND(404, 40402, "Không tìm thấy dự án"),
 
   // 405 Method Not Allowed
   METHOD_NOT_ALLOWED(405, 40500, "Phương thức không được hỗ trợ"),
@@ -28,6 +29,8 @@ public enum ErrorCode {
   // 409 Conflict
   CONFLICT(409, 40900, "Xung đột dữ liệu"),
   USER_ALREADY_EXISTS(409, 40901, "Email đã tồn tại"),
+  PROJECT_ALREADY_EXISTS(409, 40902, "Tên dự án đã tồn tại"),
+  LABEL_ALREADY_EXISTS(409, 40903, "Nhãn dán đã tồn tại trong dự án"),
 
   // 415 Unsupported Media Type
   UNSUPPORTED_MEDIA_TYPE(415, 41500, "Kiểu dữ liệu không hỗ trợ"),
