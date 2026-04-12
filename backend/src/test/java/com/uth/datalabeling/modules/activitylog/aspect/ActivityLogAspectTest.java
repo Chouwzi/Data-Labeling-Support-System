@@ -5,6 +5,7 @@ import com.uth.datalabeling.modules.activitylog.entity.ActivityLog;
 import com.uth.datalabeling.modules.activitylog.repository.ActivityLogRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
+import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
@@ -38,6 +39,7 @@ class ActivityLogAspectTest {
 
   private ActivityLogRepository activityLogRepository;
   private UserRepository userRepository;
+  private ProjectRepository projectRepository;
   private ObjectMapper objectMapper;
   private ActivityLogAspect aspect;
 
@@ -45,9 +47,10 @@ class ActivityLogAspectTest {
   void setUp() {
     activityLogRepository = mock(ActivityLogRepository.class);
     userRepository = mock(UserRepository.class);
+    projectRepository = mock(ProjectRepository.class);
     objectMapper = mock(ObjectMapper.class);
     Mockito.doReturn("{\"value\":true}").when(objectMapper).writeValueAsString(any());
-    aspect = new ActivityLogAspect(activityLogRepository, userRepository, objectMapper);
+    aspect = new ActivityLogAspect(activityLogRepository, userRepository, projectRepository, objectMapper);
   }
 
   @AfterEach

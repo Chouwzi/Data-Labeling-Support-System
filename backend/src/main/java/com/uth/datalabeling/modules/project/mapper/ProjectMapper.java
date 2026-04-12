@@ -19,7 +19,6 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface ProjectMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "status", ignore = true)
     @Mapping(target = "managerId", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

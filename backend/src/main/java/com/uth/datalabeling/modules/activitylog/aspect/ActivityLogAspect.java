@@ -17,6 +17,7 @@ import com.uth.datalabeling.modules.activitylog.entity.ActivityLog;
 import com.uth.datalabeling.modules.activitylog.repository.ActivityLogRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
+import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import tools.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,6 +41,7 @@ public class ActivityLogAspect {
 
     ActivityLogRepository repository;
     UserRepository userRepository;
+    ProjectRepository projectRepository;
     ObjectMapper objectMapper;
 
     static final Pattern SENSITIVE_VALUE_PATTERN = Pattern.compile(
@@ -234,6 +236,9 @@ public class ActivityLogAspect {
 
             case "USER":
                 return userRepository.findById(id).orElse(null);
+
+            case "PROJECT":
+                return projectRepository.findById(id).orElse(null);
 
             default:
                 return null;

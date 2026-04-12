@@ -107,6 +107,17 @@ public class ProjectService {
             throw new AppException(ErrorCode.PROJECT_ALREADY_EXISTS);
         }
 
+        if (request.getStatus() != null) {
+            String normalizedStatus = request.getStatus().trim().toUpperCase();
+            if (!isValidProjectStatus(normalizedStatus)) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Trạng thái dự án không hợp lệ");
+            }
+            if (!isValidStatusTransition(project.getStatus(), normalizedStatus)) {
+                throw new AppException(ErrorCode.CONFLICT, "Không thể chuyển trạng thái dự án");
+            }
+            request.setStatus(normalizedStatus);
+        }
+
         projectMapper.updateProject(project, request);
         project.setUpdatedBy(getCurrentUser().getId());
 
@@ -197,5 +208,29 @@ public class ProjectService {
 
     private boolean isAdmin(User user) {
         return "ADMIN".equals(user.getRole());
+    }
+
+    private boolean isValidProjectStatus(String status) {
+        return ProjectStatus.DRAFT.equals(status)
+                || ProjectStatus.ACTIVE.equals(status)
+                || ProjectStatus.ARCHIVED.equals(status);
+    }
+
+    private boolean isValidStatusTransition(String currentStatus, String targetStatus) {
+        if (currentStatus == null || targetStatus == null) {
+            return false;
+        }
+
+        if (currentStatus.equals(targetStatus)) {
+            return true;
+        }
+
+        return switch (currentStatus) {
+            case ProjectStatus.DRAFT -> ProjectStatus.ACTIVE.equals(targetStatus)
+                    || ProjectStatus.ARCHIVED.equals(targetStatus);
+            case ProjectStatus.ACTIVE -> ProjectStatus.ARCHIVED.equals(targetStatus);
+            case ProjectStatus.ARCHIVED -> false;
+            default -> false;
+        };
     }
 }
