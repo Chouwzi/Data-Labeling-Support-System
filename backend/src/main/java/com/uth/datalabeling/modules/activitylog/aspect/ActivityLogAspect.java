@@ -2,6 +2,7 @@ package com.uth.datalabeling.modules.activitylog.aspect;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.*;
@@ -9,14 +10,15 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatus;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.modules.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.modules.activitylog.entity.ActivityLog;
 import com.uth.datalabeling.modules.activitylog.repository.ActivityLogRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
+import tools.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,30 +29,36 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Aspect
 @Component
 @RequiredArgsConstructor
+@Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+// Aspect này tự động ghi log khi method có @LogActivity được gọi.
 public class ActivityLogAspect {
 
     ActivityLogRepository repository;
     UserRepository userRepository;
-    ObjectMapper objectMapper = new ObjectMapper()
-            .findAndRegisterModules();
+    ObjectMapper objectMapper;
+
+    static final Pattern SENSITIVE_VALUE_PATTERN = Pattern.compile(
+            "(?i)\\\"(password|token|accessToken|refreshToken|secret|authorization)\\\"\\s*:\\s*\\\"(.*?)\\\"");
 
     @Around("@annotation(logActivity)")
     public Object logActivity(ProceedingJoinPoint joinPoint, LogActivity logActivity) throws Throwable {
 
         long start = System.currentTimeMillis();
 
+        // Lấy request/response hiện tại để ghi lại endpoint, method, status và IP.
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
         HttpServletRequest request = attributes != null ? attributes.getRequest() : null;
         HttpServletResponse response = attributes != null ? attributes.getResponse() : null;
 
         Object result = null;
-        int status = 200;
+        int status = 0;
 
         Object oldValue = null;
         Object newValue = null;
@@ -58,46 +66,49 @@ public class ActivityLogAspect {
 
         try {
 
-            // LẤY entityId từ param
+            // Tìm entityId từ tham số method để biết log này đang liên quan đến bản ghi
+            // nào.
             Object[] args = joinPoint.getArgs();
             String[] paramNames = ((MethodSignature) joinPoint.getSignature()).getParameterNames();
+            entityId = extractEntityId(args, paramNames, logActivity.entityIdParam());
 
-            for (int i = 0; i < paramNames.length; i++) {
-                if (paramNames[i].equals(logActivity.entityIdParam())) {
-                    entityId = (UUID) args[i];
-                    break;
-                }
-            }
-
-            // LẤY giá trị cũ (Old value)
+            // Chụp giá trị cũ trước khi xử lý để so sánh thay đổi sau cùng.
             if (entityId != null && !logActivity.entityType().isEmpty()) {
                 oldValue = getOldEntity(logActivity.entityType(), entityId);
             }
 
             result = joinPoint.proceed();
 
-            // LẤY NEW VALUE
+            if (response != null) {
+                status = response.getStatus();
+            }
+
+            // Chụp lại sau khi xử lý xong để lưu trạng thái mới của dữ liệu.
             if (entityId != null && !logActivity.entityType().isEmpty()) {
                 newValue = getOldEntity(logActivity.entityType(), entityId);
             }
 
         } catch (AppException ex) {
-            status = 401;
+            status = ex.getErrorCode().getHttpStatus();
             throw ex;
 
         } catch (Exception ex) {
-            status = 500;
+            status = HttpStatus.INTERNAL_SERVER_ERROR.value();
             throw ex;
 
         } finally {
 
             long duration = System.currentTimeMillis() - start;
 
-            if (response != null && status == 200) {
+            if (response != null && status == 0) {
                 status = response.getStatus();
             }
 
-            // USER ID
+            if (status == 0) {
+                status = HttpStatus.OK.value();
+            }
+
+            // Lấy user hiện tại từ Spring Security để biết ai thực hiện thao tác.
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
             UUID userId = null;
@@ -112,16 +123,19 @@ public class ActivityLogAspect {
                         .orElse(null);
             }
 
-            String method = request != null ? request.getMethod() : null;
-            String endpoint = request != null ? request.getRequestURI() : null;
+            String method = request != null ? request.getMethod() : "UNKNOWN";
+            String endpoint = request != null ? request.getRequestURI() : "UNKNOWN";
 
             String ipAddress = null;
 
             if (request != null) {
+                // Nếu chạy sau proxy/load balancer thì ưu tiên header X-Forwarded-For.
                 ipAddress = request.getHeader("X-Forwarded-For");
 
                 if (ipAddress == null || ipAddress.isEmpty()) {
                     ipAddress = request.getRemoteAddr();
+                } else {
+                    ipAddress = ipAddress.split(",")[0].trim();
                 }
 
                 if ("0:0:0:0:0:0:0:1".equals(ipAddress)) {
@@ -133,17 +147,18 @@ public class ActivityLogAspect {
             String newValueJson = null;
 
             try {
+                // Che các trường nhạy cảm trước khi lưu JSON vào log.
                 if (oldValue != null) {
-                    oldValueJson = objectMapper.writeValueAsString(oldValue);
+                    oldValueJson = sanitizeJson(objectMapper.writeValueAsString(oldValue));
                 }
                 if (newValue != null) {
-                    newValueJson = objectMapper.writeValueAsString(newValue);
+                    newValueJson = sanitizeJson(objectMapper.writeValueAsString(newValue));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Failed to serialize activity log old/new value", e);
             }
 
-            ActivityLog log = ActivityLog.builder()
+            ActivityLog activityLog = ActivityLog.builder()
                     .userId(userId)
                     .action(logActivity.action())
                     .endpoint(endpoint)
@@ -155,17 +170,61 @@ public class ActivityLogAspect {
                     .entityType(logActivity.entityType())
                     .oldValue(oldValueJson)
                     .newValue(newValueJson)
-                    .createdAt(LocalDateTime.now())
                     .build();
 
-            repository.save(log);
+            try {
+                repository.save(activityLog);
+            } catch (Exception ex) {
+                log.error("Failed to persist activity log for action {}", logActivity.action(), ex);
+            }
         }
 
         return result;
     }
 
+    private UUID extractEntityId(Object[] args, String[] paramNames, String entityIdParam) {
+
+        if (entityIdParam == null || entityIdParam.isBlank() || paramNames == null) {
+            return null;
+        }
+
+        for (int i = 0; i < paramNames.length; i++) {
+            if (!entityIdParam.equals(paramNames[i])) {
+                continue;
+            }
+
+            Object value = args[i];
+            if (value == null) {
+                return null;
+            }
+
+            if (value instanceof UUID uuid) {
+                return uuid;
+            }
+
+            if (value instanceof String textValue) {
+                try {
+                    return UUID.fromString(textValue);
+                } catch (IllegalArgumentException ex) {
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private String sanitizeJson(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) {
+            return rawJson;
+        }
+        // Thay password/token/secret bằng giá trị ẩn để tránh lộ dữ liệu nhạy cảm.
+        return SENSITIVE_VALUE_PATTERN.matcher(rawJson).replaceAll("\"$1\":\"***\"");
+    }
+
     private Object getOldEntity(String entityType, UUID id) {
 
+        // Hiện tại chỉ hỗ trợ user; có thể mở rộng thêm các entity khác khi cần audit.
         switch (entityType) {
 
             case "USER":

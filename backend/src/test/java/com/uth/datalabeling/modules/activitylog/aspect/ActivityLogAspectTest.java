@@ -5,8 +5,6 @@ import com.uth.datalabeling.modules.activitylog.entity.ActivityLog;
 import com.uth.datalabeling.modules.activitylog.repository.ActivityLogRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.AfterEach;
@@ -22,8 +20,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,13 +38,16 @@ class ActivityLogAspectTest {
 
   private ActivityLogRepository activityLogRepository;
   private UserRepository userRepository;
+  private ObjectMapper objectMapper;
   private ActivityLogAspect aspect;
 
   @BeforeEach
   void setUp() {
     activityLogRepository = mock(ActivityLogRepository.class);
     userRepository = mock(UserRepository.class);
-    aspect = new ActivityLogAspect(activityLogRepository, userRepository);
+    objectMapper = mock(ObjectMapper.class);
+    Mockito.doReturn("{\"value\":true}").when(objectMapper).writeValueAsString(any());
+    aspect = new ActivityLogAspect(activityLogRepository, userRepository, objectMapper);
   }
 
   @AfterEach
@@ -68,7 +71,11 @@ class ActivityLogAspectTest {
 
     when(userRepository.findByEmail("admin@example.com")).thenReturn(java.util.Optional.of(user));
     when(userRepository.findById(entityId)).thenReturn(java.util.Optional.of(user));
-    when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(activityLogRepository.save(any(ActivityLog.class))).thenAnswer(invocation -> {
+      ActivityLog log = invocation.getArgument(0);
+      log.setCreatedAt(LocalDateTime.now());
+      return log;
+    });
 
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/users/" + entityId);
     MockHttpServletResponse response = new MockHttpServletResponse();

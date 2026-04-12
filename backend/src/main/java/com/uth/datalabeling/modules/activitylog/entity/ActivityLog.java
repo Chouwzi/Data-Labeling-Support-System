@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+// Bảng lưu lịch sử thao tác, có index cho các cột hay tra cứu nhất.
 @Table(name = "activity_logs", indexes = {
         @Index(name = "idx_user_id", columnList = "user_id"),
         @Index(name = "idx_created_at", columnList = "created_at"),
@@ -56,6 +57,7 @@ public class ActivityLog {
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 
+    // Tự động gán thời điểm tạo bản ghi log.
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

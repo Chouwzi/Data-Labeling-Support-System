@@ -24,6 +24,7 @@ public class ActivityLogService {
 
         public List<ActivityLogResponse> getLogs(int page, int size) {
 
+                // Sắp xếp log mới nhất lên trước để màn hình audit dễ theo dõi.
                 Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
                 return repository.findAll(pageable)
@@ -35,6 +36,7 @@ public class ActivityLogService {
 
         private ActivityLogResponse toResponse(ActivityLog log) {
 
+                // Tách entity sang DTO để API không phụ thuộc trực tiếp vào cấu trúc bảng.
                 return ActivityLogResponse.builder()
                                 .userId(log.getUserId())
                                 .action(log.getAction())
