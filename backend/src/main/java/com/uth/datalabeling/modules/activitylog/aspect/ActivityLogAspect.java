@@ -1,6 +1,5 @@
 package com.uth.datalabeling.modules.activitylog.aspect;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -52,7 +51,12 @@ public class ActivityLogAspect {
         long start = System.currentTimeMillis();
 
         // Lấy request/response hiện tại để ghi lại endpoint, method, status và IP.
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes attributes = null;
+        try {
+            attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        } catch (IllegalStateException ignored) {
+            // Không có request context (ví dụ: async/background), dùng giá trị fallback.
+        }
 
         HttpServletRequest request = attributes != null ? attributes.getRequest() : null;
         HttpServletResponse response = attributes != null ? attributes.getResponse() : null;
@@ -109,18 +113,18 @@ public class ActivityLogAspect {
             }
 
             // Lấy user hiện tại từ Spring Security để biết ai thực hiện thao tác.
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
             UUID userId = null;
-
-            if (auth != null && auth.isAuthenticated()
-                    && !"anonymousUser".equals(auth.getPrincipal())) {
-
-                String email = auth.getName();
-
-                userId = userRepository.findByEmail(email)
-                        .map(User::getId)
-                        .orElse(null);
+            try {
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                if (auth != null && auth.isAuthenticated()
+                        && !"anonymousUser".equals(auth.getPrincipal())) {
+                    String email = auth.getName();
+                    userId = userRepository.findByEmail(email)
+                            .map(User::getId)
+                            .orElse(null);
+                }
+            } catch (Exception ignored) {
+                // Không chặn luồng chính nếu không đọc được user từ security context.
             }
 
             String method = request != null ? request.getMethod() : "UNKNOWN";
@@ -154,8 +158,8 @@ public class ActivityLogAspect {
                 if (newValue != null) {
                     newValueJson = sanitizeJson(objectMapper.writeValueAsString(newValue));
                 }
-            } catch (Exception e) {
-                log.warn("Failed to serialize activity log old/new value", e);
+            } catch (Exception ignored) {
+                // Bỏ qua lỗi serialize để không làm ảnh hưởng request chính.
             }
 
             ActivityLog activityLog = ActivityLog.builder()
@@ -175,7 +179,8 @@ public class ActivityLogAspect {
             try {
                 repository.save(activityLog);
             } catch (Exception ex) {
-                log.error("Failed to persist activity log for action {}", logActivity.action(), ex);
+                log.error("Failed to persist activity log for action: {}, endpoint: {}", logActivity.action(), endpoint,
+                        ex);
             }
         }
 
