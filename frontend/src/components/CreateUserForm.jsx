@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { UserPlus, Mail, User, Lock, Shield, CheckCircle, Eye, EyeOff} from 'lucide-react';
-import { UserPlus, Mail, User, Lock, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; 
+import { createUser } from '@/services/api';
 import './CreateUserForm.css';
 
 const ROLES = [
@@ -86,57 +86,32 @@ export default function CreateUserForm({ onSuccess }) {
       active: true
     };
     try {
-      const response = await fetch('http://localhost:8080/api/v1/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.accessToken || localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.message === "USER_ALREADY_EXISTS") {
-          setErrors(prev => ({
-            ...prev,
-            email: 'Email này đã tồn tại trong hệ thống. Vui lòng sử dụng email khác!'
-          }));
-          return;
-        }
-        throw new Error(data.message || `Error: ${response.status}`);
-      }
+      const response = await createUser(payload);  
 
       alert("Tạo tài khoản thành công!");
-
-    try {
-      const response = await fetch('http://localhost:8080/api/v1/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.accessToken || localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `Error: ${response.status}`);
-      }
-      if (onSuccess) onSuccess(data);
+      if (onSuccess) onSuccess(response.data);
       setFormData({ email: '', fullName: '', password: '', role: '' });
+      setErrors({});
 
     } catch (err) {
+      console.error('Create user error:', err);
 
-      setSubmitError(err.message === "Failed to fetch" ? "Không thể kết nối Server. Vui lòng kiểm tra Backend!" : err.message);
-      setSubmitError(err.message);
+      const errorMsg = err.response?.data?.message || err.message;
+
+      if (errorMsg === "USER_ALREADY_EXISTS" || errorMsg.includes("already exists")) {
+        setErrors(prev => ({
+          ...prev,
+          email: 'Email này đã tồn tại trong hệ thống. Vui lòng sử dụng email khác!'
+        }));
+      } else {
+        setSubmitError(err.message === "Failed to fetch" 
+          ? "Không thể kết nối Server. Vui lòng kiểm tra Backend!" 
+          : errorMsg);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const isFormValid = formData.email && formData.fullName && formData.password && formData.role;
 
   return (
