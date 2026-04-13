@@ -22,6 +22,7 @@ public enum ErrorCode {
   NOT_FOUND(404, 40400, "Không tìm thấy tài nguyên"),
   USER_NOT_FOUND(404, 40401, "Không tìm thấy người dùng"),
   PROJECT_NOT_FOUND(404, 40402, "Không tìm thấy dự án"),
+  LABEL_NOT_FOUND(404, 40403, "Không tìm thấy nhãn dán"),
 
   // 405 Method Not Allowed
   METHOD_NOT_ALLOWED(405, 40500, "Phương thức không được hỗ trợ"),
