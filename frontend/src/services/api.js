@@ -87,3 +87,11 @@ export const getSystemConfig = () => api.get('/system-config');
 export const updateSystemConfig = (data) => api.put('/system-config', data);
 
 export default api;
+
+// =====================
+// Activity Logs (Audit Logs)
+// =====================
+export const getLogs = (page = 0, size = 20) => 
+  api.get('/audit-logs', {
+    params: { page, size }
+  });
