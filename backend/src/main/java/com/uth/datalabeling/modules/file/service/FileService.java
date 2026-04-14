@@ -1,5 +1,15 @@
 package com.uth.datalabeling.modules.file.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.uth.datalabeling.modules.file.entity.ProjectFile;
 import com.uth.datalabeling.modules.file.repository.ProjectFileRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
@@ -9,13 +19,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -24,7 +27,7 @@ public class FileService {
     ProjectFileRepository repository;
     ProjectRepository projectRepository;
 
-    String UPLOAD_DIR = "uploads/";
+    String UPLOAD_DIR = "D:/data/uploads/";
 
     public ProjectFile upload(MultipartFile file, UUID projectId) {
 
@@ -65,7 +68,7 @@ public class FileService {
                     .project(project)
                     .build();
 
-            return repository.save(pf);
+            return repository.saveAndFlush(pf);
 
         } catch (IOException e) {
             throw new RuntimeException("Upload failed", e);

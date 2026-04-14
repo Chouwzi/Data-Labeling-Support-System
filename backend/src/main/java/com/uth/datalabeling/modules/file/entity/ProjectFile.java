@@ -3,7 +3,7 @@ package com.uth.datalabeling.modules.file.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
+import org.hibernate.annotations.CreationTimestamp;
 import com.uth.datalabeling.modules.project.entity.Project;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -32,6 +32,7 @@ public class ProjectFile {
     @JoinColumn(name = "project_id", nullable = false)
      // tạo cột project_id trong DB (foreign key)
     Project project; // liên kết với project (sau này có thể dùng @ManyToOne)
-
+    @CreationTimestamp
+    @Column(name = "uploaded_at", updatable = false)
     LocalDateTime uploadedAt; // thời điểm upload
 }
