@@ -58,7 +58,7 @@
   .label-taxonomy-grid { grid-template-columns: 1fr; }
 }
 
-/* 右侧列占满网格行高，便于内部卡片与表格区域 flex 拉伸 */
+/* Right column fills grid row height so inner cards and table areas stretch via flex */
 .label-taxonomy-grid__catalog {
   display: flex;
   flex-direction: column;
@@ -309,7 +309,7 @@
 /* ── Table wrap ── */
 .label-taxonomy-table-wrap { overflow-x: auto; }
 
-/* 与右侧卡片同高：中间区域占满剩余高度并在内部滚动 */
+/* Matches right card height: middle area fills remaining height and scrolls internally */
 .label-taxonomy-table-wrap.label-taxonomy-table-container {
   flex: 1;
   min-height: 0;
@@ -317,14 +317,14 @@
   overflow-y: auto;
 }
 
-/* Sticky header: scroll trên chính table container, sticky ghim thead ở top */
+/* Sticky header: scroll table container, sticky thead pinned at top */
 .label-taxonomy-table-container table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;  /* cố định độ rộng cột → sticky column alignment */
+  table-layout: fixed;  /* fixed column width → sticky column alignment */
 }
 
-/* Header ghim cố định khi cuộn */
+/* Pinned header fixed when scrolling */
 .label-taxonomy-table-container thead {
   position: sticky;
   top: 0;
@@ -332,7 +332,7 @@
   background: #ffffff;
 }
 
-/* Đảm bảo mỗi dòng trong thead/tbody cùng grid layout */
+/* Ensures each row in thead/tbody shares the same grid layout */
 .label-taxonomy-table-container thead tr,
 .label-taxonomy-table-container tbody tr {
   display: grid;
@@ -345,7 +345,7 @@
   width: 100%;
 }
 
-/* Header cell: canh trái cho cột đầu, giữa cho các cột còn lại */
+/* Header cell: left-aligned for first column, centered for the rest */
 .label-taxonomy-table-container thead th {
   font-weight: 700;
   font-size: 0.75rem;
@@ -358,14 +358,14 @@
   white-space: nowrap;
 }
 
-/* Data cell: khớp với grid column */
+/* Data cell: aligns with grid columns */
 .label-taxonomy-table-container tbody td {
   padding: 0.75rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   vertical-align: middle;
 }
 
-/* Tăng padding cho cột Actions để nút không chạm nhau */
+/* Extra padding for Actions column so buttons don't overlap */
 .label-taxonomy-table-container tbody td:last-child {
   padding-right: 0.75rem;
 }

@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { id: 'upload', label: 'Upload Images', icon: Upload, path: '/manager/upload-images' },
   { id: 'annotators', label: 'Annotators', icon: Users, path: '/manager/annotators' },
   { id: 'taxonomy', label: 'Label Taxonomy', icon: Tag, path: '/manager/taxonomy' },
-  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/manager/reports' },
+  { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/manager/reports' },
 ];
 
 /**
