@@ -57,6 +57,5 @@ public interface ProjectMapper {
     @Mapping(target = "deletedAt", ignore = true)
     void updateLabel(@MappingTarget Label label, LabelRequest request);
 
-    @Mapping(target = "parentId", source = "project.id")
     LabelResponse toLabelResponse(Label label);
 }

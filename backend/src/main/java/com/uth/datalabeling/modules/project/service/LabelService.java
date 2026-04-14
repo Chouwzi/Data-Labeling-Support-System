@@ -48,8 +48,11 @@ public class LabelService {
         Label label = projectMapper.toLabel(request);
         label.setProject(project);
 
-        Label savedLabel = labelRepository.save(label);
-        return projectMapper.toLabelResponse(savedLabel);
+        // Đảm bảo các trường do DB tạo (createdAt, updatedAt) có giá trị
+        Label savedLabel = labelRepository.saveAndFlush(label);
+        Label hydratedLabel = labelRepository.findByIdAndDeletedAtIsNull(savedLabel.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
+        return projectMapper.toLabelResponse(hydratedLabel);
     }
 
     /**
@@ -62,15 +65,19 @@ public class LabelService {
         Label label = labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
 
-        if (request.getName() != null && 
-            labelRepository.existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull(request.getName(), projectId, labelId)) {
+        if (request.getName() != null &&
+                labelRepository.existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull(request.getName(), projectId,
+                        labelId)) {
             throw new AppException(ErrorCode.LABEL_ALREADY_EXISTS);
         }
 
         projectMapper.updateLabel(label, request);
 
-        Label savedLabel = labelRepository.save(label);
-        return projectMapper.toLabelResponse(savedLabel);
+        // Ghi ngay thay đổi để các trường do DB sinh có giá trị, sau đó tải lại
+        Label savedLabel = labelRepository.saveAndFlush(label);
+        Label hydratedLabel = labelRepository.findByIdAndDeletedAtIsNull(savedLabel.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
+        return projectMapper.toLabelResponse(hydratedLabel);
     }
 
     /**
@@ -83,7 +90,8 @@ public class LabelService {
         Label label = labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
 
-        // Lưu ý: Có thể bổ sung check logic isLabelInUse() tại đây khi có Module Task đánh nhãn,
+        // Lưu ý: Có thể bổ sung check logic isLabelInUse() tại đây khi có Module Task
+        // đánh nhãn,
         // chặn xóa (ném Exception) nếu nhãn đang được bind vào ảnh/tài liệu.
         label.setDeletedAt(LocalDateTime.now());
         labelRepository.save(label);
@@ -93,7 +101,8 @@ public class LabelService {
      * Lấy danh sách toàn bộ nhãn của dự án.
      */
     public List<LabelResponse> getLabelsByProject(UUID projectId) {
-        // Có thể cho phép lấy mà không cần check access ở mức Service vì Controller đã dùng @PreAuthorize.
+        // Có thể cho phép lấy mà không cần check access ở mức Service vì Controller đã
+        // dùng @PreAuthorize.
         // Chỉ cần đảm bảo Project tồn tại trước khi lấy API.
         projectRepository.findByIdAndDeletedAtIsNull(projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
