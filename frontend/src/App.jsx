@@ -4,7 +4,11 @@ import Login from '@/pages/auth/Login';
 import LandingPage from '@/pages/common/LandingPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
-import CreateProject from '@/pages/manager/CreateProject';
+import ProgressReport from '@/pages/manager/ProgressReport';
+import AnnotatorsImageGrid from '@/pages/manager/AnnotatorsImageGrid';
+import Projects from '@/pages/manager/Projects';
+import UploadImages from '@/pages/manager/UploadImages';
+import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import SystemConfig from '@/pages/admin/SystemConfig';
@@ -109,19 +113,20 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/manager/projects/create"
-        element={
-          <ProtectedRoute allowedRoles={['MANAGER']}>
-            <CreateProject />
-          </ProtectedRoute>
-        }
-      />
+      {/* Manager projects */}
       <Route
         path="/manager/projects"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
-            <ManagerDashboard />
+            <Projects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/upload-images"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <UploadImages />
           </ProtectedRoute>
         }
       />
@@ -129,7 +134,7 @@ function App() {
         path="/manager/annotators"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
-            <ManagerDashboard />
+            <AnnotatorsImageGrid />
           </ProtectedRoute>
         }
       />
@@ -137,7 +142,15 @@ function App() {
         path="/manager/reports"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
-            <ManagerDashboard />
+            <ProgressReport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/taxonomy"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <LabelTaxonomy />
           </ProtectedRoute>
         }
       />
