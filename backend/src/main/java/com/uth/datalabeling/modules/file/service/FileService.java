@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,45 +22,46 @@ import lombok.experimental.FieldDefaults;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class FileService {
 
-    ProjectFileRepository repository;
-    ProjectRepository projectRepository;
+    final ProjectFileRepository repository;
+    final ProjectRepository projectRepository;
 
-    String UPLOAD_DIR = "D:/data/uploads/";
+    @Value("${app.upload.dir}")
+    String uploadDir;
 
     public ProjectFile upload(MultipartFile file, UUID projectId) {
 
-        // 0. CHECK PROJECT
+        // Check project tồn tại
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        // 1. VALIDATE FILE
+        // validate file
         validateFile(file);
 
         try {
 
-            // 2. CREATE FOLDER
-            Path uploadPath = Paths.get(UPLOAD_DIR);
+            // tạo folder upload nếu chưa có
+            Path uploadPath = Paths.get(uploadDir);
 
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
 
-            // 3. RENAME FILE
+            // rename file
             String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
 
             Path path = uploadPath.resolve(fileName).normalize();
 
-            // 4. SAVE FILE
+            // save file
             Files.copy(
                     file.getInputStream(),
                     path,
                     StandardCopyOption.REPLACE_EXISTING
             );
 
-            // 5. SAVE DB
+            // save db
             ProjectFile pf = ProjectFile.builder()
                     .fileName(file.getOriginalFilename())
                     .fileType(file.getContentType())
@@ -68,13 +70,18 @@ public class FileService {
                     .project(project)
                     .build();
 
-            return repository.saveAndFlush(pf);
+            ProjectFile savedFile = repository.saveAndFlush(pf);
+
+            // sync project guideline
+            project.setGuidelineUrl(savedFile.getFilePath());
+            projectRepository.save(project);
+
+            return savedFile;
 
         } catch (IOException e) {
             throw new RuntimeException("Upload failed", e);
         }
     }
-
     // VALIDATE FILE
     private void validateFile(MultipartFile file) {
 
