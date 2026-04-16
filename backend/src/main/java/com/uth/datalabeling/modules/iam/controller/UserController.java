@@ -1,6 +1,7 @@
 package com.uth.datalabeling.modules.iam.controller;
 
 import com.uth.datalabeling.common.response.ApiResponse;
+import com.uth.datalabeling.modules.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.modules.iam.dto.request.UserCreationRequest;
 import com.uth.datalabeling.modules.iam.dto.request.UserUpdateRequest;
 import com.uth.datalabeling.modules.iam.dto.response.UserResponse;
@@ -26,6 +27,7 @@ public class UserController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @LogActivity(action = "CREATE_USER", entityType = "USER")
   public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserCreationRequest request) {
     return ApiResponse.<UserResponse>builder()
         .result(userService.createUser(request))
@@ -33,6 +35,7 @@ public class UserController {
   }
 
   @GetMapping
+  @LogActivity(action = "VIEW_ALL_USERS")
   public ApiResponse<List<UserResponse>> getAllUsers() {
     return ApiResponse.<List<UserResponse>>builder()
         .result(userService.getAllUsers())
@@ -40,6 +43,7 @@ public class UserController {
   }
 
   @GetMapping("/{userId}")
+  @LogActivity(action = "VIEW_USER")
   public ApiResponse<UserResponse> getUser(@PathVariable("userId") UUID userId) {
     return ApiResponse.<UserResponse>builder()
         .result(userService.getUserById(userId))
@@ -47,6 +51,7 @@ public class UserController {
   }
 
   @PutMapping("/{userId}")
+  @LogActivity(action = "UPDATE_USER", entityType = "USER", entityIdParam = "userId")
   public ApiResponse<UserResponse> updateUser(@PathVariable("userId") UUID userId,
       @Valid @RequestBody UserUpdateRequest request) {
     return ApiResponse.<UserResponse>builder()
@@ -56,6 +61,7 @@ public class UserController {
 
   @DeleteMapping("/{userId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
+  @LogActivity(action = "DELETE_USER", entityType = "USER", entityIdParam = "userId")
   public ApiResponse<Void> deleteUser(@PathVariable("userId") UUID userId) {
     userService.deleteUser(userId);
     return ApiResponse.<Void>builder()

@@ -148,7 +148,6 @@ export default function LabelTaxonomy() {
     cancelEdit();
   };
 
-  const totalUsage = 0;
   const userName = user?.fullName || user?.email || 'Manager';
   const userRole = user?.role === 'MANAGER' ? 'Lead Curator' : user?.role || 'MANAGER';
 
@@ -169,54 +168,61 @@ export default function LabelTaxonomy() {
         <main className="manager-content">
           <div className="label-taxonomy-page">
 
-            {/* Brand strip */}
-            <div className="label-taxonomy-page__shell" aria-hidden="true">
-              <div className="manager-page-header__brand">
+            {/* ── Page Header ── */}
+            <header className="label-taxonomy-header">
+              <div className="label-taxonomy-header__brand" aria-hidden="true">
                 <BrandLogo size={32} />
-                <span className="manager-page-header__brand-name">DataLabel Pro</span>
+                <span className="label-taxonomy-header__brand-name">DataLabel Pro</span>
               </div>
-            </div>
-
-            {/* Back button */}
-            <button type="button" className="label-taxonomy-back" onClick={() => navigate('/manager/projects')}>
-              <ArrowLeft size={18} aria-hidden="true" />
-              <span>Back to Project</span>
-            </button>
-
-            {/* Page header */}
-            <header className="label-taxonomy-page__intro">
-              <h1 className="manager-page-title">Label Taxonomy</h1>
-              <p className="manager-page-subtitle">
-                Define classification colors and names for your project datasets.
-              </p>
+              <div className="label-taxonomy-header__row">
+                <div>
+                  <h1 className="label-taxonomy-title">Label Taxonomy</h1>
+                  <p className="label-taxonomy-subtitle">
+                    Define and manage classification labels for your annotators.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="label-taxonomy-add-btn"
+                  onClick={() => nameInputRef.current?.focus()}
+                >
+                  <Plus size={16} strokeWidth={2.5} />
+                  Add New Label
+                </button>
+              </div>
             </header>
 
-            {/* Asymmetric grid */}
+            {/* ── Back Navigation ── */}
+            <button
+              type="button"
+              className="label-taxonomy-back"
+              onClick={() => navigate('/manager/projects')}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Back to Projects
+            </button>
+
+            {/* ── Asymmetric Grid ── */}
             <div className="label-taxonomy-grid">
 
-              {/* ── Creation Studio (left) ── */}
-              <aside
-                className="label-taxonomy-grid__studio manager-stack-card"
-                aria-label="Add new label"
-              >
-                <div className="label-taxonomy-studio__header">
-                  <div className="label-taxonomy-studio__icon-wrap">
+              {/* Left — Creation Studio */}
+              <aside className="label-taxonomy-studio-card" aria-label="Add new label">
+                <div className="label-taxonomy-studio-card__header">
+                  <div className="label-taxonomy-studio-card__icon-wrap">
                     <Plus size={18} />
                   </div>
                   <div>
-                    <h2 className="project-table-card__title label-taxonomy-studio__title">
-                      Creation Studio
-                    </h2>
-                    <p className="project-table-card__subtitle label-taxonomy-studio__subtitle">
+                    <h2 className="label-taxonomy-studio-card__title">Creation Studio</h2>
+                    <p className="label-taxonomy-studio-card__subtitle">
                       Define a new taxonomy entry
                     </p>
                   </div>
                 </div>
 
-                <form onSubmit={handleCreate} noValidate className="create-project-form">
+                <form onSubmit={handleCreate} noValidate className="label-taxonomy-form">
                   {submitSuccess && (
-                    <div className="success-banner" role="status" aria-live="polite">
-                      <Check size={18} />
+                    <div className="label-taxonomy-success-banner" role="status" aria-live="polite">
+                      <Check size={16} />
                       <span>Label added successfully</span>
                     </div>
                   )}
@@ -233,7 +239,10 @@ export default function LabelTaxonomy() {
                       className={`form-field__input ${nameError ? 'form-field__input--error' : ''}`}
                       placeholder="e.g. Building, Road, Water"
                       value={formName}
-                      onChange={(e) => { setFormName(e.target.value); if (nameError) setNameError(''); }}
+                      onChange={(e) => {
+                        setFormName(e.target.value);
+                        if (nameError) setNameError('');
+                      }}
                       autoComplete="off"
                     />
                     {nameError && (
@@ -247,22 +256,28 @@ export default function LabelTaxonomy() {
                   <div className="form-field">
                     <span className="form-field__label" id="label-hex-label">
                       <Tag size={15} />
-                      Label color
+                      Label Color
                     </span>
                     <AdvancedColorPicker
                       id="label-hex"
                       value={formHex}
-                      onChange={(h) => { setFormHex(h); if (nameError) setNameError(''); }}
+                      onChange={(h) => {
+                        setFormHex(h);
+                        if (nameError) setNameError('');
+                      }}
                       aria-label="Label fill color"
                     />
                   </div>
 
+                  {/* Live Preview */}
                   <div className="label-taxonomy-preview">
-                    <p className="label-taxonomy-preview__label">Live preview</p>
+                    <p className="label-taxonomy-preview__label">Live Preview</p>
                     <div className="label-taxonomy-preview__card">
                       <div
                         className="label-taxonomy-preview__swatch"
-                        style={{ backgroundColor: isValidHex(formHex) ? formHex : '#e5e7eb' }}
+                        style={{
+                          backgroundColor: isValidHex(formHex) ? formHex : '#e5e7eb',
+                        }}
                       >
                         <Tag
                           size={12}
@@ -281,10 +296,14 @@ export default function LabelTaxonomy() {
                     </div>
                   </div>
 
-                  <button type="submit" className="create-project-submit-btn" disabled={isSubmitting}>
+                  <button
+                    type="submit"
+                    className="label-taxonomy-submit-btn"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? (
                       <>
-                        <span className="create-project-submit-btn__spinner" aria-hidden="true" />
+                        <span className="label-taxonomy-submit-btn__spinner" aria-hidden="true" />
                         Adding…
                       </>
                     ) : (
@@ -303,16 +322,13 @@ export default function LabelTaxonomy() {
                 </div>
               </aside>
 
-              {/* ── Label Catalog (right) ── */}
-              <section
-                className="label-taxonomy-grid__catalog"
-                aria-label="Label taxonomy list"
-              >
-                <div className="project-table-card label-taxonomy-catalog-card">
-                  <div className="project-table-card__header">
-                    <div>
-                      <h2 className="project-table-card__title">Label catalog</h2>
-                      <p className="project-table-card__subtitle">
+              {/* Right — Label Catalog */}
+              <section className="label-taxonomy-catalog" aria-label="Label taxonomy list">
+                <div className="label-taxonomy-catalog-card">
+                  <div className="label-taxonomy-catalog-card__header">
+                    <div className="label-taxonomy-catalog-card__header-left">
+                      <h2 className="label-taxonomy-catalog-card__title">Label Catalog</h2>
+                      <p className="label-taxonomy-catalog-card__subtitle">
                         Manage classification categories for this project
                       </p>
                     </div>
@@ -331,39 +347,47 @@ export default function LabelTaxonomy() {
                       </div>
                       <h3 className="label-taxonomy-empty__title">No labels defined yet</h3>
                       <p className="label-taxonomy-empty__desc">
-                        Add your first label using Creation Studio on the left.
+                        Add your first label using the Creation Studio on the left.
                       </p>
                     </div>
                   ) : (
-                    <div className="label-taxonomy-table-wrap label-taxonomy-table-container">
-                      <table className="project-table" role="table">
+                    <div className="label-taxonomy-table-container">
+                      <table className="label-taxonomy-table" role="table">
                         <thead>
                           <tr>
-                            <th scope="col">Label</th>
-                            <th scope="col">Color</th>
-                            <th scope="col">Usage</th>
-                            <th scope="col" className="text-right">Actions</th>
+                            <th scope="col" className="label-taxonomy-table__th--label">Label</th>
+                            <th scope="col" className="label-taxonomy-table__th--color">Color</th>
+                            <th scope="col" className="label-taxonomy-table__th--usage">Usage</th>
+                            <th scope="col" className="label-taxonomy-table__th--actions">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {labels.map((label) =>
                             editingId === label.id ? (
-                              <tr key={label.id} className="label-taxonomy-table__edit">
+                              <tr key={label.id} className="label-taxonomy-table__edit-row">
                                 <td colSpan={4}>
-                                  <div className="label-taxonomy-edit">
-                                    <div className="label-taxonomy-edit__row">
+                                  <div className="label-taxonomy-edit-form">
+                                    <div className="label-taxonomy-edit-form__row">
                                       <AdvancedColorPicker
                                         value={editHex}
-                                        onChange={(h) => { setEditHex(h); setEditNameError(''); }}
+                                        onChange={(h) => {
+                                          setEditHex(h);
+                                          setEditNameError('');
+                                        }}
                                         aria-label={`Color for ${label.name}`}
                                       />
                                     </div>
-                                    <div className="label-taxonomy-edit__row">
+                                    <div className="label-taxonomy-edit-form__row">
                                       <input
                                         type="text"
-                                        className={`form-field__input label-taxonomy-edit__name ${editNameError ? 'form-field__input--error' : ''}`}
+                                        className={`form-field__input label-taxonomy-edit-form__name ${
+                                          editNameError ? 'form-field__input--error' : ''
+                                        }`}
                                         value={editName}
-                                        onChange={(e) => { setEditName(e.target.value); setEditNameError(''); }}
+                                        onChange={(e) => {
+                                          setEditName(e.target.value);
+                                          setEditNameError('');
+                                        }}
                                         onKeyDown={(e) => {
                                           if (e.key === 'Enter') handleEditSave(label.id);
                                           if (e.key === 'Escape') cancelEdit();
@@ -371,23 +395,27 @@ export default function LabelTaxonomy() {
                                         autoFocus
                                         aria-label="Edit label name"
                                       />
+                                      {editNameError && (
+                                        <p className="form-field__error" role="alert">
+                                          <AlertCircle size={14} />
+                                          {editNameError}
+                                        </p>
+                                      )}
                                     </div>
-                                    {editNameError && (
-                                      <p className="form-field__error" role="alert">
-                                        <AlertCircle size={14} />
-                                        {editNameError}
-                                      </p>
-                                    )}
-                                    <div className="label-taxonomy-edit__actions">
+                                    <div className="label-taxonomy-edit-form__actions">
                                       <button
                                         type="button"
-                                        className="create-project-submit-btn label-taxonomy-edit__save"
+                                        className="label-taxonomy-edit-form__save-btn"
                                         onClick={() => handleEditSave(label.id)}
                                       >
-                                        <Check size={16} />
+                                        <Check size={15} />
                                         Save
                                       </button>
-                                      <button type="button" className="cancel-btn" onClick={cancelEdit}>
+                                      <button
+                                        type="button"
+                                        className="label-taxonomy-edit-form__cancel-btn"
+                                        onClick={cancelEdit}
+                                      >
                                         Cancel
                                       </button>
                                     </div>
@@ -395,70 +423,83 @@ export default function LabelTaxonomy() {
                                 </td>
                               </tr>
                             ) : (
-                              <tr key={label.id}>
-                                <td>
-                                  <div className="project-table__name">
+                              <tr key={label.id} className="label-taxonomy-table__row">
+                                <td className="label-taxonomy-table__td--label">
+                                  <div className="label-taxonomy-label-item">
                                     <div
-                                      className="label-taxonomy-table__swatch"
+                                      className="label-taxonomy-label-item__swatch"
                                       style={{ backgroundColor: label.hex }}
                                       aria-hidden="true"
                                     >
-                                      <Tag size={14} color={getContrastColor(label.hex)} />
+                                      <Tag size={13} color={getContrastColor(label.hex)} />
                                     </div>
-                                    <div>
-                                      <p className="project-table__name-text">{label.name}</p>
-                                      <p className="project-table__name-meta">Taxonomy label</p>
+                                    <div className="label-taxonomy-label-item__info">
+                                      <p className="label-taxonomy-label-item__name">{label.name}</p>
+                                      <span
+                                        className="label-taxonomy-label-item__pill"
+                                        style={{
+                                          backgroundColor: `${label.hex}18`,
+                                          color: label.hex,
+                                          borderColor: `${label.hex}30`,
+                                        }}
+                                      >
+                                        {label.hex}
+                                      </span>
                                     </div>
                                   </div>
                                 </td>
-                                <td>
-                                  <code className="label-taxonomy-table__hex">{label.hex}</code>
-                                </td>
-                                <td>
-                                  <span className="label-taxonomy-table__usage">—</span>
-                                </td>
-                                <td className="text-right">
-                                  <div className="project-table__actions label-taxonomy-table__actions">
-                                    {deletingId === label.id ? (
-                                      <>
-                                        <button
-                                          type="button"
-                                          className="cancel-btn label-taxonomy-table__inline-btn"
-                                          onClick={() => setDeletingId(null)}
-                                        >
-                                          <X size={14} />
-                                          Cancel
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="create-project-submit-btn label-taxonomy-table__inline-btn label-taxonomy-table__inline-btn--danger"
-                                          onClick={() => handleDelete(label.id)}
-                                        >
-                                          <Trash2 size={14} />
-                                          Delete
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button
-                                          type="button"
-                                          className="project-table__action-btn"
-                                          onClick={() => startEdit(label)}
-                                          aria-label={`Edit ${label.name}`}
-                                        >
-                                          <Pencil size={16} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          className="project-table__action-btn"
-                                          onClick={() => setDeletingId(label.id)}
-                                          aria-label={`Delete ${label.name}`}
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
-                                      </>
-                                    )}
+                                <td className="label-taxonomy-table__td--color">
+                                  <div className="label-taxonomy-color-chip">
+                                    <div
+                                      className="label-taxonomy-color-chip__dot"
+                                      style={{ backgroundColor: label.hex }}
+                                    />
+                                    <code className="label-taxonomy-color-chip__hex">{label.hex}</code>
                                   </div>
+                                </td>
+                                <td className="label-taxonomy-table__td--usage">
+                                  <span className="label-taxonomy-usage">—</span>
+                                </td>
+                                <td className="label-taxonomy-table__td--actions">
+                                  {deletingId === label.id ? (
+                                    <div className="label-taxonomy-table__delete-confirm">
+                                      <button
+                                        type="button"
+                                        className="label-taxonomy-table__inline-cancel-btn"
+                                        onClick={() => setDeletingId(null)}
+                                      >
+                                        <X size={14} />
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="label-taxonomy-table__inline-delete-btn"
+                                        onClick={() => handleDelete(label.id)}
+                                      >
+                                        <Trash2 size={14} />
+                                        Delete
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="label-taxonomy-table__actions">
+                                      <button
+                                        type="button"
+                                        className="label-taxonomy-table__action-btn label-taxonomy-table__action-btn--edit"
+                                        onClick={() => startEdit(label)}
+                                        aria-label={`Edit ${label.name}`}
+                                      >
+                                        <Pencil size={15} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="label-taxonomy-table__action-btn label-taxonomy-table__action-btn--delete"
+                                        onClick={() => setDeletingId(label.id)}
+                                        aria-label={`Delete ${label.name}`}
+                                      >
+                                        <Trash2 size={15} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             )
@@ -471,7 +512,9 @@ export default function LabelTaxonomy() {
                   {labels.length > 0 && (
                     <div className="label-taxonomy-catalog__footer">
                       <ChevronRight size={14} aria-hidden="true" />
-                      <span>Labels are scoped to the current project and can be edited at any time</span>
+                      <span>
+                        Labels are scoped to the current project and can be edited at any time
+                      </span>
                     </div>
                   )}
                 </div>
@@ -486,7 +529,11 @@ export default function LabelTaxonomy() {
                 key={toast.id}
                 className={`label-taxonomy-toast label-taxonomy-toast--${toast.type}`}
               >
-                {toast.type === 'success' ? <Check size={15} /> : <AlertCircle size={15} />}
+                {toast.type === 'success' ? (
+                  <Check size={15} />
+                ) : (
+                  <AlertCircle size={15} />
+                )}
                 {toast.message}
               </div>
             ))}

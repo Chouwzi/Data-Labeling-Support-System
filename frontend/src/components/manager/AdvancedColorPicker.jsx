@@ -196,7 +196,7 @@ export default function AdvancedColorPicker({
                 className={`advanced-color-picker__tab${activeTab === TAB_UNIFORM ? ' advanced-color-picker__tab--active' : ''}`}
                 onClick={() => setActiveTab(TAB_UNIFORM)}
               >
-                Màu đồng nhất
+                Uniform Color
               </button>
             </div>
 

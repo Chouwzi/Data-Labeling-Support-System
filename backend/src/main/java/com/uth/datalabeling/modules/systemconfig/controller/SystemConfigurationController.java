@@ -1,6 +1,7 @@
 package com.uth.datalabeling.modules.systemconfig.controller;
 
 import com.uth.datalabeling.common.response.ApiResponse;
+import com.uth.datalabeling.modules.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.modules.systemconfig.dto.request.SystemConfigurationUpdateRequest;
 import com.uth.datalabeling.modules.systemconfig.dto.response.SystemConfigurationResponse;
 import com.uth.datalabeling.modules.systemconfig.service.SystemConfigurationService;
@@ -24,6 +25,7 @@ public class SystemConfigurationController {
   SystemConfigurationService systemConfigurationService;
 
   @GetMapping
+  @LogActivity(action = "VIEW_SYSTEM_CONFIG")
   public ApiResponse<SystemConfigurationResponse> getConfiguration() {
     return ApiResponse.<SystemConfigurationResponse>builder()
         .result(systemConfigurationService.getConfiguration())
@@ -32,6 +34,7 @@ public class SystemConfigurationController {
 
   @PutMapping
   @PreAuthorize("hasRole('ADMIN')")
+  @LogActivity(action = "UPDATE_SYSTEM_CONFIG")
   public ApiResponse<SystemConfigurationResponse> updateConfiguration(
       @Valid @RequestBody SystemConfigurationUpdateRequest request,
       Authentication authentication) {

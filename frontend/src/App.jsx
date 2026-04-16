@@ -4,6 +4,8 @@ import Login from '@/pages/auth/Login';
 import LandingPage from '@/pages/common/LandingPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ManagerDashboard from '@/pages/manager/ManagerDashboard';
+import ProgressReport from '@/pages/manager/ProgressReport';
+import AnnotatorsImageGrid from '@/pages/manager/AnnotatorsImageGrid';
 import Projects from '@/pages/manager/Projects';
 import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
@@ -132,7 +134,7 @@ function App() {
         path="/manager/annotators"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
-            <ManagerDashboard />
+            <AnnotatorsImageGrid />
           </ProtectedRoute>
         }
       />
@@ -140,7 +142,15 @@ function App() {
         path="/manager/reports"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
-            <ManagerDashboard />
+            <ProgressReport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/taxonomy"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <LabelTaxonomy />
           </ProtectedRoute>
         }
       />
