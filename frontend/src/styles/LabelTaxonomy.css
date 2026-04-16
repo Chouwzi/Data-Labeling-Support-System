@@ -1,93 +1,151 @@
-/* Label Taxonomy — manager shell + catalog */
+/* =============================================
+   LABEL TAXONOMY PAGE — Emerald Green Theme
+   ============================================= */
 
 .label-taxonomy-page {
   max-width: 1400px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.label-taxonomy-page__shell {
-  margin-bottom: 0.5rem;
+/* ── Page Header ─────────────────────────────────────────── */
+.label-taxonomy-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.label-taxonomy-page__intro {
-  margin-bottom: 1.5rem;
+.label-taxonomy-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
 }
 
-/* ── Back button ── */
+.label-taxonomy-header__brand-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #059669;
+  letter-spacing: -0.02em;
+}
+
+.label-taxonomy-header__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.label-taxonomy-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.label-taxonomy-subtitle {
+  font-size: 0.9375rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Primary Add Button */
+.label-taxonomy-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.label-taxonomy-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.4);
+}
+
+.label-taxonomy-add-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Back Navigation ──────────────────────────────────────── */
 .label-taxonomy-back {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
   padding: 0.5rem 0.875rem;
-  background: rgba(17, 24, 39, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 0.625rem;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
   color: #6b7280;
   font-size: 0.875rem;
   font-weight: 600;
   font-family: 'Manrope', sans-serif;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: all 0.2s ease;
+  width: fit-content;
 }
 
 .label-taxonomy-back:hover {
   background: #ecfdf5;
-  border-color: rgba(5, 150, 105, 0.25);
+  border-color: rgba(5, 150, 105, 0.3);
   color: #059669;
+  transform: translateX(-2px);
 }
 
-.label-taxonomy-back__emphasis {
-  color: #111827;
-  font-weight: 700;
-}
-
-.label-taxonomy-back:hover .label-taxonomy-back__emphasis {
-  color: #047857;
-}
-
-/* ── Asymmetric grid ── */
+/* ── Asymmetric Grid ─────────────────────────────────────── */
 .label-taxonomy-grid {
   display: grid;
-  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
   gap: 1.5rem;
-  align-items: stretch;
+  align-items: start;
 }
 
 @media (max-width: 1024px) {
-  .label-taxonomy-grid { grid-template-columns: 1fr; }
+  .label-taxonomy-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* Right column fills grid row height so inner cards and table areas stretch via flex */
-.label-taxonomy-grid__catalog {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* Card — surface-container-lowest (white) per design system */
-.label-taxonomy-grid__studio.manager-stack-card {
+/* ── Creation Studio Card ─────────────────────────────────── */
+.label-taxonomy-studio-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid rgba(5, 150, 105, 0.1);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.05);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  height: 100%;
-  min-height: 0;
-  background-color: var(--color-surface-container-lowest, #ffffff);
-  border: 1px solid var(--color-outline-variant, rgba(0,0,0,0.08));
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-.label-taxonomy-studio__header {
+.label-taxonomy-studio-card__header {
   display: flex;
   align-items: flex-start;
   gap: 0.875rem;
 }
 
-.label-taxonomy-studio__icon-wrap {
-  width: 2.5rem;
-  height: 2.5rem;
+.label-taxonomy-studio-card__icon-wrap {
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 0.75rem;
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #059669;
@@ -95,14 +153,80 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
 }
 
-.label-taxonomy-studio__title { margin: 0; }
-.label-taxonomy-studio__subtitle { margin: 0.25rem 0 0 0; }
+.label-taxonomy-studio-card__title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.01em;
+}
 
-/* ── Live preview card ── */
+.label-taxonomy-studio-card__subtitle {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  font-weight: 500;
+  margin: 0.25rem 0 0 0;
+}
+
+/* Form */
+.label-taxonomy-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+/* Success Banner */
+.label-taxonomy-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Form Field Overrides */
+.label-taxonomy-form .form-field__input {
+  border-radius: 0.625rem;
+  border: 2px solid #e5e7eb;
+  background-color: #f9fafb;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.label-taxonomy-form .form-field__input:focus {
+  border-color: #059669;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.label-taxonomy-form .form-field__input--error {
+  border-color: #dc2626;
+}
+
+.label-taxonomy-form .form-field__input--error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.label-taxonomy-form .form-field__error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Live Preview */
 .label-taxonomy-preview {
-  padding: 0.75rem 0 0 0;
+  padding: 0.875rem 0 0 0;
 }
 
 .label-taxonomy-preview__label {
@@ -121,8 +245,8 @@
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.625rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
 }
 
 .label-taxonomy-preview__swatch {
@@ -133,7 +257,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 .label-taxonomy-preview__name {
@@ -150,345 +274,37 @@
   font-family: ui-monospace, monospace;
 }
 
-/* ── Tip ── */
-.label-taxonomy-tip {
-  margin-top: auto;
-  flex-shrink: 0;
-  padding: 0.875rem 1rem;
-  background: rgba(5, 150, 105, 0.06);
-  border: 1px solid rgba(5, 150, 105, 0.15);
-  border-radius: 0.625rem;
-}
-
-.label-taxonomy-tip__text {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: #4b5563;
-}
-
-/* ── Catalog ── */
-.label-taxonomy-catalog-card.project-table-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: visible;
-}
-
-.label-taxonomy-catalog-card > .label-taxonomy-empty {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.label-taxonomy-catalog-card .project-table-card__header {
-  flex-wrap: wrap;
-  align-items: flex-start;
-}
-
-.label-taxonomy-catalog__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.label-taxonomy-stat-pill {
+/* Submit Button */
+.label-taxonomy-submit-btn {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  background: #ecfdf5;
-  border: 1px solid rgba(5, 150, 105, 0.2);
-  border-radius: 9999px;
-}
-
-.label-taxonomy-stat-pill__num {
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: #059669;
-  font-family: 'Manrope', sans-serif;
-}
-
-.label-taxonomy-stat-pill__text {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #047857;
-}
-
-/* ── Distribution bar ── */
-.label-taxonomy-distribution {
-  padding: 0 1.5rem 1rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.label-taxonomy-distribution__track {
-  display: flex;
-  height: 0.5rem;
-  border-radius: 9999px;
-  overflow: hidden;
-  margin-bottom: 0.75rem;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
-}
-
-.label-taxonomy-distribution__segment {
-  min-width: 4px;
-  transition: flex-grow 0.2s ease;
-}
-
-.label-taxonomy-distribution__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-}
-
-.label-taxonomy-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.label-taxonomy-legend-item__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.label-taxonomy-legend-item__name {
-  font-weight: 600;
-  color: #374151;
-}
-
-.label-taxonomy-legend-item__count {
-  font-variant-numeric: tabular-nums;
-  color: #9ca3af;
-}
-
-/* ── Empty state ── */
-.label-taxonomy-empty {
-  padding: 3rem 1.5rem;
-  text-align: center;
-}
-
-.label-taxonomy-empty__icon {
-  width: 5rem;
-  height: 5rem;
-  margin: 0 auto 1rem;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.label-taxonomy-empty__svg { color: #9ca3af; }
-
-.label-taxonomy-empty__title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 0.5rem 0;
-  font-family: 'Manrope', sans-serif;
-}
-
-.label-taxonomy-empty__desc {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 auto;
-  max-width: 22rem;
-  line-height: 1.5;
-}
-
-/* ── Table wrap ── */
-.label-taxonomy-table-wrap { overflow-x: auto; }
-
-/* Matches right card height: middle area fills remaining height and scrolls internally */
-.label-taxonomy-table-wrap.label-taxonomy-table-container {
-  flex: 1;
-  min-height: 0;
-  overflow-x: auto;
-  overflow-y: auto;
-}
-
-/* Sticky header: scroll table container, sticky thead pinned at top */
-.label-taxonomy-table-container table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;  /* fixed column width → sticky column alignment */
-}
-
-/* Pinned header fixed when scrolling */
-.label-taxonomy-table-container thead {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #ffffff;
-}
-
-/* Ensures each row in thead/tbody shares the same grid layout */
-.label-taxonomy-table-container thead tr,
-.label-taxonomy-table-container tbody tr {
-  display: grid;
-  grid-template-columns:
-    minmax(0, 1fr)   /* Label    */
-    120px           /* Color    */
-    100px           /* Usage    */
-    100px;          /* Actions  */
-  align-items: center;
-  width: 100%;
-}
-
-/* Header cell: left-aligned for first column, centered for the rest */
-.label-taxonomy-table-container thead th {
-  font-weight: 700;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #6b7280;
-  background: #ffffff;
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
-  white-space: nowrap;
-}
-
-/* Data cell: aligns with grid columns */
-.label-taxonomy-table-container tbody td {
-  padding: 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  vertical-align: middle;
-}
-
-/* Extra padding for Actions column so buttons don't overlap */
-.label-taxonomy-table-container tbody td:last-child {
-  padding-right: 0.75rem;
-}
-
-/* Hover row */
-.label-taxonomy-table-container tbody tr:hover td {
-  background: rgba(0, 108, 81, 0.025);
-}
-
-
-.label-taxonomy-table__swatch {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-}
-
-.label-taxonomy-table__hex {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #374151;
-  background: #f3f4f6;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-}
-
-.label-taxonomy-table__usage {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-  font-variant-numeric: tabular-nums;
-}
-
-.label-taxonomy-table__actions { gap: 0.375rem; }
-
-.label-taxonomy-table__inline-btn {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.label-taxonomy-table__inline-btn--danger {
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35) !important;
-  border: none !important;
-  color: #fff !important;
-}
-
-.label-taxonomy-table__inline-btn--danger:hover:not(:disabled) {
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45) !important;
-}
-
-.label-taxonomy-table__edit td {
-  background: #f9fafb;
-  padding: 1.25rem 1.5rem !important;
-  vertical-align: top;
-  overflow: visible;
-}
-
-.label-taxonomy-table__edit td:has(.advanced-color-picker--open) {
-  position: relative;
-  z-index: 15;
-}
-
-.label-taxonomy-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-  max-width: 22rem;
-}
-
-.label-taxonomy-edit__row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.label-taxonomy-edit__name { width: 100%; }
-
-.label-taxonomy-edit__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.label-taxonomy-edit__save { padding: 0.625rem 1rem !important; }
-
-/* Submit button — primary-container style (green) per design system */
-.create-project-submit-btn {
-  display: inline-flex;
-  align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #00a67e 0%, #00856a 100%);
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
   color: #ffffff;
   border: none;
-  border-radius: 0.625rem;
+  border-radius: 0.75rem;
   font-size: 0.875rem;
   font-weight: 700;
   font-family: 'Manrope', sans-serif;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 108, 81, 0.3);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
 
-.create-project-submit-btn:hover:not(:disabled) {
+.label-taxonomy-submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 108, 81, 0.4);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.4);
 }
 
-.create-project-submit-btn:disabled {
+.label-taxonomy-submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 
-.create-project-submit-btn__spinner {
+.label-taxonomy-submit-btn__spinner {
   display: inline-block;
   width: 1rem;
   height: 1rem;
@@ -502,23 +318,474 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Catalog footer ── */
+/* Tip */
+.label-taxonomy-tip {
+  margin-top: auto;
+  flex-shrink: 0;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.06) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border: 1px solid rgba(5, 150, 105, 0.15);
+  border-radius: 0.75rem;
+}
+
+.label-taxonomy-tip__text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* ── Label Catalog ────────────────────────────────────────── */
+.label-taxonomy-catalog {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.label-taxonomy-catalog-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid rgba(5, 150, 105, 0.08);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.label-taxonomy-catalog-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+}
+
+.label-taxonomy-catalog-card__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.label-taxonomy-catalog-card__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-catalog-card__subtitle {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Stat Pill */
+.label-taxonomy-catalog__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.label-taxonomy-stat-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  background: #ecfdf5;
+  border: 1.5px solid rgba(5, 150, 105, 0.2);
+  border-radius: 9999px;
+}
+
+.label-taxonomy-stat-pill__num {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #059669;
+  font-family: 'Manrope', sans-serif;
+  line-height: 1.2;
+}
+
+.label-taxonomy-stat-pill__text {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #047857;
+}
+
+/* ── Table ────────────────────────────────────────────────── */
+.label-taxonomy-table-container {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  min-height: 200px;
+}
+
+.label-taxonomy-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.label-taxonomy-table thead tr {
+  background-color: #f9fafb;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+}
+
+.label-taxonomy-table thead th {
+  padding: 0.875rem 1.25rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  white-space: nowrap;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-table__th--label { width: 40%; }
+.label-taxonomy-table__th--color { width: 20%; }
+.label-taxonomy-table__th--usage { width: 15%; }
+.label-taxonomy-table__th--actions { width: 25%; text-align: right; }
+
+.label-taxonomy-table__row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background-color 0.15s ease;
+}
+
+.label-taxonomy-table__row:last-child {
+  border-bottom: none;
+}
+
+.label-taxonomy-table__row:hover {
+  background-color: rgba(5, 150, 105, 0.02);
+}
+
+.label-taxonomy-table tbody td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+}
+
+.label-taxonomy-table__td--actions {
+  text-align: right;
+}
+
+/* Label Item (Label column) */
+.label-taxonomy-label-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.label-taxonomy-label-item__swatch {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.label-taxonomy-label-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.label-taxonomy-label-item__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-label-item__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  border: 1px solid;
+  width: fit-content;
+  letter-spacing: 0.02em;
+}
+
+/* Color Chip (Color column) */
+.label-taxonomy-color-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label-taxonomy-color-chip__dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.label-taxonomy-color-chip__hex {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  color: #374151;
+  background: #f3f4f6;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* Usage */
+.label-taxonomy-usage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #d1d5db;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Actions */
+.label-taxonomy-table__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.label-taxonomy-table__row:hover .label-taxonomy-table__actions {
+  opacity: 1;
+}
+
+.label-taxonomy-table__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.label-taxonomy-table__action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.label-taxonomy-table__action-btn--edit:hover {
+  background: #ecfdf5;
+  border-color: rgba(5, 150, 105, 0.3);
+  color: #059669;
+}
+
+.label-taxonomy-table__action-btn--delete:hover {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+}
+
+/* Delete Confirmation */
+.label-taxonomy-table__delete-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+.label-taxonomy-table__inline-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.375rem 0.75rem;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-table__inline-cancel-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.label-taxonomy-table__inline-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.375rem 0.75rem;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Manrope', sans-serif;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+}
+
+.label-taxonomy-table__inline-delete-btn:hover {
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Edit Row */
+.label-taxonomy-table__edit-row td {
+  background: #f9fafb;
+  padding: 1.25rem 1.5rem !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+}
+
+.label-taxonomy-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  max-width: 28rem;
+}
+
+.label-taxonomy-edit-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label-taxonomy-edit-form__name {
+  width: 100%;
+}
+
+.label-taxonomy-edit-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label-taxonomy-edit-form__save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+
+.label-taxonomy-edit-form__save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+
+.label-taxonomy-edit-form__cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #6b7280;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.label-taxonomy-edit-form__cancel-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+/* Empty State */
+.label-taxonomy-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.label-taxonomy-empty__icon {
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.25rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label-taxonomy-empty__svg {
+  color: #059669;
+}
+
+.label-taxonomy-empty__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.label-taxonomy-empty__desc {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+  max-width: 22rem;
+  line-height: 1.5;
+}
+
+/* Catalog Footer */
 .label-taxonomy-catalog__footer {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 1rem 1.5rem;
-  font-size: 0.8125rem;
-  color: #6b7280;
+  background: #f9fafb;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  font-weight: 500;
 }
 
 .label-taxonomy-catalog__footer svg {
-  flex-shrink: 0;
   color: #059669;
+  flex-shrink: 0;
 }
 
-/* ── Toasts ── */
+/* ── Toasts ───────────────────────────────────────────────── */
 .label-taxonomy-toasts {
   position: fixed;
   bottom: 1.5rem;
@@ -535,13 +802,52 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.625rem;
+  padding: 0.75rem 1.125rem;
+  border-radius: 0.75rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #374151;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 1px 4px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.label-taxonomy-toast--success { background: #ffffff; color: #059669; }
-.label-taxonomy-toast--info { background: #ffffff; color: #4b5563; }
+.label-taxonomy-toast--success {
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.2);
+}
+
+.label-taxonomy-toast--info {
+  color: #4b5563;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 768px) {
+  .label-taxonomy-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .label-taxonomy-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .label-taxonomy-catalog-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .label-taxonomy-table__th--color,
+  .label-taxonomy-table__td--color {
+    display: none;
+  }
+
+  .label-taxonomy-table__th--label { width: 50%; }
+  .label-taxonomy-table__th--usage { width: 20%; }
+  .label-taxonomy-table__th--actions { width: 30%; }
+}
