@@ -1,0 +1,726 @@
+/* AnnotatorsImageGrid — Emerald Green SaaS Design System
+   Primary accent: Emerald Green (#10b981)
+   Background: #f8fafc (slate-50) | Surface: #ffffff
+   Text: #0f172a (slate-900) | Muted: #64748b
+   ============================================================ */
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.aig-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1.75rem;
+}
+
+.aig-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+
+  background: transparent;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+  align-self: flex-start;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+.aig-back-btn:hover {
+  border-color: rgba(15, 23, 42, 0.2);
+  background-color: rgba(15, 23, 42, 0.03);
+  color: #0f172a;
+}
+
+.aig-page-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.aig-page-header__brand-icon {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.aig-page-header__brand-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: -0.01em;
+}
+
+.aig-page-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0.375rem 0 0.25rem;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.aig-page-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* ============================================================
+   STICKY BOTTOM ACTION BAR
+   Always docked at bottom of viewport when active.
+   Slide-up entrance animation.
+   ============================================================ */
+
+/* Wrapper: fixed to viewport bottom */
+.aig-sticky-bar-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+
+  /* Slide-up: hidden below viewport by default */
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
+/* Slide-up: visible when active */
+.aig-sticky-bar-wrapper--active {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* The bar itself */
+.aig-sticky-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: nowrap;
+
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.875rem 2rem;
+
+  background-color: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+
+  /* Upward shadow — the key visual cue */
+  box-shadow:
+    0 -8px 40px rgba(15, 23, 42, 0.08),
+    0 -2px 12px rgba(15, 23, 42, 0.04),
+    0 -1px 3px rgba(15, 23, 42, 0.03);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Left: selection info ──────────────────── */
+
+.aig-sticky-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-shrink: 0;
+}
+
+.aig-selection-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aig-selection-pill__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #10b981;
+  flex-shrink: 0;
+  animation: aig-pulse-green 1.5s ease-in-out infinite;
+}
+
+@keyframes aig-pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+
+.aig-selection-pill__count {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #10b981;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  min-width: 1ch;
+}
+
+.aig-selection-pill__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Action controls */
+.aig-sticky-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.aig-link-btn {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 0.375rem 0.625rem;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #10b981;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.aig-link-btn:hover {
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.aig-link-btn:active {
+  background-color: rgba(16, 185, 129, 0.14);
+  transform: scale(0.98);
+}
+
+.aig-link-btn--muted {
+  color: #94a3b8;
+}
+
+.aig-link-btn--muted:hover {
+  background-color: rgba(15, 23, 42, 0.05);
+  color: #64748b;
+}
+
+/* ── Right: annotator select + assign ──────── */
+
+.aig-sticky-bar__right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.aig-assign-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* Assign button — Emerald Green */
+.aig-assign-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
+
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 168px;
+  justify-content: center;
+
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.aig-assign-btn:hover:not(:disabled) {
+  background: #0d9669;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.aig-assign-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+.aig-assign-btn:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.aig-assign-btn--loading {
+  background: #34d399;
+  cursor: wait;
+}
+
+/* Spinner */
+.aig-assign-btn__spinner {
+  animation: aig-spin 0.7s linear infinite;
+}
+
+@keyframes aig-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   IMAGE GRID
+   Dynamic bottom padding: space for sticky bar
+   ============================================================ */
+
+.aig-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  /* Extra space so last row isn't hidden behind sticky bar */
+  padding-bottom: 1.25rem;
+  transition: padding-bottom 0.3s ease;
+}
+
+.aig-grid--has-selection {
+  /* Accommodate sticky bar (≈72px) */
+  padding-bottom: 100px;
+}
+
+/* ============================================================
+   IMAGE CARD
+   Modern SaaS: rounded-xl, subtle shadow, smooth hover
+   ============================================================ */
+
+.aig-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1.5px solid rgba(15, 23, 42, 0.06);
+
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 1px 2px rgba(15, 23, 42, 0.02);
+
+  overflow: hidden;
+  cursor: pointer;
+
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+
+  user-select: none;
+  outline: none;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.aig-card:hover {
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
+  transform: translateY(-3px);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.aig-card:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* ── Selected state: Emerald Green highlight ───── */
+
+.aig-card--selected {
+  border-color: #10b981;
+  border-width: 2px;
+  background-color: #f0fdf9;
+
+  box-shadow:
+    0 0 0 3px rgba(16, 185, 129, 0.12),
+    0 4px 16px rgba(16, 185, 129, 0.10),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+
+  transform: translateY(-2px);
+}
+
+.aig-card--selected:hover {
+  box-shadow:
+    0 0 0 3px rgba(16, 185, 129, 0.16),
+    0 8px 24px rgba(16, 185, 129, 0.16),
+    0 2px 8px rgba(15, 23, 42, 0.05);
+  transform: translateY(-3px);
+}
+
+/* ── Thumbnail ──────────────────────────────── */
+
+.aig-card__thumb {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  background-color: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.aig-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.aig-card:hover .aig-card__img {
+  transform: scale(1.05);
+}
+
+/* ── Selection overlay (dimmed) ────────────── */
+/* Hidden by default. Only visible when card is selected. */
+
+.aig-card__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(16, 185, 129, 0.20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.aig-card--selected .aig-card__overlay {
+  opacity: 1;
+}
+
+/* Center check circle — hidden when selected; replaced by corner badge */
+.aig-card__check-circle {
+  display: none;
+}
+
+.aig-card--selected .aig-card__check-circle {
+  display: none;
+}
+
+/* ── Corner badge ────────────────────────────── */
+
+.aig-card__corner-badge {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background-color: #10b981;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.4);
+  animation: aig-badge-pop 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes aig-badge-pop {
+  from { transform: scale(0) rotate(-15deg); }
+  to { transform: scale(1) rotate(0deg); }
+}
+
+/* ── Card body ──────────────────────────────── */
+
+.aig-card__body {
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4375rem;
+  flex: 1;
+}
+
+.aig-card__file-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.aig-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.aig-card__project {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #059669;
+  background-color: #d1fae5;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 155px;
+  line-height: 1.3;
+}
+
+.aig-card__resolution {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.aig-card__status {
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+
+.aig-unassigned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  line-height: 1;
+}
+
+.aig-unassigned-badge__dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: #10b981;
+  flex-shrink: 0;
+  animation: aig-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes aig-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.aig-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  background-color: #ffffff;
+  border-radius: 20px;
+  border: 1.5px dashed rgba(15, 23, 42, 0.1);
+  margin-bottom: 1.25rem;
+}
+
+.aig-empty-state__icon-wrap {
+  width: 5rem;
+  height: 5rem;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+  margin-bottom: 1.25rem;
+}
+
+.aig-empty-state__title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.aig-empty-state__body {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   BOTTOM INFO BAR
+   ============================================================ */
+
+.aig-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1.25rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.aig-bottom-bar__info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.aig-bottom-bar__info svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.aig-bottom-bar__info strong {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.aig-bottom-bar__hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1280px) {
+  .aig-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .aig-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .aig-sticky-bar {
+    padding: 0.875rem 1.5rem;
+  }
+
+  .aig-assign-controls {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .aig-sticky-bar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .aig-sticky-bar__left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .aig-sticky-bar__right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .aig-assign-controls {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .aig-assign-btn {
+    flex: 1;
+    min-height: 48px;
+  }
+
+  .aig-grid--has-selection {
+    padding-bottom: 120px;
+  }
+}
+
+@media (max-width: 640px) {
+  .aig-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .aig-page-title {
+    font-size: 1.375rem;
+  }
+
+  .aig-bottom-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .aig-sticky-bar {
+    padding: 0.75rem 1rem;
+  }
+
+  .aig-sticky-bar__right {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aig-assign-controls {
+    flex-direction: column;
+  }
+
+  .aig-assign-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}

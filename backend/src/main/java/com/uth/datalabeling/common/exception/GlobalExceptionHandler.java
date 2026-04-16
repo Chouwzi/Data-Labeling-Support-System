@@ -1,6 +1,7 @@
 package com.uth.datalabeling.common.exception;
 
 import com.uth.datalabeling.common.response.ApiResponse;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -54,6 +55,17 @@ public class GlobalExceptionHandler {
         .message(errorCode.getMessage())
         .build();
     return ResponseEntity.status(errorCode.getHttpStatus()).body(apiResponse);
+  }
+
+  @ExceptionHandler(value = InvalidDataAccessApiUsageException.class)
+  public ResponseEntity<ApiResponse<Object>> handleInvalidDataAccessApiUsageException(
+      InvalidDataAccessApiUsageException exception) {
+    ErrorCode errorCode = ErrorCode.BAD_REQUEST;
+    ApiResponse<Object> response = ApiResponse.builder()
+        .code(errorCode.getCode())
+        .message(errorCode.getMessage())
+        .build();
+    return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
   }
 
   @ExceptionHandler(value = Exception.class)
