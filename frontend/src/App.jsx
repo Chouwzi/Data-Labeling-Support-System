@@ -155,6 +155,14 @@ function App() {
         }
       />
       <Route
+        path="/manager/taxonomy"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <LabelTaxonomy />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/annotator"
         element={
           <ProtectedRoute allowedRoles={['ANNOTATOR']}>
