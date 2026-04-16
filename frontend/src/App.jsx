@@ -131,7 +131,7 @@ function App() {
         }
       />
       <Route
-        path="/manager/annotators"
+        path="/manager/reports"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <AnnotatorsImageGrid />
@@ -139,7 +139,7 @@ function App() {
         }
       />
       <Route
-        path="/manager/reports"
+        path="/manager/taxonomy"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <ProgressReport />
