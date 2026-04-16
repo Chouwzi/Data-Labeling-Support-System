@@ -69,7 +69,7 @@ export default function Toast({
           <span className="toast-annotator-name">{annotatorName}</span>
           {imageCount !== undefined && (
             <span className="toast-image-count">
-              {imageCount} 张图片
+              {imageCount} images
             </span>
           )}
         </div>
@@ -81,16 +81,16 @@ export default function Toast({
             type="button"
             onClick={onUndo}
             className="toast-undo-btn"
-            aria-label="撤销操作"
+            aria-label="Undo action"
           >
             <RotateCcw size={13} strokeWidth={2.5} aria-hidden="true" />
-            <span>撤销</span>
+            <span>Undo</span>
           </button>
         )}
         <button
           type="button"
           onClick={handleClose}
-          aria-label="关闭通知"
+          aria-label="Close notification"
           className="toast-close-btn"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">

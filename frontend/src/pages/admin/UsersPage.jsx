@@ -7,9 +7,10 @@ import Filters from '@/components/Filters';
 import CreateGroupModal from '@/components/CreateGroupModal';
 import CreateUserForm from '@/components/CreateUserForm';
 import Modal from '@/components/Modal';
+import RoleModal from '@/components/RoleModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { getUsers, deleteUser, createUser } from '@/services/api';
+import { getUsers, deleteUser, createUser, updateUserRole, toggleUserStatus } from '@/services/api';
 import '@/styles/AdminDashboard.css';
 import '@/styles/UsersPage.css';
 
@@ -27,6 +28,11 @@ export default function UsersPage() {
   const [groupFilter, setGroupFilter] = useState('');
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+
+  // Role modal
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [roleTargetUser, setRoleTargetUser] = useState(null);
+  const [roleLoading, setRoleLoading] = useState(false);
 
   // Gọi API lấy danh sách users
   useEffect(() => {
@@ -64,6 +70,42 @@ export default function UsersPage() {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
     );
+  };
+
+  const handleEditRole = (user) => {
+    setRoleTargetUser(user);
+    setRoleModalOpen(true);
+  };
+
+  const handleSaveRole = async (user, newRole) => {
+    setRoleLoading(true);
+    try {
+      await updateUserRole(user, newRole);
+      setRoleModalOpen(false);
+      const res = await getUsers();
+      setUsers(res.data.result || []);
+    } catch (err) {
+      console.error('Update role failed:', err);
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (user) => {
+    const newActive = !user.active;
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, active: newActive } : u))
+    );
+    try {
+      await toggleUserStatus(user, newActive);
+      const res = await getUsers();
+      setUsers(res.data.result || []);
+    } catch (err) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, active: !newActive } : u))
+      );
+      console.error('Toggle status failed:', err);
+    }
   };
 
   const handleDeleteUser = async (userId) => {
@@ -180,7 +222,8 @@ export default function UsersPage() {
                   user={u}
                   groups={groups}
                   onUpdateUser={handleUpdateUser}
-                  onEditRole={() => console.log('Edit role for:', u.fullName)}
+                  onEditRole={handleEditRole}
+                  onToggleStatus={handleToggleStatus}
                 />
               ))}
             </div>
@@ -210,6 +253,14 @@ export default function UsersPage() {
           }}
         />
       </Modal>
+
+      <RoleModal
+        isOpen={roleModalOpen}
+        onClose={() => setRoleModalOpen(false)}
+        user={roleTargetUser}
+        onSave={handleSaveRole}
+        loading={roleLoading}
+      />
     </div>
   );
 }

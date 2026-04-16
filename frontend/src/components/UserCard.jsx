@@ -4,13 +4,13 @@ import AssignGroupDropdown from './AssignGroupDropdown';
 import './UserCard.css';
 
 const ROLE_COLORS = {
-  MANAGER: { bg: '#ecfdf5', color: '#059669' },
+  MANAGER:   { bg: '#ecfdf5', color: '#059669' },
   ANNOTATOR: { bg: '#eff6ff', color: '#1d4ed8' },
-  REVIEWER: { bg: '#fdf4ff', color: '#7c3aed' },
+  REVIEWER:  { bg: '#fdf4ff', color: '#7c3aed' },
 };
 
 const STATUS_COLORS = {
-  active: { bg: '#ecfdf5', color: '#059669', dot: '#10b981' },
+  active:   { bg: '#ecfdf5', color: '#059669', dot: '#10b981' },
   disabled: { bg: '#fef2f2', color: '#dc2626', dot: '#ef4444' },
 };
 
@@ -24,21 +24,29 @@ const getInitials = (name) => {
     .slice(0, 2);
 };
 
-export default function UserCard({ user, groups, onUpdateUser, onEditRole }) {
+export default function UserCard({ user, groups, onUpdateUser, onEditRole, onToggleStatus }) {
   const [showActions, setShowActions] = useState(false);
+
+  const isActive = user.active === true || user.active === 'active';
+  const isDisabled = !isActive;
+
   const roleStyle = ROLE_COLORS[user.role] || ROLE_COLORS.ANNOTATOR;
-  const statusStyle = STATUS_COLORS[user.status] || STATUS_COLORS.active;
+  const statusStyle = isActive ? STATUS_COLORS.active : STATUS_COLORS.disabled;
+
   const group = groups.find((g) => g.id === user.groupId);
 
   const handleToggleStatus = () => {
-    onUpdateUser(user.id, {
-      status: user.status === 'active' ? 'disabled' : 'active',
-    });
+    onToggleStatus(user);
+    setShowActions(false);
+  };
+
+  const handleEditRole = () => {
+    onEditRole(user);
     setShowActions(false);
   };
 
   return (
-    <div className={`user-card ${user.status === 'disabled' ? 'user-card--disabled' : ''}`}>
+    <div className={`user-card ${isDisabled ? 'user-card--disabled' : ''}`}>
       <div className="user-card__header">
         <div className="user-card__avatar" style={{ backgroundColor: roleStyle.bg }}>
           <span style={{ color: roleStyle.color }}>{getInitials(user.fullName)}</span>
@@ -64,21 +72,18 @@ export default function UserCard({ user, groups, onUpdateUser, onEditRole }) {
               <button
                 type="button"
                 className="user-card__action"
-                onClick={() => {
-                  onEditRole(user);
-                  setShowActions(false);
-                }}
+                onClick={handleEditRole}
               >
                 <Edit2 size={14} />
                 <span>Edit Role</span>
               </button>
               <button
                 type="button"
-                className={`user-card__action ${user.status === 'active' ? 'user-card__action--danger' : 'user-card__action--success'}`}
+                className={`user-card__action ${isActive ? 'user-card__action--danger' : 'user-card__action--success'}`}
                 onClick={handleToggleStatus}
               >
                 <UserX size={14} />
-                <span>{user.status === 'active' ? 'Disable' : 'Enable'}</span>
+                <span>{isActive ? 'Disable' : 'Enable'}</span>
               </button>
             </div>
           )}
@@ -97,7 +102,7 @@ export default function UserCard({ user, groups, onUpdateUser, onEditRole }) {
           style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}
         >
           <span className="user-card__status-dot" style={{ backgroundColor: statusStyle.dot }} />
-          {user.status === 'active' ? 'Active' : 'Disabled'}
+          {isActive ? 'Active' : 'Disabled'}
         </span>
         {group && (
           <span className="user-card__badge user-card__badge--group">
@@ -113,7 +118,7 @@ export default function UserCard({ user, groups, onUpdateUser, onEditRole }) {
           currentGroupId={user.groupId}
           groups={groups}
           onAssignGroup={(groupId) => onUpdateUser(user.id, { groupId })}
-          disabled={user.status === 'disabled'}
+          disabled={isDisabled}
         />
       </div>
     </div>
