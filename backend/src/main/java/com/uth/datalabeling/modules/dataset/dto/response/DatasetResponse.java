@@ -12,5 +12,6 @@ public class DatasetResponse {
 
     private UUID id;
     private String name;
+    private String filePath;
     private LocalDateTime createdAt;
 }

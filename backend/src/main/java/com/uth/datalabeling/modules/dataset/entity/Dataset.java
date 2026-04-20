@@ -24,6 +24,9 @@ public class Dataset {
     @Column(nullable = false, unique = true)
     String name;
 
+    @Column(name = "file_path")
+    private String filePath;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
