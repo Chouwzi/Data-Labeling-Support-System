@@ -1,0 +1,572 @@
+/* =============================================
+   PROGRESS REPORT PAGE — Warm Minimalism
+   ============================================= */
+
+.progress-report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Page Header ────────────────────────────────────────────── */
+.progress-report-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progress-report-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.progress-report-header__brand-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #059669;
+  letter-spacing: -0.02em;
+}
+
+.progress-report-header__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.progress-report-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.progress-report-subtitle {
+  font-size: 0.9375rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Filter Bar ─────────────────────────────────────────────── */
+.progress-report-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 1.25rem 1.5rem;
+  background-color: #ffffff;
+  border-radius: 0.875rem;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.progress-report-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.progress-report-filter-label {
+  font-family: 'Manrope', sans-serif;
+  min-width: 70px;
+}
+
+.progress-report-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Pill Design (Emerald Green Theme) ───────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  border: 1.5px solid transparent;
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pill:hover:not(.pill--active) {
+  color: #059669;
+  transform: translateY(-1px);
+}
+
+.pill--active {
+  background-color: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.12);
+}
+
+/* ── KPI Cards Row ────────────────────────────────────────────── */
+.progress-report-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.progress-report-kpi-wrap {
+  min-width: 0;
+}
+
+.progress-report-kpis .kpi-card {
+  border: 1px solid rgba(5, 150, 105, 0.12);
+  border-radius: 1rem;
+}
+
+.progress-report-kpis .kpi-card__value {
+  font-size: 2rem;
+  letter-spacing: -0.03em;
+}
+
+/* ── Overall Progress Bar ────────────────────────────────────── */
+.progress-report-overall {
+  background-color: #ffffff;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.progress-report-overall__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.progress-report-overall__title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-report-overall__icon {
+  color: #1f8a65;
+}
+
+.progress-report-overall__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.progress-report-overall__percentage {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1f8a65;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.progress-report-overall__bar {
+  height: 0.75rem;
+  background-color: #e6e5e0;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-report-overall__fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #1f8a65 0%, #22c55e 100%);
+  transition: width 0.5s ease;
+}
+
+.progress-report-overall__meta {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0.75rem 0 0 0;
+  font-weight: 500;
+}
+
+/* ── Annotator Progress List ─────────────────────────────────── */
+.progress-report-annotators {
+  background-color: #ffffff;
+  border-radius: 0.875rem;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.progress-report-annotators__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.progress-report-annotators__title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-report-annotators__icon {
+  color: #059669;
+}
+
+.progress-report-annotators__title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+}
+
+.progress-report-annotators__count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+/* Annotator Cards List */
+.progress-report-annotators__list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual Annotator Card */
+.annotator-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.125rem 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background-color 0.15s ease;
+}
+
+.annotator-card:last-child {
+  border-bottom: none;
+}
+
+.annotator-card:hover {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+/* Annotator Card Left Section */
+.annotator-card__left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+.annotator-card__avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+}
+
+.annotator-card__info {
+  min-width: 0;
+}
+
+.annotator-card__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.annotator-card__campaign {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+  margin: 0.2rem 0 0 0;
+}
+
+/* Annotator Metrics */
+.annotator-card__metrics {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.annotator-card__metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  min-width: 60px;
+}
+
+.annotator-card__metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  font-family: 'Manrope', sans-serif;
+}
+
+.annotator-card__metric-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+
+.annotator-card__metric--progress .annotator-card__progress-text {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1f8a65;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Annotator Status Badge */
+.annotator-card__status {
+  min-width: 110px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Status Badge System */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.status-badge__dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.status-badge--completed {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge--in-progress {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.status-badge--pending {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-badge--in-progress .status-badge__dot {
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Annotator Progress Bar */
+.annotator-card__progress {
+  min-width: 120px;
+}
+
+.annotator-card__progress-bar {
+  height: 6px;
+  background-color: #e6e5e0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.annotator-card__progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #1f8a65 0%, #22c55e 100%);
+  transition: width 0.4s ease;
+}
+
+/* Empty State */
+.progress-report-annotators__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.progress-report-annotators__empty-icon {
+  color: #d1d5db;
+  margin-bottom: 1rem;
+}
+
+.progress-report-annotators__empty-text {
+  font-size: 0.9375rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  font-weight: 500;
+}
+
+.progress-report-annotators__empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background-color: #f3f4f6;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.progress-report-annotators__empty-btn:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 1200px) {
+  .progress-report-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .annotator-card {
+    grid-template-columns: 1fr auto auto;
+    gap: 1rem;
+  }
+
+  .annotator-card__progress {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .progress-report-filters {
+    padding: 1rem;
+  }
+
+  .progress-report-filter-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .progress-report-filter-label {
+    min-width: unset;
+  }
+
+  .progress-report-pills {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .progress-report-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .annotator-card {
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .annotator-card__metrics {
+    gap: 1rem;
+  }
+
+  .annotator-card__metric {
+    min-width: 50px;
+  }
+
+  .annotator-card__status {
+    min-width: unset;
+  }
+}
+
+@media (max-width: 640px) {
+  .progress-report-title {
+    font-size: 1.375rem;
+  }
+
+  .progress-report-annotators__header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .annotator-card {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .annotator-card__left {
+    width: 100%;
+  }
+
+  .annotator-card__metrics {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .annotator-card__status {
+    justify-content: flex-start;
+  }
+
+  .annotator-card__progress {
+    display: block;
+    width: 100%;
+    min-width: unset;
+  }
+}

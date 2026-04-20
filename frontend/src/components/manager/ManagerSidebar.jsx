@@ -1,13 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Upload, Users, BarChart3, Tag } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/manager' },
   { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/manager/projects' },
+  { id: 'upload', label: 'Upload Images', icon: Upload, path: '/manager/upload-images' },
   { id: 'annotators', label: 'Annotators', icon: Users, path: '/manager/annotators' },
-  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/manager/reports' },
+  { id: 'taxonomy', label: 'Label Taxonomy', icon: Tag, path: '/manager/taxonomy' },
+  { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/manager/reports' },
 ];
 
 /**
