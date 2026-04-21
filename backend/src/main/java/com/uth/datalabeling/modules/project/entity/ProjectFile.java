@@ -27,7 +27,7 @@ public class ProjectFile {
     String filePath; // đường dẫn lưu file trên server
     Long fileSize; // kích thước file (byte)
 
-    @ManyToOne // nhiều file thuộc 1 project
+    @ManyToOne(fetch = FetchType.LAZY) // nhiều file thuộc 1 project
     @JoinColumn(name = "project_id", nullable = false)
     // tạo cột project_id trong DB (foreign key)
     Project project; // liên kết với project (sau này có thể dùng @ManyToOne)

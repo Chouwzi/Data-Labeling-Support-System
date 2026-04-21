@@ -83,4 +83,17 @@ public class ProjectFileService {
         return repository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy file"));
     }
+
+    /**
+     * Lấy file theo ID và xác minh file thuộc về đúng project.
+     */
+    public ProjectFile getByIdAndProjectId(UUID fileId, UUID projectId) {
+        ProjectFile file = getById(fileId);
+
+        if (!file.getProject().getId().equals(projectId)) {
+            throw new AppException(ErrorCode.NOT_FOUND, "File không thuộc về project này");
+        }
+
+        return file;
+    }
 }

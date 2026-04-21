@@ -19,7 +19,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,12 +43,11 @@ class ProjectFileServiceTest {
         project.setId(projectId);
 
         MockMultipartFile mockFile = new MockMultipartFile(
-                "file", "guideline.pdf", "application/pdf", "dummy content".getBytes()
-        );
+                "file", "guideline.pdf", "application/pdf", "dummy content".getBytes());
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
         when(storageService.store(mockFile, "projects")).thenReturn("/uploads/projects/123_guideline.pdf");
-        
+
         when(projectFileRepository.saveAndFlush(any(ProjectFile.class))).thenAnswer(invocation -> {
             ProjectFile pf = invocation.getArgument(0);
             pf.setId(UUID.randomUUID());
@@ -72,8 +70,7 @@ class ProjectFileServiceTest {
     void upload_ProjectNotFound_ThrowsException() {
         UUID projectId = UUID.randomUUID();
         MockMultipartFile mockFile = new MockMultipartFile(
-                "file", "test.pdf", "application/pdf", "content".getBytes()
-        );
+                "file", "test.pdf", "application/pdf", "content".getBytes());
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.empty());
 
@@ -92,8 +89,7 @@ class ProjectFileServiceTest {
         project.setId(projectId);
 
         MockMultipartFile mockFile = new MockMultipartFile(
-                "file", "script.exe", "application/pdf", "content".getBytes()
-        );
+                "file", "script.exe", "application/pdf", "content".getBytes());
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
 
@@ -112,8 +108,7 @@ class ProjectFileServiceTest {
         project.setId(projectId);
 
         MockMultipartFile mockFile = new MockMultipartFile(
-                "file", "test.pdf", "image/png", "content".getBytes()
-        );
+                "file", "test.pdf", "image/png", "content".getBytes());
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
 
@@ -131,8 +126,7 @@ class ProjectFileServiceTest {
         project.setId(projectId);
 
         MockMultipartFile mockFile = new MockMultipartFile(
-                "file", "test.pdf", "application/pdf", new byte[0]
-        );
+                "file", "test.pdf", "application/pdf", new byte[0]);
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
 
