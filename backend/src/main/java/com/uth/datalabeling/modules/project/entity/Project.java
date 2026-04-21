@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import com.uth.datalabeling.modules.dataset.entity.Dataset;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -39,9 +39,7 @@ public class Project {
     @Column(nullable = false)
     UUID managerId;
 
-    @ManyToOne
-    @JoinColumn(name = "dataset_id") // cột FK trong DB
-    Dataset dataset;
+    UUID datasetId;
 
     @Column(nullable = false)
     String status;

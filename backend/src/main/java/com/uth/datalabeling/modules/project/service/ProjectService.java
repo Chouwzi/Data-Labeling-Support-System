@@ -7,8 +7,7 @@ import java.util.stream.Collectors;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.common.response.PageResponse;
-import com.uth.datalabeling.modules.dataset.entity.Dataset;
-import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
+
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.constant.ProjectStatus;
@@ -39,7 +38,6 @@ public class ProjectService {
     UserRepository userRepository;
     ProjectMapper projectMapper;
 
-    DatasetRepository datasetRepository; // inject dataset
 
     /**
      * Tạo dự án mới và khởi tạo danh sách nhãn dán.
@@ -57,19 +55,6 @@ public class ProjectService {
         // map request → entity
         Project project = projectMapper.toProject(request);
 
-        // GẮN DATASET (QUAN TRỌNG NHẤT)
-        // nếu có dataset_id thì mới xử lý
-        if (request.getDatasetId() != null) {
-
-    // tìm dataset theo id
-    Dataset dataset = datasetRepository.findById(request.getDatasetId())
-        .orElseThrow(() ->
-            new AppException(ErrorCode.VALIDATION_ERROR, "Dataset not found")
-        );
-
-    // gán dataset vào project
-    project.setDataset(dataset);
-}
 
         // set thông tin hệ thống
         project.setStatus(ProjectStatus.DRAFT);

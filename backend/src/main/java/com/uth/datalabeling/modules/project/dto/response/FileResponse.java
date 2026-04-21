@@ -1,4 +1,4 @@
-package com.uth.datalabeling.modules.file.dto;
+package com.uth.datalabeling.modules.project.dto.response;
 
 import lombok.AccessLevel;
 import lombok.Builder;

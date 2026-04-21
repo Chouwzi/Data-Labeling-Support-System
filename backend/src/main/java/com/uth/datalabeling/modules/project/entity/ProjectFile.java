@@ -1,10 +1,9 @@
-package com.uth.datalabeling.modules.file.entity;
+package com.uth.datalabeling.modules.project.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import com.uth.datalabeling.modules.project.entity.Project;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -26,11 +25,11 @@ public class ProjectFile {
     String fileName; // tên file gốc (user upload)
     String fileType; // kiểu file (application/pdf, text/plain)
     String filePath; // đường dẫn lưu file trên server
-    Long fileSize;   // kích thước file (byte)
+    Long fileSize; // kích thước file (byte)
 
     @ManyToOne // nhiều file thuộc 1 project
     @JoinColumn(name = "project_id", nullable = false)
-     // tạo cột project_id trong DB (foreign key)
+    // tạo cột project_id trong DB (foreign key)
     Project project; // liên kết với project (sau này có thể dùng @ManyToOne)
     @CreationTimestamp
     @Column(name = "uploaded_at", updatable = false)

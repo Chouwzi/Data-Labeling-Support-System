@@ -1,6 +1,6 @@
-package com.uth.datalabeling.modules.file.repository;
+package com.uth.datalabeling.modules.project.repository;
 
-import com.uth.datalabeling.modules.file.entity.ProjectFile;
+import com.uth.datalabeling.modules.project.entity.ProjectFile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
