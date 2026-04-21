@@ -9,7 +9,6 @@ import java.util.*;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.iam.entity.User;
-import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.constant.ProjectStatus;
 import com.uth.datalabeling.modules.project.dto.request.LabelRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectCreateRequest;
@@ -26,9 +25,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Kiểm thử đơn vị cho ProjectService.
@@ -40,19 +36,13 @@ class ProjectServiceTest {
     ProjectRepository projectRepository;
 
     @Mock
-    UserRepository userRepository;
+    ProjectAccessService projectAccessService;
 
     @Mock
     ProjectMapper projectMapper;
 
     @InjectMocks
     ProjectService projectService;
-
-    @Mock
-    SecurityContext securityContext;
-
-    @Mock
-    Authentication authentication;
 
     private User mockManager;
     private Project existingProject;
@@ -75,25 +65,17 @@ class ProjectServiceTest {
                 .labels(new ArrayList<>(Collections.singletonList(
                         Label.builder().name("OldLabel").colorHex("#000000").build())))
                 .build();
-
-        SecurityContextHolder.setContext(securityContext);
-    }
-
-    // Giả lập người dùng hiện tại trong Security Context
-    private void mockCurrentUser() {
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("manager@test.com");
-        when(userRepository.findByEmail("manager@test.com")).thenReturn(Optional.of(mockManager));
     }
 
     @Test
     void createProject_Success() {
         ProjectCreateRequest request = ProjectCreateRequest.builder().name("Dự án mới").build();
-        mockCurrentUser();
+
         Project mappedProject = new Project();
         Project savedProject = Project.builder().id(projectId).status(ProjectStatus.DRAFT).build();
 
         when(projectRepository.existsByNameAndDeletedAtIsNull("Dự án mới")).thenReturn(false);
+        when(projectAccessService.getCurrentUser()).thenReturn(mockManager);
         when(projectMapper.toProject(request)).thenReturn(mappedProject);
         when(projectRepository.saveAndFlush(any(Project.class))).thenReturn(savedProject);
         when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(savedProject));
@@ -119,13 +101,13 @@ class ProjectServiceTest {
 
     @Test
     void updateProject_Success_WithLabelSync() {
-        mockCurrentUser();
         ProjectUpdateRequest request = ProjectUpdateRequest.builder()
                 .name("Tên cập nhật")
                 .labels(Collections.singletonList(new LabelRequest("NewLabel", "#FFFFFF")))
                 .build();
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(existingProject);
+        when(projectAccessService.getCurrentUser()).thenReturn(mockManager);
         when(projectRepository.existsByNameAndIdNotAndDeletedAtIsNull("Tên cập nhật", projectId)).thenReturn(false);
 
         when(projectMapper.toLabel(any())).thenAnswer(invocation -> {
@@ -146,13 +128,12 @@ class ProjectServiceTest {
 
     @Test
     void updateProject_InvalidStatusTransition_FromArchivedToDraft_ThrowsConflict() {
-        mockCurrentUser();
         existingProject.setStatus(ProjectStatus.ARCHIVED);
         ProjectUpdateRequest request = ProjectUpdateRequest.builder()
                 .status(ProjectStatus.DRAFT)
                 .build();
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(existingProject);
 
         AppException ex = assertThrows(AppException.class, () -> projectService.updateProject(projectId, request));
 
@@ -162,12 +143,11 @@ class ProjectServiceTest {
 
     @Test
     void updateProject_InvalidStatusValue_ThrowsValidationError() {
-        mockCurrentUser();
         ProjectUpdateRequest request = ProjectUpdateRequest.builder()
                 .status("INVALID")
                 .build();
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(existingProject);
 
         AppException ex = assertThrows(AppException.class, () -> projectService.updateProject(projectId, request));
 
@@ -177,13 +157,13 @@ class ProjectServiceTest {
 
     @Test
     void updateProject_ValidStatusTransition_FromDraftToActive_Success() {
-        mockCurrentUser();
         existingProject.setStatus(ProjectStatus.DRAFT);
         ProjectUpdateRequest request = ProjectUpdateRequest.builder()
                 .status("active")
                 .build();
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(existingProject);
+        when(projectAccessService.getCurrentUser()).thenReturn(mockManager);
         doAnswer(invocation -> {
             Project target = invocation.getArgument(0);
             ProjectUpdateRequest source = invocation.getArgument(1);
@@ -191,6 +171,7 @@ class ProjectServiceTest {
             return null;
         }).when(projectMapper).updateProject(any(Project.class), any(ProjectUpdateRequest.class));
         when(projectRepository.saveAndFlush(any(Project.class))).thenReturn(existingProject);
+        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
         when(projectMapper.toProjectResponse(any())).thenReturn(ProjectResponse.builder().build());
 
         projectService.updateProject(projectId, request);
@@ -201,21 +182,16 @@ class ProjectServiceTest {
 
     @Test
     void updateProject_ForbiddenForOtherManager() {
-        User otherManager = User.builder().id(UUID.randomUUID()).email("manager@test.com").role("MANAGER").build();
-        existingProject.setManagerId(UUID.randomUUID());
-
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("manager@test.com");
-        when(userRepository.findByEmail("manager@test.com")).thenReturn(Optional.of(otherManager));
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectAccessService.findProjectAndCheckAccess(projectId))
+                .thenThrow(new AppException(ErrorCode.FORBIDDEN));
 
         assertThrows(AppException.class, () -> projectService.updateProject(projectId, new ProjectUpdateRequest()));
     }
 
     @Test
     void deleteProject_Success() {
-        mockCurrentUser();
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(existingProject));
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(existingProject);
+        when(projectAccessService.getCurrentUser()).thenReturn(mockManager);
 
         projectService.deleteProject(projectId);
 

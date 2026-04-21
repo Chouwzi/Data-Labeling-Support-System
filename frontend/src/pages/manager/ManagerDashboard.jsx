@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
@@ -9,6 +9,7 @@ import BrandLogo from '@/components/common/BrandLogo';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ManagerRightPanel from '@/pages/manager/ManagerRightPanel';
 import Modal from '@/components/Modal';
+import { createProject } from '@/services/api';
 import { FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle } from 'lucide-react';
 import '@/styles/ManagerDashboard.css';
 import '@/styles/KpiCard.css';
@@ -87,7 +88,7 @@ export default function ManagerDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
-  const fileInputRef = { current: null };
+  const fileInputRef = useRef(null);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -97,7 +98,6 @@ export default function ManagerDashboard() {
     navigate('/login', { replace: true });
   };
 
-  // --- Create Project Modal handlers ---
   const openCreateModal = () => setIsCreateModalOpen(true);
   const closeCreateModal = () => {
     if (isSubmitting) return;
@@ -108,16 +108,6 @@ export default function ManagerDashboard() {
     setFileError('');
     setErrors({});
     setSubmitSuccess(false);
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!projectName.trim()) {
-      newErrors.projectName = 'Project name is required';
-    } else if (projectName.trim().length < 3) {
-      newErrors.projectName = 'Project name must be at least 3 characters';
-    }
-    return newErrors;
   };
 
   const validateFile = (selectedFile) => {
@@ -135,9 +125,7 @@ export default function ManagerDashboard() {
   };
 
   const handleFileSelect = (selectedFile) => {
-    if (validateFile(selectedFile)) {
-      setFile(selectedFile);
-    }
+    if (validateFile(selectedFile)) setFile(selectedFile);
   };
 
   const handleDrop = (e) => {
@@ -147,17 +135,9 @@ export default function ManagerDashboard() {
     if (droppedFile) handleFileSelect(droppedFile);
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = () => setIsDragOver(false);
-
-  const handleRemoveFile = () => {
-    setFile(null);
-    setFileError('');
-  };
+  const handleRemoveFile = () => { setFile(null); setFileError(''); };
 
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -165,19 +145,42 @@ export default function ManagerDashboard() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    
+    
+    if (!projectName.trim()) {
+      setErrors({ projectName: 'Project name is required' });
       return;
     }
+
     setIsSubmitting(true);
     setErrors({});
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
-    setTimeout(() => closeCreateModal(), 2500);
+
+    const formData = new FormData();
+    formData.append('name', projectName.trim());
+    formData.append('description', description.trim());
+    if (file) formData.append('guideline', file);
+
+    try {
+      console.log("🚀 [Dashboard] Đang gọi API tạo Project...");
+      const response = await createProject(formData);
+
+      if (response.status === 201 || response.status === 200) {
+        setSubmitSuccess(true);
+        
+        setTimeout(() => {
+          closeCreateModal();
+          navigate('/manager/projects');
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("❌ Lỗi API Dashboard:", err);
+      alert("Lỗi hệ thống: " + (err.response?.data?.message || "Server Error 500"));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isFormValid = projectName.trim().length >= 3;

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
@@ -8,113 +8,12 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
+import { createProject, getProjects } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
-  Search, LayoutGrid, List, ChevronDown
+  Search, LayoutGrid, List
 } from 'lucide-react';
 import '@/styles/ManagerDashboard.css';
-
-// ─── Mock Data ──────────────────────────────────────────────────────────────
-
-const ALL_PROJECTS = [
-  {
-    id: 1,
-    name: 'Satellite Analysis Alpha',
-    category: 'Geospatial',
-    status: 'in_progress',
-    progress: 68,
-    images: 1240,
-    labels: 843,
-    annotators: 4,
-    created: '2 days ago',
-    imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=300&fit=crop',
-    members: [
-      { name: 'Maya L.', color: '#059669' },
-      { name: 'Jordan S.', color: '#0d9488' },
-      { name: 'Alex R.', color: '#7c3aed' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Autonomous Driving Beta',
-    category: 'CV / Automotive',
-    status: 'in_progress',
-    progress: 92,
-    images: 3800,
-    labels: 3496,
-    annotators: 6,
-    created: '5 days ago',
-    imageUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop',
-    members: [
-      { name: 'Sam K.', color: '#0284c7' },
-      { name: 'Riley T.', color: '#059669' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Medical Imaging V2',
-    category: 'Healthcare',
-    status: 'initialized',
-    progress: 45,
-    images: 620,
-    labels: 279,
-    annotators: 3,
-    created: '1 week ago',
-    imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=300&fit=crop',
-    members: [
-      { name: 'Dana W.', color: '#dc2626' },
-      { name: 'Chris M.', color: '#0d9488' },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Invoice OCR Processing',
-    category: 'Document AI',
-    status: 'completed',
-    progress: 100,
-    images: 2100,
-    labels: 2100,
-    annotators: 5,
-    created: '3 weeks ago',
-    imageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop',
-    members: [
-      { name: 'Emma P.', color: '#059669' },
-      { name: 'Liam H.', color: '#7c3aed' },
-    ],
-  },
-  {
-    id: 5,
-    name: 'Fashion Catalog Tagging',
-    category: 'E-Commerce',
-    status: 'in_progress',
-    progress: 37,
-    images: 880,
-    labels: 326,
-    annotators: 2,
-    created: '4 days ago',
-    imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop',
-    members: [
-      { name: 'Zoe A.', color: '#f59e0b' },
-    ],
-  },
-  {
-    id: 6,
-    name: 'Retail Shelf Audit',
-    category: 'Retail Analytics',
-    status: 'review',
-    progress: 81,
-    images: 1560,
-    labels: 1264,
-    annotators: 4,
-    created: '6 days ago',
-    imageUrl: 'https://images.unsplash.com/photo-1473163928189-364b2c4e1135?w=400&h=300&fit=crop',
-    members: [
-      { name: 'Mia B.', color: '#dc2626' },
-      { name: 'Noah C.', color: '#0284c7' },
-      { name: 'Olivia D.', color: '#059669' },
-    ],
-  },
-];
 
 const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
@@ -150,14 +49,13 @@ export default function Projects() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // View mode
-  const [viewMode, setViewMode] = useState('table');
+  const [projectsList, setProjectsList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter + Search
+  const [viewMode, setViewMode] = useState('table');
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Create modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
@@ -167,7 +65,26 @@ export default function Projects() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
-  const fileInputRef = { current: null };
+
+  const fileInputRef = useRef(null);
+
+  const fetchProjectsData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await getProjects();
+      const data = response.data?.result || [];
+      setProjectsList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Lỗi lấy data:", err);
+      setProjectsList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjectsData();
+  }, [fetchProjectsData]);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -239,43 +156,69 @@ export default function Projects() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
+  e.preventDefault();
+
+  const validationErrors = validateForm();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+
+  setIsSubmitting(true);
+  setErrors({});
+
+  const formData = new FormData();
+  formData.append('name', projectName.trim());
+  formData.append('description', description.trim() || '');
+
+  if (file) {
+    formData.append('guideline', file);
+  }
+
+  try {
+    console.log("🚀 Đang gửi dữ liệu thật...");
+    const response = await createProject(formData);
+
+    if (response.status === 200 || response.status === 201) {
+      setSubmitSuccess(true);
+
+      await fetchProjectsData(); 
+      setTimeout(() => {
+        closeCreateModal();
+      }, 2000);
     }
-    setIsSubmitting(true);
-    setErrors({});
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  } catch (err) {
+    console.error("❌ Lỗi tạo dự án:", err);
+    alert("Lỗi: " + (err.response?.data?.message || "Không thể tạo dự án"));
+  } finally {
     setIsSubmitting(false);
-    setSubmitSuccess(true);
-    setTimeout(() => closeCreateModal(), 2500);
-  };
+  }
+};
 
   const isFormValid = projectName.trim().length >= 3;
 
   // ─── Derived data ────────────────────────────────────────────────────────
 
   const filteredProjects = useMemo(() => {
-    return ALL_PROJECTS.filter((p) => {
-      const matchesFilter = activeFilter === 'all' || p.status === activeFilter;
+    const safeList = Array.isArray(projectsList) ? projectsList : [];
+    return safeList.filter((p) => {
+      const matchesFilter = activeFilter === 'all' || p?.status === activeFilter;
       const matchesSearch =
         !searchQuery.trim() ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase());
+        p?.name?.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, searchQuery, projectsList]);
 
-  const stats = useMemo(() => {
-    const total = ALL_PROJECTS.length;
-    const active = ALL_PROJECTS.filter((p) => p.status === 'in_progress').length;
-    const completed = ALL_PROJECTS.filter((p) => p.status === 'completed').length;
-    const pending = ALL_PROJECTS.filter((p) => p.status === 'initialized').length;
-    const inReview = ALL_PROJECTS.filter((p) => p.status === 'review').length;
-    return { total, active, completed, pending, inReview };
-  }, []);
+ const stats = useMemo(() => {
+  const total = projectsList.length;
+  const active = projectsList.filter((p) => p.status === 'in_progress').length;
+  const completed = projectsList.filter((p) => p.status === 'completed').length;
+  const pending = projectsList.filter((p) => p.status === 'initialized').length;
+  const inReview = projectsList.filter((p) => p.status === 'review').length;
+
+  return { total, active, completed, pending, inReview };
+}, [projectsList]);
 
   // ─── Create Form ─────────────────────────────────────────────────────────
 
@@ -601,7 +544,7 @@ export default function Projects() {
                 <ProjectTable
                   projects={filteredProjects}
                   statusColors={STATUS_COLORS}
-                  totalProjects={ALL_PROJECTS.length}
+                  totalProjects={filteredProjects.length}
                 />
               ) : (
                 <div className="project-grid" role="list" aria-label="Projects">

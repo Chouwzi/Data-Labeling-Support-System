@@ -1,5 +1,5 @@
 -- Create projects table
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
@@ -16,10 +16,10 @@ CREATE TABLE projects (
 );
 
 -- Create partial unique index for project name (only among non-deleted projects)
-CREATE UNIQUE INDEX idx_unique_project_name_active ON projects (name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_project_name_active ON projects (name) WHERE deleted_at IS NULL;
 
 -- Create labels table
-CREATE TABLE labels (
+CREATE TABLE IF NOT EXISTS labels (
     id UUID PRIMARY KEY,
     project_id UUID NOT NULL,
     name TEXT NOT NULL,
@@ -28,13 +28,25 @@ CREATE TABLE labels (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    CONSTRAINT fk_parent_label FOREIGN KEY (parent_id) REFERENCES labels(id),
     CONSTRAINT chk_color_hex CHECK (color_hex ~ '^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$')
 );
 
 -- Index for foreign keys
-CREATE INDEX idx_labels_project_id ON labels (project_id);
-CREATE INDEX idx_labels_parent_id ON labels (parent_id);
+-- Ensure `parent_id` column exists for older schema versions that lacked it
+ALTER TABLE labels ADD COLUMN IF NOT EXISTS parent_id UUID;
+
+-- Add foreign key constraint for parent label if it's not already present
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_parent_label') THEN
+        ALTER TABLE labels ADD CONSTRAINT fk_parent_label FOREIGN KEY (parent_id) REFERENCES labels(id);
+    END IF;
+END
+$$;
+
+-- Indexes for foreign keys (create if missing)
+CREATE INDEX IF NOT EXISTS idx_labels_project_id ON labels (project_id);
+CREATE INDEX IF NOT EXISTS idx_labels_parent_id ON labels (parent_id);
 
 -- Unique label name per project
-CREATE UNIQUE INDEX idx_unique_label_name_per_project ON labels (project_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_label_name_per_project ON labels (project_id, name);

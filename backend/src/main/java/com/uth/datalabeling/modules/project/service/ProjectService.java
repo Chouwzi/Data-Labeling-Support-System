@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.common.response.PageResponse;
+
 import com.uth.datalabeling.modules.iam.entity.User;
-import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.constant.ProjectStatus;
 import com.uth.datalabeling.modules.project.dto.request.ProjectCreateRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectUpdateRequest;
@@ -23,57 +23,62 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service xử lý các nghiệp vụ liên quan đến Dự án.
- */
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectService {
+
     ProjectRepository projectRepository;
-    UserRepository userRepository;
+    ProjectAccessService projectAccessService;
     ProjectMapper projectMapper;
+
 
     /**
      * Tạo dự án mới và khởi tạo danh sách nhãn dán.
      */
     @Transactional
     public ProjectResponse createProject(ProjectCreateRequest request) {
+
+        // check trùng tên project
         if (projectRepository.existsByNameAndDeletedAtIsNull(request.getName())) {
             throw new AppException(ErrorCode.PROJECT_ALREADY_EXISTS);
         }
 
-        User currentUser = getCurrentUser();
+        User currentUser = projectAccessService.getCurrentUser();
+
+        // map request → entity
         Project project = projectMapper.toProject(request);
 
+
+        // set thông tin hệ thống
         project.setStatus(ProjectStatus.DRAFT);
         project.setManagerId(currentUser.getId());
         project.setCreatedBy(currentUser.getId());
         project.setUpdatedBy(currentUser.getId());
 
-        // Thiết lập mối quan hệ 2 chiều cho Label
+        // thiết lập quan hệ 2 chiều label
         if (project.getLabels() != null) {
             project.getLabels().forEach(label -> label.setProject(project));
         }
 
         Project savedProject = projectRepository.saveAndFlush(project);
+
+        // load lại để trả về đầy đủ (labels, dataset…)
         Project hydratedProject = reloadProjectForResponse(savedProject.getId());
+
         return projectMapper.toProjectResponse(hydratedProject);
     }
 
-    /**
-     * Lấy danh sách dự án có phân trang theo quyền hạn.
-     */
+
+    @Transactional(readOnly = true)
     public PageResponse<ProjectResponse> getAllProjects(Pageable pageable) {
-        User currentUser = getCurrentUser();
+        User currentUser = projectAccessService.getCurrentUser();
         Page<Project> projectPage;
 
-        if (isAdmin(currentUser)) {
+        if (projectAccessService.isAdmin(currentUser)) {
             projectPage = projectRepository.findAllByDeletedAtIsNull(pageable);
         } else {
             projectPage = projectRepository.findAllByManagerIdAndDeletedAtIsNull(currentUser.getId(), pageable);
@@ -90,17 +95,15 @@ public class ProjectService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ProjectResponse getProjectById(UUID id) {
-        Project project = findProjectAndCheckAccess(id);
+        Project project = projectAccessService.findProjectAndCheckAccess(id);
         return projectMapper.toProjectResponse(project);
     }
 
-    /**
-     * Cập nhật thông tin dự án và đồng bộ hóa nhãn dán.
-     */
     @Transactional
     public ProjectResponse updateProject(UUID id, ProjectUpdateRequest request) {
-        Project project = findProjectAndCheckAccess(id);
+        Project project = projectAccessService.findProjectAndCheckAccess(id);
 
         if (request.getName() != null &&
                 projectRepository.existsByNameAndIdNotAndDeletedAtIsNull(request.getName(), id)) {
@@ -119,7 +122,7 @@ public class ProjectService {
         }
 
         projectMapper.updateProject(project, request);
-        project.setUpdatedBy(getCurrentUser().getId());
+        project.setUpdatedBy(projectAccessService.getCurrentUser().getId());
 
         if (request.getLabels() != null) {
             syncLabels(project, request);
@@ -130,18 +133,14 @@ public class ProjectService {
         return projectMapper.toProjectResponse(hydratedProject);
     }
 
-    /**
-     * Xóa mềm dự án.
-     */
     @Transactional
     public void deleteProject(UUID id) {
-        Project project = findProjectAndCheckAccess(id);
+        Project project = projectAccessService.findProjectAndCheckAccess(id);
         project.setDeletedAt(LocalDateTime.now());
-        project.setUpdatedBy(getCurrentUser().getId());
+        project.setUpdatedBy(projectAccessService.getCurrentUser().getId());
         projectRepository.save(project);
     }
 
-    // Đồng bộ hóa nhãn dán: Tái sử dụng nhãn cũ để tránh đứt gãy liên kết dữ liệu
     private void syncLabels(Project project, ProjectUpdateRequest request) {
         List<Label> currentLabels = project.getLabels();
         Map<String, Label> currentLabelMap = currentLabels.stream()
@@ -162,7 +161,6 @@ public class ProjectService {
             processedNames.add(reqLabel.getName());
         });
 
-        // Chỉ xóa các nhãn dán không còn được dùng và chưa có annotation
         List<Label> toRemove = currentLabels.stream()
                 .filter(l -> !processedNames.contains(l.getName()))
                 .collect(Collectors.toList());
@@ -177,7 +175,6 @@ public class ProjectService {
         currentLabels.addAll(updatedLabels);
     }
 
-    // Chưa thực hiện
     private boolean isLabelInUse(Label label) {
         return false;
     }
@@ -187,27 +184,6 @@ public class ProjectService {
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
         project.getLabels().size();
         return project;
-    }
-
-    private Project findProjectAndCheckAccess(UUID id) {
-        Project project = projectRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
-
-        User currentUser = getCurrentUser();
-        if (!isAdmin(currentUser) && !project.getManagerId().equals(currentUser.getId())) {
-            throw new AppException(ErrorCode.FORBIDDEN);
-        }
-        return project;
-    }
-
-    private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    }
-
-    private boolean isAdmin(User user) {
-        return "ADMIN".equals(user.getRole());
     }
 
     private boolean isValidProjectStatus(String status) {

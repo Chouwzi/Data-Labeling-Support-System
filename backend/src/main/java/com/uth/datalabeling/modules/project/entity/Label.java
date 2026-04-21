@@ -42,4 +42,7 @@ public class Label {
 
     @UpdateTimestamp
     LocalDateTime updatedAt;
+
+    // Soft delete timestamp
+    LocalDateTime deletedAt;
 }

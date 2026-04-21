@@ -22,6 +22,7 @@ public enum ErrorCode {
   NOT_FOUND(404, 40400, "Không tìm thấy tài nguyên"),
   USER_NOT_FOUND(404, 40401, "Không tìm thấy người dùng"),
   PROJECT_NOT_FOUND(404, 40402, "Không tìm thấy dự án"),
+  LABEL_NOT_FOUND(404, 40403, "Không tìm thấy nhãn dán"),
 
   // 405 Method Not Allowed
   METHOD_NOT_ALLOWED(405, 40500, "Phương thức không được hỗ trợ"),
@@ -53,9 +54,9 @@ public enum ErrorCode {
   // 503 Service Unavailable
   SERVICE_UNAVAILABLE(503, 50300, "Dịch vụ tạm thời gián đoạn");
 
-  private int httpStatus;
-  private int code;
-  private String message;
+  private final int httpStatus;
+  private final int code;
+  private final String message;
 
   private ErrorCode(int httpStatus, int code, String message) {
     this.httpStatus = httpStatus;

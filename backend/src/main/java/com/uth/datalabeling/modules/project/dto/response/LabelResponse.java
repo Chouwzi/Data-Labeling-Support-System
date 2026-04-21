@@ -21,9 +21,6 @@ public class LabelResponse {
     @JsonProperty("color_hex")
     String colorHex;
 
-    @JsonProperty("parent_id")
-    UUID parentId;
-
     @JsonProperty("created_at")
     LocalDateTime createdAt;
 }
