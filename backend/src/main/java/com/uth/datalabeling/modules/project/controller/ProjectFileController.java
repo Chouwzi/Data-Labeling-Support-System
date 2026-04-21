@@ -51,18 +51,20 @@ public class ProjectFileController {
     // GET GUIDELINE FILE BY ID
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'ANNOTATOR', 'REVIEWER')")
-    public ResponseEntity<ProjectFile> getFile(
+    public ResponseEntity<FileResponse> getFile(
             @PathVariable UUID projectId, 
             @PathVariable UUID id) {
 
-        // Lấy file theo id
-        ProjectFile file = projectFileService.getById(id);
-        
-        // Xác minh file thuộc về đúng project
-        if(!file.getProject().getId().equals(projectId)) {
-            throw new AppException(ErrorCode.NOT_FOUND, "File không thuộc về project này");
-        }
+        // Lấy file theo id và xác minh thuộc về đúng project (IDOR protection)
+        ProjectFile file = projectFileService.getByIdAndProjectId(id, projectId);
 
-        return ResponseEntity.ok(file);
+        FileResponse response = FileResponse.builder()
+                .id(file.getId())
+                .fileName(file.getFileName())
+                .fileType(file.getFileType())
+                .fileSize(file.getFileSize())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }

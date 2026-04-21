@@ -4,13 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.iam.entity.User;
-import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.dto.request.LabelRequest;
 import com.uth.datalabeling.modules.project.dto.response.LabelResponse;
 import com.uth.datalabeling.modules.project.entity.Label;
@@ -25,152 +23,211 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 class LabelServiceTest {
 
-    @Mock
-    LabelRepository labelRepository;
+        @Mock
+        LabelRepository labelRepository;
 
-    @Mock
-    ProjectRepository projectRepository;
+        @Mock
+        ProjectRepository projectRepository;
 
-    @Mock
-    UserRepository userRepository;
+        @Mock
+        ProjectAccessService projectAccessService;
 
-    @Mock
-    ProjectMapper projectMapper;
+        @Mock
+        ProjectMapper projectMapper;
 
-    @InjectMocks
-    LabelService labelService;
+        @InjectMocks
+        LabelService labelService;
 
-    @Mock
-    SecurityContext securityContext;
+        private User mockManager;
+        private Project project;
+        private UUID projectId;
+        private UUID labelId;
 
-    @Mock
-    Authentication authentication;
+        @BeforeEach
+        void setUp() {
+                projectId = UUID.randomUUID();
+                labelId = UUID.randomUUID();
+                mockManager = User.builder()
+                                .id(UUID.randomUUID())
+                                .email("manager@test.com")
+                                .role("MANAGER")
+                                .build();
 
-    private User mockManager;
-    private Project project;
-    private UUID projectId;
-    private UUID labelId;
+                project = Project.builder()
+                                .id(projectId)
+                                .name("Project Test")
+                                .managerId(mockManager.getId())
+                                .build();
+        }
 
-    @BeforeEach
-    void setUp() {
-        projectId = UUID.randomUUID();
-        labelId = UUID.randomUUID();
-        mockManager = User.builder()
-                .id(UUID.randomUUID())
-                .email("manager@test.com")
-                .role("MANAGER")
-                .build();
+        // ============================================================
+        // CREATE LABEL
+        // ============================================================
 
-        project = Project.builder()
-                .id(projectId)
-                .name("Project Test")
-                .managerId(mockManager.getId())
-                .build();
+        @Test
+        void createLabel_Success() {
+                LabelRequest request = new LabelRequest("Animal", "#FF0000");
+                Label label = Label.builder().id(labelId).name("Animal").colorHex("#FF0000").project(project).build();
 
-        SecurityContextHolder.setContext(securityContext);
-    }
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.existsByNameAndProjectIdAndDeletedAtIsNull("Animal", projectId)).thenReturn(false);
+                when(projectMapper.toLabel(request)).thenReturn(label);
+                when(labelRepository.saveAndFlush(any(Label.class))).thenReturn(label);
+                when(labelRepository.findByIdAndDeletedAtIsNull(labelId)).thenReturn(Optional.of(label));
+                when(projectMapper.toLabelResponse(any(Label.class))).thenReturn(new LabelResponse());
 
-    private void mockCurrentUser() {
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("manager@test.com");
-        when(userRepository.findByEmail("manager@test.com")).thenReturn(Optional.of(mockManager));
-    }
+                LabelResponse response = labelService.createLabel(projectId, request);
 
-    @Test
-    void createLabel_Success() {
-        mockCurrentUser();
-        LabelRequest request = new LabelRequest("Animal", "#FF0000");
-        Label label = Label.builder().id(labelId).name("Animal").colorHex("#FF0000").project(project).build();
+                assertNotNull(response);
+                verify(labelRepository).saveAndFlush(label);
+        }
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
-        when(labelRepository.existsByNameAndProjectIdAndDeletedAtIsNull("Animal", projectId)).thenReturn(false);
-        when(projectMapper.toLabel(request)).thenReturn(label);
-        when(labelRepository.saveAndFlush(any(Label.class))).thenReturn(label);
-        when(labelRepository.findByIdAndDeletedAtIsNull(labelId)).thenReturn(Optional.of(label));
-        when(projectMapper.toLabelResponse(any(Label.class))).thenReturn(new LabelResponse());
+        @Test
+        void createLabel_DuplicateName_ThrowsException() {
+                LabelRequest request = new LabelRequest("Animal", "#FF0000");
 
-        LabelResponse response = labelService.createLabel(projectId, request);
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.existsByNameAndProjectIdAndDeletedAtIsNull("Animal", projectId)).thenReturn(true);
 
-        assertNotNull(response);
-        verify(labelRepository).saveAndFlush(label);
-    }
+                AppException ex = assertThrows(AppException.class, () -> labelService.createLabel(projectId, request));
+                assertEquals(ErrorCode.LABEL_ALREADY_EXISTS, ex.getErrorCode());
+        }
 
-    @Test
-    void createLabel_DuplicateName_ThrowsException() {
-        mockCurrentUser();
-        LabelRequest request = new LabelRequest("Animal", "#FF0000");
+        @Test
+        void createLabel_ProjectNotFound_ThrowsException() {
+                LabelRequest request = new LabelRequest("Animal", "#FF0000");
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
-        when(labelRepository.existsByNameAndProjectIdAndDeletedAtIsNull("Animal", projectId)).thenReturn(true);
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true))
+                                .thenThrow(new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
-        AppException ex = assertThrows(AppException.class, () -> labelService.createLabel(projectId, request));
-        assertEquals(ErrorCode.LABEL_ALREADY_EXISTS, ex.getErrorCode());
-    }
+                AppException ex = assertThrows(AppException.class, () -> labelService.createLabel(projectId, request));
+                assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
+        }
 
-    @Test
-    void updateLabel_Success() {
-        mockCurrentUser();
-        LabelRequest request = new LabelRequest("Animal Updated", "#00FF00");
-        Label existingLabel = Label.builder().id(labelId).name("Animal").project(project).build();
+        // ============================================================
+        // UPDATE LABEL
+        // ============================================================
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
-        when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
-                .thenReturn(Optional.of(existingLabel));
-        when(labelRepository.existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull("Animal Updated", projectId, labelId))
-                .thenReturn(false);
-        when(labelRepository.saveAndFlush(any(Label.class))).thenReturn(existingLabel);
-        when(labelRepository.findByIdAndDeletedAtIsNull(labelId)).thenReturn(Optional.of(existingLabel));
-        when(projectMapper.toLabelResponse(any(Label.class))).thenReturn(new LabelResponse());
+        @Test
+        void updateLabel_Success() {
+                LabelRequest request = new LabelRequest("Animal Updated", "#00FF00");
+                Label existingLabel = Label.builder().id(labelId).name("Animal").project(project).build();
 
-        LabelResponse response = labelService.updateLabel(projectId, labelId, request);
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
+                                .thenReturn(Optional.of(existingLabel));
+                when(labelRepository.existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull("Animal Updated", projectId,
+                                labelId))
+                                .thenReturn(false);
+                when(labelRepository.saveAndFlush(any(Label.class))).thenReturn(existingLabel);
+                when(labelRepository.findByIdAndDeletedAtIsNull(labelId)).thenReturn(Optional.of(existingLabel));
+                when(projectMapper.toLabelResponse(any(Label.class))).thenReturn(new LabelResponse());
 
-        assertNotNull(response);
-        verify(labelRepository).saveAndFlush(existingLabel);
-        verify(projectMapper).updateLabel(existingLabel, request);
-    }
+                LabelResponse response = labelService.updateLabel(projectId, labelId, request);
 
-    @Test
-    void deleteLabel_Success() {
-        mockCurrentUser();
-        Label existingLabel = Label.builder().id(labelId).name("Animal").project(project).build();
+                assertNotNull(response);
+                verify(labelRepository).saveAndFlush(existingLabel);
+                verify(projectMapper).updateLabel(existingLabel, request);
+        }
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
-        when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
-                .thenReturn(Optional.of(existingLabel));
+        @Test
+        void updateLabel_DuplicateName_ThrowsException() {
+                LabelRequest request = new LabelRequest("ExistingName", "#00FF00");
+                Label existingLabel = Label.builder().id(labelId).name("Animal").project(project).build();
 
-        labelService.deleteLabel(projectId, labelId);
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
+                                .thenReturn(Optional.of(existingLabel));
+                when(labelRepository.existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull("ExistingName", projectId,
+                                labelId))
+                                .thenReturn(true);
 
-        assertNotNull(existingLabel.getDeletedAt());
-        verify(labelRepository).save(existingLabel);
-    }
+                AppException ex = assertThrows(AppException.class,
+                                () -> labelService.updateLabel(projectId, labelId, request));
+                assertEquals(ErrorCode.LABEL_ALREADY_EXISTS, ex.getErrorCode());
+        }
 
-    @Test
-    void getLabelsByProject_Success() {
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
-        when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(new Label()));
+        @Test
+        void updateLabel_LabelNotFound_ThrowsException() {
+                LabelRequest request = new LabelRequest("Animal", "#FF0000");
 
-        List<LabelResponse> responses = labelService.getLabelsByProject(projectId);
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
+                                .thenReturn(Optional.empty());
 
-        assertFalse(responses.isEmpty());
-        verify(labelRepository).findByProjectIdAndDeletedAtIsNull(projectId);
-    }
+                AppException ex = assertThrows(AppException.class,
+                                () -> labelService.updateLabel(projectId, labelId, request));
+                assertEquals(ErrorCode.LABEL_NOT_FOUND, ex.getErrorCode());
+        }
 
-    @Test
-    void findProjectAndCheckAccess_ForbiddenForOtherManager() {
-        mockCurrentUser();
-        project.setManagerId(UUID.randomUUID()); // Other manager
+        // ============================================================
+        // DELETE LABEL
+        // ============================================================
 
-        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
+        @Test
+        void deleteLabel_Success() {
+                Label existingLabel = Label.builder().id(labelId).name("Animal").project(project).build();
 
-        AppException ex = assertThrows(AppException.class,
-                () -> labelService.createLabel(projectId, new LabelRequest()));
-        assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
-    }
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
+                                .thenReturn(Optional.of(existingLabel));
+
+                labelService.deleteLabel(projectId, labelId);
+
+                assertNotNull(existingLabel.getDeletedAt());
+                verify(labelRepository).save(existingLabel);
+        }
+
+        @Test
+        void deleteLabel_LabelNotFound_ThrowsException() {
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+                when(labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId))
+                                .thenReturn(Optional.empty());
+
+                AppException ex = assertThrows(AppException.class,
+                                () -> labelService.deleteLabel(projectId, labelId));
+                assertEquals(ErrorCode.LABEL_NOT_FOUND, ex.getErrorCode());
+        }
+
+        // ============================================================
+        // GET LABELS BY PROJECT
+        // ============================================================
+
+        @Test
+        void getLabelsByProject_Success() {
+                when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
+                when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(new Label()));
+
+                List<LabelResponse> responses = labelService.getLabelsByProject(projectId);
+
+                assertFalse(responses.isEmpty());
+                verify(labelRepository).findByProjectIdAndDeletedAtIsNull(projectId);
+        }
+
+        @Test
+        void getLabelsByProject_ProjectNotFound_ThrowsException() {
+                when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.empty());
+
+                AppException ex = assertThrows(AppException.class,
+                                () -> labelService.getLabelsByProject(projectId));
+                assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
+        }
+
+        // ============================================================
+        // ACCESS CONTROL
+        // ============================================================
+
+        @Test
+        void createLabel_ForbiddenForOtherManager() {
+                when(projectAccessService.findProjectAndCheckAccess(projectId, true))
+                                .thenThrow(new AppException(ErrorCode.FORBIDDEN));
+
+                AppException ex = assertThrows(AppException.class,
+                                () -> labelService.createLabel(projectId, new LabelRequest()));
+                assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
+        }
 }

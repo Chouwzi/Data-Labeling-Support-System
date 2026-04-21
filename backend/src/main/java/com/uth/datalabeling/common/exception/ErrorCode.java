@@ -54,9 +54,9 @@ public enum ErrorCode {
   // 503 Service Unavailable
   SERVICE_UNAVAILABLE(503, 50300, "Dịch vụ tạm thời gián đoạn");
 
-  private int httpStatus;
-  private int code;
-  private String message;
+  private final int httpStatus;
+  private final int code;
+  private final String message;
 
   private ErrorCode(int httpStatus, int code, String message) {
     this.httpStatus = httpStatus;

@@ -7,8 +7,6 @@ import java.util.stream.Collectors;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
-import com.uth.datalabeling.modules.iam.entity.User;
-import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.dto.request.LabelRequest;
 import com.uth.datalabeling.modules.project.dto.response.LabelResponse;
 import com.uth.datalabeling.modules.project.entity.Label;
@@ -20,8 +18,6 @@ import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LabelService {
     LabelRepository labelRepository;
     ProjectRepository projectRepository;
-    UserRepository userRepository;
+    ProjectAccessService projectAccessService;
     ProjectMapper projectMapper;
 
     /**
@@ -39,7 +35,7 @@ public class LabelService {
      */
     @Transactional
     public LabelResponse createLabel(UUID projectId, LabelRequest request) {
-        Project project = findProjectAndCheckAccess(projectId, true);
+        Project project = projectAccessService.findProjectAndCheckAccess(projectId, true);
 
         if (labelRepository.existsByNameAndProjectIdAndDeletedAtIsNull(request.getName(), projectId)) {
             throw new AppException(ErrorCode.LABEL_ALREADY_EXISTS);
@@ -60,7 +56,7 @@ public class LabelService {
      */
     @Transactional
     public LabelResponse updateLabel(UUID projectId, UUID labelId, LabelRequest request) {
-        findProjectAndCheckAccess(projectId, true);
+        projectAccessService.findProjectAndCheckAccess(projectId, true);
 
         Label label = labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
@@ -85,14 +81,13 @@ public class LabelService {
      */
     @Transactional
     public void deleteLabel(UUID projectId, UUID labelId) {
-        findProjectAndCheckAccess(projectId, true);
+        projectAccessService.findProjectAndCheckAccess(projectId, true);
 
         Label label = labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
 
         // Lưu ý: Có thể bổ sung check logic isLabelInUse() tại đây khi có Module Task
-        // đánh nhãn,
-        // chặn xóa (ném Exception) nếu nhãn đang được bind vào ảnh/tài liệu.
+        // đánh nhãn, chặn xóa (ném Exception) nếu nhãn đang được bind vào ảnh/tài liệu.
         label.setDeletedAt(LocalDateTime.now());
         labelRepository.save(label);
     }
@@ -100,10 +95,8 @@ public class LabelService {
     /**
      * Lấy danh sách toàn bộ nhãn của dự án.
      */
+    @Transactional(readOnly = true)
     public List<LabelResponse> getLabelsByProject(UUID projectId) {
-        // Có thể cho phép lấy mà không cần check access ở mức Service vì Controller đã
-        // dùng @PreAuthorize.
-        // Chỉ cần đảm bảo Project tồn tại trước khi lấy API.
         projectRepository.findByIdAndDeletedAtIsNull(projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
@@ -111,28 +104,5 @@ public class LabelService {
         return labels.stream()
                 .map(projectMapper::toLabelResponse)
                 .collect(Collectors.toList());
-    }
-
-    private Project findProjectAndCheckAccess(UUID projectId, boolean requireManagerAccess) {
-        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
-
-        if (requireManagerAccess) {
-            User currentUser = getCurrentUser();
-            if (!isAdmin(currentUser) && !project.getManagerId().equals(currentUser.getId())) {
-                throw new AppException(ErrorCode.FORBIDDEN);
-            }
-        }
-        return project;
-    }
-
-    private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    }
-
-    private boolean isAdmin(User user) {
-        return "ADMIN".equals(user.getRole());
     }
 }

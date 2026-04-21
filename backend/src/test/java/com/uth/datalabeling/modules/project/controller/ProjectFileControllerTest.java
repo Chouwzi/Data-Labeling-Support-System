@@ -80,7 +80,7 @@ class ProjectFileControllerTest {
         projectFile.setFileName("test.pdf");
         projectFile.setProject(project);
 
-        when(projectFileService.getById(fileId)).thenReturn(projectFile);
+        when(projectFileService.getByIdAndProjectId(fileId, projectId)).thenReturn(projectFile);
 
         mockMvc.perform(get("/api/projects/{projectId}/files/{id}", projectId, fileId))
                 .andExpect(status().isOk())
@@ -101,7 +101,8 @@ class ProjectFileControllerTest {
         projectFile.setId(fileId);
         projectFile.setProject(project);
 
-        when(projectFileService.getById(fileId)).thenReturn(projectFile);
+        when(projectFileService.getByIdAndProjectId(fileId, wrongProjectId))
+                .thenThrow(new com.uth.datalabeling.common.exception.AppException(com.uth.datalabeling.common.exception.ErrorCode.FORBIDDEN, "File không thuộc về project này"));
 
         // Expect Exception because GlobalExceptionHandler is not attached to this standalone mockMvc
         // So the nested exception AppException will be thrown and wrapped in nested exception
