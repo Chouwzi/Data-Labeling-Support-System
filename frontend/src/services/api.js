@@ -86,24 +86,34 @@ export const getSystemConfig = () => api.get('/system-config');
 
 export const updateSystemConfig = (data) => api.put('/system-config', data);
 
-export default api;
-
 // =====================
 // Activity Logs (Audit Logs)
 // =====================
-export const getLogs = (page = 0, size = 20) => 
+export const getLogs = (page = 0, size = 20) =>
   api.get('/audit-logs', {
     params: { page, size }
   });
 
 // =====================
-// Create Projects 
+// Projects
 // =====================
 export const getProjects = () => api.get('/projects');
-export const createProject = (formData) => {
-  return api.post('/projects', formData, {
+export const createProject = ({ name, description }) =>
+  api.post('/projects', {
+    name,
+    description,
+    labels: [],
+  });
+
+export const uploadGuidelineFile = (projectId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return api.post(`/projects/${projectId}/files`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
 };
+export default api;
+

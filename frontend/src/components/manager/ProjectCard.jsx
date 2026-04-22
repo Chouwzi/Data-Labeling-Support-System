@@ -12,13 +12,18 @@ export default function ProjectCard({ project, statusColors }) {
           alt={project.name}
           className="project-card__img"
           loading="lazy"
-        />
+         />
         <div
           className="project-card__status-badge"
           style={{ backgroundColor: status.bg, color: status.text }}
         >
           {status.label}
         </div>
+        {isNew && (
+          <span className="project-new-badge" style={{ position: 'absolute', top: '0.5rem', left: '0.5rem' }}>
+            NEW
+          </span>
+        )}
       </div>
 
       {/* Body */}
