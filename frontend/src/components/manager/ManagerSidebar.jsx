@@ -12,9 +12,7 @@ const NAV_ITEMS = [
   { id: 'reports', label: 'Progress Reports', icon: BarChart3, path: '/manager/reports' },
 ];
 
-/**
- * Manager shell sidebar — same visual system as Admin (image_1): mint tint, white active pill, emerald accent.
- */
+
 export default function ManagerSidebar({ isOpen = false, onNavigate }) {
   const location = useLocation();
 

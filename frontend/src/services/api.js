@@ -91,7 +91,7 @@ export default api;
 // =====================
 // Activity Logs (Audit Logs)
 // =====================
-export const getLogs = (page = 0, size = 20) => 
+export const getLogs = (page = 0, size = 20) =>
   api.get('/audit-logs', {
     params: { page, size }
   });
@@ -107,3 +107,22 @@ export const createProject = (formData) => {
     },
   });
 };
+
+// =====================
+// Label Management 
+// =====================
+
+export const getLabelsByProject = (projectId) =>
+  api.get(`/projects/${projectId}/labels`);
+
+
+export const createLabel = (projectId, labelData) =>
+  api.post(`/projects/${projectId}/labels`, labelData);
+
+
+export const updateLabel = (projectId, labelId, labelData) =>
+  api.put(`/projects/${projectId}/labels/${labelId}`, labelData);
+
+
+export const deleteLabel = (projectId, labelId) =>
+  api.delete(`/projects/${projectId}/labels/${labelId}`);
