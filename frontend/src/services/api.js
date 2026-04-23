@@ -107,3 +107,45 @@ export const createProject = (formData) => {
     },
   });
 };
+
+// =====================
+// Image Uploads (Mock API for LTJ-34)
+// =====================
+export const uploadImageMock = (projectId, file, onUploadProgress) => {
+  // TODO: Replace with real Axios call when backend API is ready
+  // return api.post(`/projects/${projectId}/images`, formData, {
+  //   headers: { 'Content-Type': 'multipart/form-data' },
+  //   onUploadProgress
+  // });
+
+  return new Promise((resolve, reject) => {
+    const total = file.size;
+    let loaded = 0;
+    
+    // Simulate network speed (approx 2MB per second)
+    const chunkSize = 2 * 1024 * 1024 / 10; 
+    
+    const interval = setInterval(() => {
+      loaded += chunkSize;
+      if (loaded >= total) {
+        loaded = total;
+        clearInterval(interval);
+      }
+      
+      if (onUploadProgress) {
+        onUploadProgress({ loaded, total });
+      }
+      
+      if (loaded === total) {
+        setTimeout(() => {
+          // 5% chance of mock failure for testing error handling
+          if (Math.random() < 0.05) {
+             reject(new Error("Simulated Server Error"));
+          } else {
+             resolve({ data: { message: "Success" } });
+          }
+        }, 500); // simulate server processing time
+      }
+    }, 100);
+  });
+};
