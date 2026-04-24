@@ -40,7 +40,8 @@ export default function AnnotatorsImageGrid() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [images, setImages] = useState(INITIAL_IMAGES);
+  const [images, setImages] = useState(INITIAL_IMAGES.map(img => ({ ...img, status: 'unassigned', assignee: null })));
+  const [activeTab, setActiveTab] = useState('unassigned');
   const [selectedImageIds, setSelectedImageIds] = useState([]);
   const [selectedAnnotatorId, setSelectedAnnotatorId] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
@@ -57,6 +58,7 @@ export default function AnnotatorsImageGrid() {
   /* ── Selection ─────────────────────────────────────────────── */
 
   const toggleImage = (imageId) => {
+    if (activeTab !== 'unassigned') return;
     setSelectedImageIds((prev) =>
       prev.includes(imageId)
         ? prev.filter((id) => id !== imageId)
@@ -64,7 +66,10 @@ export default function AnnotatorsImageGrid() {
     );
   };
 
-  const selectAll = () => setSelectedImageIds(images.map((img) => img.id));
+  const selectAll = () => {
+    if (activeTab !== 'unassigned') return;
+    setSelectedImageIds(images.filter(img => img.status === 'unassigned').map((img) => img.id));
+  };
   const clearSelection = () => setSelectedImageIds([]);
 
   /* ── Assign ───────────────────────────────────────────────── */
@@ -76,7 +81,11 @@ export default function AnnotatorsImageGrid() {
 
     setIsAssigning(true);
     setTimeout(() => {
-      setImages((prev) => prev.filter((img) => !selectedImageIds.includes(img.id)));
+      setImages((prev) => prev.map((img) => 
+        selectedImageIds.includes(img.id)
+          ? { ...img, status: 'assigned', assignee: annotator.name }
+          : img
+      ));
       setSelectedImageIds([]);
       setSelectedAnnotatorId('');
       setIsAssigning(false);
@@ -92,9 +101,10 @@ export default function AnnotatorsImageGrid() {
 
   /* ── Derived ──────────────────────────────────────────────── */
 
+  const displayedImages = images.filter((img) => img.status === activeTab);
   const selectedCount = selectedImageIds.length;
-  const totalCount = images.length;
-  const hasSelection = selectedCount > 0;
+  const totalCount = displayedImages.length;
+  const hasSelection = selectedCount > 0 && activeTab === 'unassigned';
   const canAssign = hasSelection && !!selectedAnnotatorId && !isAssigning;
 
   const userName = user?.fullName || user?.email || 'Manager';
@@ -135,14 +145,30 @@ export default function AnnotatorsImageGrid() {
             </p>
           </div>
 
+          {/* Tabs */}
+          <div className="aig-tabs">
+            <button
+              className={`aig-tab ${activeTab === 'unassigned' ? 'aig-tab--active' : ''}`}
+              onClick={() => { setActiveTab('unassigned'); clearSelection(); }}
+            >
+              Waiting List ({images.filter(img => img.status === 'unassigned').length})
+            </button>
+            <button
+              className={`aig-tab ${activeTab === 'assigned' ? 'aig-tab--active' : ''}`}
+              onClick={() => { setActiveTab('assigned'); clearSelection(); }}
+            >
+              Assigned ({images.filter(img => img.status === 'assigned').length})
+            </button>
+          </div>
+
           {/* Image Grid — dynamic padding for sticky bar */}
-          {images.length > 0 ? (
+          {displayedImages.length > 0 ? (
             <div
               className={`aig-grid ${hasSelection ? 'aig-grid--has-selection' : ''}`}
               role="list"
-              aria-label="Unassigned images"
+              aria-label={`${activeTab === 'unassigned' ? 'Unassigned' : 'Assigned'} images`}
             >
-              {images.map((image) => {
+              {displayedImages.map((image) => {
                 const isSelected = selectedImageIds.includes(image.id);
                 return (
                   <article
@@ -186,10 +212,17 @@ export default function AnnotatorsImageGrid() {
                         <span className="aig-card__resolution">{image.resolution}</span>
                       </div>
                       <div className="aig-card__status">
-                        <span className="aig-unassigned-badge">
-                          <span className="aig-unassigned-badge__dot" />
-                          unassigned
-                        </span>
+                        {image.status === 'unassigned' ? (
+                          <span className="aig-unassigned-badge">
+                            <span className="aig-unassigned-badge__dot" />
+                            unassigned
+                          </span>
+                        ) : (
+                          <span className="aig-assigned-badge">
+                            <Check size={12} strokeWidth={3} style={{ marginRight: '4px' }} />
+                            Assigned to {image.assignee}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </article>
@@ -201,9 +234,11 @@ export default function AnnotatorsImageGrid() {
               <div className="aig-empty-state__icon-wrap">
                 <ImageIcon size={32} strokeWidth={1.5} />
               </div>
-              <h2 className="aig-empty-state__title">All images assigned</h2>
+              <h2 className="aig-empty-state__title">No images found</h2>
               <p className="aig-empty-state__body">
-                All images have been allocated to annotators. New uploads will appear here.
+                {activeTab === 'unassigned' 
+                  ? 'All images have been allocated to annotators. New uploads will appear here.'
+                  : 'No images have been assigned yet.'}
               </p>
             </div>
           )}
