@@ -51,7 +51,7 @@ public class ImageService {
                     .format((String) uploadResult.get("format"))
                     .sizeBytes((Long) uploadResult.get("sizeBytes"))
                     .uploader(currentUser)
-                    .metadata(uploadResult) // Store Cloudinary specific details if any
+                    .metadata((Map<String, Object>) uploadResult.get("metadata")) // Store raw specific details if any
                     .build();
 
             fileMetadata = fileMetadataRepository.save(fileMetadata);

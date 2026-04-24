@@ -46,9 +46,14 @@ public class ImageValidator {
             throw new AppException(ErrorCode.INVALID_FILE_FORMAT);
         }
 
-        // Validate Content-Type (MIME magic check basic)
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
+        // Validate Magic Bytes using Apache Tika
+        try {
+            org.apache.tika.Tika tika = new org.apache.tika.Tika();
+            String detectedType = tika.detect(file.getInputStream());
+            if (detectedType == null || !detectedType.startsWith("image/")) {
+                throw new AppException(ErrorCode.INVALID_FILE_FORMAT);
+            }
+        } catch (java.io.IOException e) {
             throw new AppException(ErrorCode.INVALID_FILE_FORMAT);
         }
     }
