@@ -10,16 +10,12 @@ import java.util.Map;
 @Configuration
 public class CloudinaryConfig {
 
+    @org.springframework.beans.factory.annotation.Value("${CLOUDINARY_URL:cloudinary://key:secret@cloudname}")
+    private String cloudinaryUrl;
+
     @Bean
     public Cloudinary cloudinary() {
-        // Read from CLOUDINARY_URL in .env automatically by using the Cloudinary empty constructor
-        // Note: The `dotenv-java` library should load .env variables into the environment for this to work
-        // or we can pass the URL directly if we configure it via application.properties.
-        // Assuming we are reading from the CLOUDINARY_URL environment variable.
-        Cloudinary cloudinary = new Cloudinary(System.getenv("CLOUDINARY_URL"));
-        
-        // If CLOUDINARY_URL is somehow null, we could fallback to individual properties if we wanted to
-        // But for this feature, using CLOUDINARY_URL is standard and provided by the user.
-        return cloudinary;
+        // Use the injected CLOUDINARY_URL which defaults to a dummy value if missing (for tests)
+        return new Cloudinary(cloudinaryUrl);
     }
 }
