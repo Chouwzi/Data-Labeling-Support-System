@@ -11,7 +11,6 @@ import com.uth.datalabeling.modules.image.strategy.ImageStorageStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -76,7 +75,7 @@ public class ImageServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
 
         when(localStrategy.isPrimary()).thenReturn(true);
-        
+
         MockMultipartFile file1 = new MockMultipartFile("files", "img1.png", "image/png", "content1".getBytes());
         MockMultipartFile file2 = new MockMultipartFile("files", "img2.jpg", "image/jpeg", "content2".getBytes());
         List<MultipartFile> files = Arrays.asList(file1, file2);
@@ -142,8 +141,9 @@ public class ImageServiceTest {
 
         // Act & Assert
         assertThrows(AppException.class, () -> imageService.uploadImages(files));
-        
-        // Ensure first file was validated but if we were using a real DB, transaction would roll back.
+
+        // Ensure first file was validated but if we were using a real DB, transaction
+        // would roll back.
         // In unit test, we just check that the exception is propagated.
         verify(localStrategy, times(0)).upload(file2);
     }
@@ -151,5 +151,46 @@ public class ImageServiceTest {
     @Test
     void uploadImages_EmptyList_ThrowsException() {
         assertThrows(AppException.class, () -> imageService.uploadImages(Collections.emptyList()));
+    }
+
+    @Test
+    void uploadImages_Unauthenticated_ThrowsException() {
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(false);
+
+        AppException exception = assertThrows(AppException.class,
+                () -> imageService.uploadImages(Collections.singletonList(mockFile())));
+        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+    }
+
+    @Test
+    void uploadImages_UserNotFound_ThrowsException() {
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("missing@example.com");
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class,
+                () -> imageService.uploadImages(Collections.singletonList(mockFile())));
+        assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    void uploadImages_NoPrimaryStrategy_ThrowsException() {
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
+
+        when(localStrategy.isPrimary()).thenReturn(false);
+        when(cloudinaryStrategy.isPrimary()).thenReturn(false);
+
+        AppException exception = assertThrows(AppException.class,
+                () -> imageService.uploadImages(Collections.singletonList(mockFile())));
+        assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
+    }
+
+    private MockMultipartFile mockFile() {
+        return new MockMultipartFile("files", "img1.png", "image/png", "content1".getBytes());
     }
 }
