@@ -253,3 +253,74 @@
 .users-header .admin-page-title {
   margin-top: 0.5rem;
 }
+
+state-info__badge--initialized {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* Inline badge trong success banner */
+.initialized-badge-inline {
+  display: inline-block;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+/* ── Progress fill màu xanh cho initialized ── */
+.project-card__progress-fill--initialized,
+.project-progress__fill--initialized {
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+}
+
+/* ── Status dot màu xanh cho initialized ── */
+.status-badge__dot--initialized {
+  background-color: #3b82f6;
+}
+
+/* ── Loading indicator ── */
+.projects-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 2rem 0;
+  justify-content: center;
+}
+
+.projects-loading__spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Highlight row/card mới tạo (animation fade-in) ── */
+.project-table__row--new,
+.project-card--new {
+  animation: highlight-new 2s ease-out forwards;
+}
+
+@keyframes highlight-new {
+  0%   { background-color: #eff6ff; }
+  100% { background-color: transparent; }
+}
