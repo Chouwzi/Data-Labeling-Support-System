@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
+import { getProjects, uploadImageMock } from '@/services/api';
 import {
   Upload, X, CheckCircle, AlertCircle, Image, Loader2, Lightbulb,
   Trash2, ChevronRight, Info, Sparkles, Shield
@@ -34,6 +35,22 @@ export default function UploadImages() {
 
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const [projectId, setProjectId] = useState('');
+  const [projectsList, setProjectsList] = useState([]);
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const res = await getProjects();
+        const projectData = res.data?.result?.data || res.data?.result || [];
+        setProjectsList(Array.isArray(projectData) ? projectData : []);
+      } catch (err) {
+        console.error("Could not load projects", err);
+      }
+    }
+    fetchProjects();
+  }, []);
 
   // Metadata panel toggles
   const [autoDetect, setAutoDetect] = useState(false);
@@ -126,45 +143,12 @@ export default function UploadImages() {
     setIsUploading(false);
   }, [files]);
 
-  // Simulate upload per file using setInterval
-  useEffect(() => {
-    if (!isUploading) return;
-
-    const readyFiles = files.filter((f) => f.status === 'ready' && f.progress < 100);
-    if (readyFiles.length === 0) {
-      setIsUploading(false);
+  const handleUpload = useCallback(() => {
+    if (!projectId) {
+      alert('Please select a project before uploading images.');
       return;
     }
 
-    const interval = setInterval(() => {
-      setFiles((prev) => {
-        const next = prev.map((f) => {
-          if (f.status !== 'ready' || f.progress >= 100) return f;
-          const increment = 100 / (SIMULATED_DURATION_MS / 80);
-          const newProgress = Math.min(f.progress + increment, 100);
-          return {
-            ...f,
-            progress: newProgress,
-            status: newProgress >= 100 ? 'done' : 'uploading',
-          };
-        });
-
-        const allDone = next
-          .filter((f) => f.status === 'ready' || f.status === 'invalid')
-          .length === next.length;
-
-        if (allDone) {
-          setIsUploading(false);
-        }
-
-        return next;
-      });
-    }, 80);
-
-    return () => clearInterval(interval);
-  }, [isUploading, files]);
-
-  const handleUpload = useCallback(() => {
     const readyFiles = files.filter((f) => f.status === 'ready');
     if (readyFiles.length === 0) return;
 
@@ -176,7 +160,27 @@ export default function UploadImages() {
       }))
     );
     setIsUploading(true);
-  }, [files]);
+
+    Promise.allSettled(
+      readyFiles.map(async (fileObj) => {
+        try {
+          await uploadImageMock(projectId, fileObj.file, (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setFiles((prev) => prev.map(f => 
+              f.id === fileObj.id ? { ...f, progress: percentCompleted } : f
+            ));
+          });
+          // On success, mark as done
+          setFiles((prev) => prev.map(f => f.id === fileObj.id ? { ...f, status: 'done', progress: 100 } : f));
+        } catch (error) {
+          // On failure, mark as invalid and show error
+          setFiles((prev) => prev.map(f => f.id === fileObj.id ? { ...f, status: 'invalid', error: error.message || 'Upload failed' } : f));
+        }
+      })
+    ).finally(() => {
+      setIsUploading(false);
+    });
+  }, [files, projectId]);
 
   const readyCount = files.filter((f) => f.status === 'ready').length;
   const doneCount = files.filter((f) => f.status === 'done').length;
@@ -217,6 +221,20 @@ export default function UploadImages() {
                   <p className="manager-page-subtitle">
                     Batch-upload image data to prepare raw materials for processing.
                   </p>
+                </div>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <select 
+                    className="form-field__input" 
+                    value={projectId} 
+                    onChange={(e) => setProjectId(e.target.value)}
+                    style={{ minWidth: '250px', margin: 0, padding: '8px 12px' }}
+                    aria-label="Select Project"
+                  >
+                    <option value="">-- Select a project to upload --</option>
+                    {projectsList.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </header>
