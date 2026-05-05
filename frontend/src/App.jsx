@@ -139,13 +139,14 @@ function App() {
         }
       />
       <Route
-        path="/manager/taxonomy"
+        path="/manager/progress"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <ProgressReport />
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/manager/taxonomy"
         element={
@@ -155,13 +156,14 @@ function App() {
         }
       />
       <Route
-        path="/manager/taxonomy"
+        path="/manager/taxonomy/:projectId"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <LabelTaxonomy />
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/annotator"
         element={

@@ -86,66 +86,34 @@ export const getSystemConfig = () => api.get('/system-config');
 
 export const updateSystemConfig = (data) => api.put('/system-config', data);
 
-export default api;
-
 // =====================
 // Activity Logs (Audit Logs)
 // =====================
-export const getLogs = (page = 0, size = 20) => 
+export const getLogs = (page = 0, size = 20) =>
   api.get('/audit-logs', {
     params: { page, size }
   });
 
 // =====================
-// Create Projects 
+// Projects
 // =====================
 export const getProjects = () => api.get('/projects');
-export const createProject = (formData) => {
-  return api.post('/projects', formData, {
+export const createProject = ({ name, description }) =>
+  api.post('/projects', {
+    name,
+    description,
+    labels: [],
+  });
+
+export const uploadGuidelineFile = (projectId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return api.post(`/projects/${projectId}/files`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
 };
+export default api;
 
-// =====================
-// Image Uploads (Mock API for LTJ-34)
-// =====================
-export const uploadImageMock = (projectId, file, onUploadProgress) => {
-  // TODO: Replace with real Axios call when backend API is ready
-  // return api.post(`/projects/${projectId}/images`, formData, {
-  //   headers: { 'Content-Type': 'multipart/form-data' },
-  //   onUploadProgress
-  // });
-
-  return new Promise((resolve, reject) => {
-    const total = file.size;
-    let loaded = 0;
-    
-    // Simulate network speed (approx 2MB per second)
-    const chunkSize = 2 * 1024 * 1024 / 10; 
-    
-    const interval = setInterval(() => {
-      loaded += chunkSize;
-      if (loaded >= total) {
-        loaded = total;
-        clearInterval(interval);
-      }
-      
-      if (onUploadProgress) {
-        onUploadProgress({ loaded, total });
-      }
-      
-      if (loaded === total) {
-        setTimeout(() => {
-          // 5% chance of mock failure for testing error handling
-          if (Math.random() < 0.05) {
-             reject(new Error("Simulated Server Error"));
-          } else {
-             resolve({ data: { message: "Success" } });
-          }
-        }, 500); // simulate server processing time
-      }
-    }, 100);
-  });
-};

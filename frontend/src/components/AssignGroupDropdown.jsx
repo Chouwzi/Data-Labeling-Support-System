@@ -31,3 +31,4 @@ export default function AssignGroupDropdown({ userId, currentGroupId, groups, on
     </div>
   );
 }
+
