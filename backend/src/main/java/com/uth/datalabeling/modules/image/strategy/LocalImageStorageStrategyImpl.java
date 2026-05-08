@@ -18,10 +18,10 @@ import java.util.UUID;
 @Service
 public class LocalImageStorageStrategyImpl implements ImageStorageStrategy {
 
-    @Value("${app.storage.local.dir:uploads}")
+    @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
-    @Value("${app.storage.strategy:local}")
+    @Value("${storage.strategy.active:local}")
     private String activeStrategy;
 
     @Override
