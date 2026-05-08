@@ -53,7 +53,7 @@ public class ImageControllerTest {
 
         when(imageService.uploadImages(any())).thenReturn(Collections.singletonList(response));
 
-        mockMvc.perform(multipart("/api/v1/images/upload")
+        mockMvc.perform(multipart("/images/upload")
                 .file(file)
                 .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk())
