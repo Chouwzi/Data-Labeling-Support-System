@@ -8,6 +8,10 @@ public enum ErrorCode {
   // 400 Bad Request
   BAD_REQUEST(400, 40000, "Yêu cầu không hợp lệ"),
   MISSING_REQUIRED_FIELD(400, 40001, "Thiếu trường bắt buộc"),
+  FILE_SIZE_EXCEEDS_LIMIT(400, 40002, "Kích thước tệp vượt quá giới hạn cho phép"),
+  INVALID_FILE_FORMAT(400, 40003, "Định dạng tệp không được hỗ trợ"),
+  UPLOAD_FAILED(400, 40004, "Tải tệp lên thất bại"),
+
 
   // 401 Unauthorized
   UNAUTHORIZED(401, 40100, "Chưa xác thực"),

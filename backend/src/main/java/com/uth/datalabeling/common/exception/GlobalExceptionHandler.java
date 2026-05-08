@@ -2,7 +2,9 @@ package com.uth.datalabeling.common.exception;
 
 import com.uth.datalabeling.common.response.ApiResponse;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -66,6 +68,16 @@ public class GlobalExceptionHandler {
         .message(errorCode.getMessage())
         .build();
     return ResponseEntity.status(errorCode.getHttpStatus()).body(response);
+  }
+
+  @ExceptionHandler(value = HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<ApiResponse<Object>> handleHttpMediaTypeNotSupportedException(
+      HttpMediaTypeNotSupportedException exception) {
+    ApiResponse<Object> response = ApiResponse.builder()
+        .code(4150)
+        .message("Unsupported media type: " + exception.getContentType())
+        .build();
+    return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(response);
   }
 
   @ExceptionHandler(value = Exception.class)
