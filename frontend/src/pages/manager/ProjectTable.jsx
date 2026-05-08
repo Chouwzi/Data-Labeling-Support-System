@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit2, Eye, MoreHorizontal, Clock } from 'lucide-react';
 
-export default function ProjectTable({ projects = [], statusColors = {}, totalProjects = 42 }) {
+export default function ProjectTable({ projects = [], statusColors = {}, totalProjects = 42, newProjectId = null }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
+
+  useEffect(() => {
+    if (newProjectId !== null) {
+      setCurrentPage(1);
+    }
+  }, [newProjectId]);
 
   const paginated = projects.slice(
     (currentPage - 1) * itemsPerPage,

@@ -8,6 +8,7 @@ import ActivityItem from '@/components/dashboard/ActivityItem';
 import BrandLogo from '@/components/common/BrandLogo';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ManagerRightPanel from '@/pages/manager/ManagerRightPanel';
+import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
 import { createProject } from '@/services/api';
 import { FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle } from 'lucide-react';
@@ -78,7 +79,7 @@ export default function ManagerDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Create Project Modal state
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
@@ -145,11 +146,11 @@ export default function ManagerDashboard() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    
+
     if (!projectName.trim()) {
       setErrors({ projectName: 'Project name is required' });
       return;
@@ -157,27 +158,31 @@ export default function ManagerDashboard() {
 
     setIsSubmitting(true);
     setErrors({});
-
-    const formData = new FormData();
-    formData.append('name', projectName.trim());
-    formData.append('description', description.trim());
-    if (file) formData.append('guideline', file);
+    setSubmitSuccess(false);
 
     try {
-      console.log("🚀 [Dashboard] Đang gọi API tạo Project...");
-      const response = await createProject(formData);
+      const response = await createProject({
+        name: projectName.trim(),
+        description: description.trim(),
+      });
 
       if (response.status === 201 || response.status === 200) {
         setSubmitSuccess(true);
-        
+
         setTimeout(() => {
           closeCreateModal();
           navigate('/manager/projects');
         }, 2000);
       }
     } catch (err) {
-      console.error("❌ Lỗi API Dashboard:", err);
-      alert("Lỗi hệ thống: " + (err.response?.data?.message || "Server Error 500"));
+      console.error("Lỗi API Dashboard:", err);
+
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.code ||
+        "Create project failed";
+
+      setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -185,10 +190,10 @@ export default function ManagerDashboard() {
 
   const isFormValid = projectName.trim().length >= 3;
 
-  // --- Render Create Project Form (modal content) ---
+
   const renderCreateProjectForm = () => (
     <form onSubmit={handleSubmit} noValidate className="create-project-form">
-      {/* Success Banner */}
+
       {submitSuccess && (
         <div className="success-banner" role="status" aria-live="polite">
           <CheckCircle size={18} />
@@ -225,6 +230,7 @@ export default function ManagerDashboard() {
           <p className="form-field__error" role="alert">{errors.projectName}</p>
         )}
       </div>
+
 
       {/* Description */}
       <div className="form-field">

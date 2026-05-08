@@ -32,9 +32,8 @@ public class LocalImageStorageStrategyImpl implements ImageStorageStrategy {
                 Files.createDirectories(uploadPath);
             }
 
-            String originalFilename = StringUtils
-                    .cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown");
-
+            String originalFilename = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown");
+            
             // Check for path traversal attacks
             if (originalFilename.contains("..")) {
                 throw new AppException(ErrorCode.INVALID_FILE_FORMAT);

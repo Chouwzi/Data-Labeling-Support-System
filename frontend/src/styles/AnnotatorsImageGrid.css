@@ -83,6 +83,50 @@
 }
 
 /* ============================================================
+   TABS
+   ============================================================ */
+
+.aig-tabs {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.aig-tab {
+  background: transparent;
+  border: none;
+  padding: 0.75rem 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.aig-tab:hover {
+  color: #0f172a;
+}
+
+.aig-tab--active {
+  color: #10b981;
+}
+
+.aig-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #10b981;
+  border-radius: 2px 2px 0 0;
+}
+
+/* ============================================================
    STICKY BOTTOM ACTION BAR
    Always docked at bottom of viewport when active.
    Slide-up entrance animation.
@@ -540,6 +584,21 @@
 @keyframes aig-badge-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+.aig-assigned-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background-color: #d1fae5;
+  border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #059669;
+  line-height: 1;
 }
 
 /* ============================================================

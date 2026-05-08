@@ -8,7 +8,7 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
-import { createProject, getProjects } from '@/services/api';
+import { createProject, getProjects, uploadGuidelineFile } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
@@ -44,14 +44,42 @@ function formatFileSize(bytes) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
+function normalizeProject(raw) {
+  const statusMap = {
+    DRAFT: 'initialized',
+    ACTIVE: 'in_progress',
+    ARCHIVED: 'completed',
+  };
+  return {
+    id: raw.id,
+    name: raw.name || raw.projectName || '',
+    category: raw.category || raw.type || 'General',
+    status: statusMap[raw.status] || 'initialized',
+    progress: raw.progress ?? 0,
+    images: raw.totalImages ?? raw.images ?? 0,
+    labels: raw.totalLabels ?? raw.labels ?? 0,
+    annotators: raw.annotatorCount ?? raw.annotators ?? 0,
+    created: raw.createdAt ? new Date(raw.createdAt).toLocaleDateString('vi-VN') : 'Just now',
+    imageUrl: raw.thumbnailUrl || raw.imageUrl ||
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
+    members: raw.members || [],
+    description: raw.description || '',
+  };
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
 export default function Projects() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [projectsList, setProjectsList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // ── Project list state ──
+  const [projects, setProjects] = useState([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
+  // View mode
   const [viewMode, setViewMode] = useState('table');
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,30 +92,35 @@ export default function Projects() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
   const [errors, setErrors] = useState({});
-
+  const [newProjectId, setNewProjectId] = useState(null);
   const fileInputRef = useRef(null);
 
-  const fetchProjectsData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await getProjects();
-      const data = response.data?.result || [];
-      setProjectsList(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Lỗi lấy data:", err);
-      setProjectsList([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
-  useEffect(() => {
-    fetchProjectsData();
-  }, [fetchProjectsData]);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setIsLoadingProjects(true);
+      try {
+        const res = await getProjects();
+        const data = res.data?.result?.data ?? [];
+
+        if (Array.isArray(data)) {
+          setProjects(data.map(normalizeProject));
+        }
+      } catch (err) {
+        console.error('Lỗi lấy dự án:', err);
+
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+    fetchProjects();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -95,7 +128,7 @@ export default function Projects() {
   };
 
   const openCreateModal = () => setIsCreateModalOpen(true);
-  const closeCreateModal = () => {
+  const closeCreateModal = useCallback(() => {
     if (isSubmitting) return;
     setIsCreateModalOpen(false);
     setProjectName('');
@@ -104,7 +137,8 @@ export default function Projects() {
     setFileError('');
     setErrors({});
     setSubmitSuccess(false);
-  };
+    setNewProjectName('');
+  }, [isSubmitting]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -156,51 +190,94 @@ export default function Projects() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const validationErrors = validateForm();
-  if (Object.keys(validationErrors).length > 0) {
-    setErrors(validationErrors);
-    return;
-  }
-
-  setIsSubmitting(true);
-  setErrors({});
-
-  const formData = new FormData();
-  formData.append('name', projectName.trim());
-  formData.append('description', description.trim() || '');
-
-  if (file) {
-    formData.append('guideline', file);
-  }
-
-  try {
-    console.log("🚀 Đang gửi dữ liệu thật...");
-    const response = await createProject(formData);
-
-    if (response.status === 200 || response.status === 201) {
-      setSubmitSuccess(true);
-
-      await fetchProjectsData(); 
-      setTimeout(() => {
-        closeCreateModal();
-      }, 2000);
+    // 1. Validate form
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
     }
-  } catch (err) {
-    console.error("❌ Lỗi tạo dự án:", err);
-    alert("Lỗi: " + (err.response?.data?.message || "Không thể tạo dự án"));
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+
+      const response = await createProject({
+        name: projectName.trim(),
+        description: description.trim(),
+        labels: [],
+      });
+
+      if (response.status === 200 || response.status === 201) {
+
+        const raw = response.data?.result ?? response.data ?? {};
+
+
+        if (file && raw.id) {
+          try {
+            await uploadGuidelineFile(raw.id, file);
+          } catch (uploadErr) {
+            console.warn('Upload failed:', uploadErr.response?.data);
+            setErrors({
+              submit: 'Project created successfully, but file upload failed.',
+            });
+          }
+        }
+
+        setSubmitSuccess(true);
+
+
+        const newProject = normalizeProject({
+          ...raw,
+          name: raw.name || projectName.trim(),
+          status: raw.status || 'DRAFT',
+          createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
+        });
+
+
+        try {
+          const res = await getProjects();
+
+          const data = res.data?.result?.data ?? res.data?.content ?? res.data ?? [];
+          if (Array.isArray(data) && data.length > 0) {
+            const normalized = data.map(normalizeProject);
+            const alreadyInList = normalized.some((p) => p.id === newProject.id);
+            setProjects(alreadyInList ? normalized : [newProject, ...normalized]);
+          } else {
+            setProjects((prev) => [newProject, ...prev]);
+          }
+        } catch {
+          setProjects((prev) => [newProject, ...prev]);
+        }
+
+
+        setNewProjectId(newProject.id);
+        setTimeout(() => setNewProjectId(null), 5000);
+        setActiveFilter('initialized');
+
+        setTimeout(() => closeCreateModal(), 2000);
+      }
+    } catch (err) {
+      console.error('❌ Lỗi tạo project:', err);
+      const serverMsg = err.response?.data?.message
+        || err.response?.data?.result?.message;
+      setErrors({
+        submit: serverMsg || `Lỗi ${err.response?.status ?? 'Server'}: Không thể tạo dự án.`,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const isFormValid = projectName.trim().length >= 3;
 
   // ─── Derived data ────────────────────────────────────────────────────────
 
   const filteredProjects = useMemo(() => {
-    const safeList = Array.isArray(projectsList) ? projectsList : [];
+    const safeList = Array.isArray(projects) ? projects : [];
     return safeList.filter((p) => {
       const matchesFilter = activeFilter === 'all' || p?.status === activeFilter;
       const matchesSearch =
@@ -208,17 +285,17 @@ export default function Projects() {
         p?.name?.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
-  }, [activeFilter, searchQuery, projectsList]);
+  }, [activeFilter, searchQuery, projects]);
 
- const stats = useMemo(() => {
-  const total = projectsList.length;
-  const active = projectsList.filter((p) => p.status === 'in_progress').length;
-  const completed = projectsList.filter((p) => p.status === 'completed').length;
-  const pending = projectsList.filter((p) => p.status === 'initialized').length;
-  const inReview = projectsList.filter((p) => p.status === 'review').length;
+  const stats = useMemo(() => {
+    const total = projects.length;
+    const active = projects.filter((p) => p.status === 'in_progress').length;
+    const completed = projects.filter((p) => p.status === 'completed').length;
+    const pending = projects.filter((p) => p.status === 'initialized').length;
+    const inReview = projects.filter((p) => p.status === 'review').length;
 
-  return { total, active, completed, pending, inReview };
-}, [projectsList]);
+    return { total, active, completed, pending, inReview };
+  }, [projects]);
 
   // ─── Create Form ─────────────────────────────────────────────────────────
 
