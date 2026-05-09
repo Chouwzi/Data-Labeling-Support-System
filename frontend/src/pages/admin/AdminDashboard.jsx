@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/common/Sidebar';
@@ -57,8 +57,79 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
   
+  const [dashboardData, setDashboardData] = useState({
+    totalUsers: '...',
+    activeProjects: '...',
+    systemUsage: '76%',
+    tasksInProgress: '8,912',
+  });
+  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
+
+  useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const { getUsers, getProjects, getLogs } = await import('@/services/api');
+          const [usersRes, projectsRes, logsRes] = await Promise.all([
+            getUsers().catch(() => ({ data: { result: [] } })),
+            getProjects().catch(() => ({ data: { result: { content: [] } } })),
+            getLogs(0, 3).catch(() => ({ data: { result: { content: [] } } }))
+          ]);
+          
+          const usersList = usersRes.data?.result || [];
+          const totalUsers = usersList.length;
+
+          const projectsList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
+          const activeProjects = Array.isArray(projectsList) ? projectsList.length : 0;
+          
+          const logsList = logsRes.data?.result?.content || [];
+          const mappedActivities = logsList.map((log, index) => {
+            let icon = 'check_circle';
+            let bgClass = 'activity-item__icon--primary-container';
+            let colorClass = 'activity-item__icon--text-primary-container';
+            
+            if (log.action?.includes('USER')) {
+              icon = 'person_edit';
+              bgClass = 'activity-item__icon--secondary-container';
+              colorClass = 'activity-item__icon--text-secondary-container';
+            } else if (log.action?.includes('CONFIG') || log.action?.includes('ERROR')) {
+              icon = 'warning';
+              bgClass = 'activity-item__icon--tertiary-container';
+              colorClass = 'activity-item__icon--text-tertiary';
+            }
+
+            return {
+              id: log.id || `log-${index}`,
+              icon,
+              iconBgClass: bgClass,
+              iconColorClass: colorClass,
+              message: (
+                <>
+                  <strong>{log.createdBy}</strong> performed {log.action}
+                </>
+              ),
+              timestamp: new Date(log.timestamp).toLocaleString(),
+              category: 'SYSTEM LOG',
+            };
+          });
+
+          setDashboardData(prev => ({
+            ...prev,
+            totalUsers: totalUsers.toString(),
+            activeProjects: activeProjects.toString()
+          }));
+          
+          if (mappedActivities.length > 0) {
+            setRecentActivities(mappedActivities);
+          }
+        } catch (error) {
+          console.error('Failed to fetch dashboard data:', error);
+        }
+      };
+      fetchData();
+    }, []);
 
   const handleLogout = () => {
     logout();
@@ -116,25 +187,25 @@ export default function AdminDashboard() {
               <div className="kpi-grid">
                 <KpiCard
                   title="Total Users"
-                  value="1,284"
+                  value={dashboardData.totalUsers}
                   icon="group"
-                  trend="+12%"
+                  trend="Real-time"
                 />
                 <KpiCard
                   title="Active Projects"
-                  value="42"
+                  value={dashboardData.activeProjects}
                   icon="folder_managed"
                 />
                 <KpiCard
                   title="System Usage"
-                  value="76%"
+                  value={dashboardData.systemUsage}
                   subtitle="Storage"
                   variant="wide"
                   progress={76}
                 />
                 <KpiCard
                   title="Tasks in Progress"
-                  value="8,912"
+                  value={dashboardData.tasksInProgress}
                   variant="activity"
                   dotColors={['#10b981', '#34d399', '#6ee7b7']}
                 />
@@ -158,7 +229,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="activity-section__list">
-                  {ACTIVITIES.map((activity) => (
+                  {recentActivities.map((activity) => (
                     <ActivityItem
                       key={activity.id}
                       icon={activity.icon}
