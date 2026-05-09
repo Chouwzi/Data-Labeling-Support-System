@@ -76,7 +76,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                           <span className="project-table__category-tag">{project.category}</span>
                           <span className="project-table__created">
                             <Clock size={10} />
-                            {project.created}
+                            {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}
                           </span>
                         </p>
                       </div>
@@ -101,18 +101,18 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                   <td>
                     <div className="project-progress">
                       <div className="project-progress__header">
-                        <span className="project-progress__label">{project.progress}%</span>
+                        <span className="project-progress__label">{project.progress || 0}%</span>
                       </div>
                       <div
                         className="project-progress__bar"
                         role="progressbar"
-                        aria-valuenow={project.progress}
+                        aria-valuenow={project.progress || 0}
                         aria-valuemin={0}
                         aria-valuemax={100}
                       >
                         <div
-                          className={`project-progress__fill project-progress__fill--${project.status}`}
-                          style={{ width: `${project.progress}%` }}
+                          className={`project-progress__fill project-progress__fill--${project.status?.toLowerCase() || 'draft'}`}
+                          style={{ width: `${project.progress || 0}%` }}
                         />
                       </div>
                     </div>
@@ -121,14 +121,14 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                   {/* Images count */}
                   <td className="project-table__td--numeric">
                     <span className="project-table__metric">
-                      {project.images.toLocaleString()}
+                      {(project.imageCount || project.images || 0).toLocaleString()}
                     </span>
                   </td>
 
                   {/* Labels count */}
                   <td className="project-table__td--numeric">
                     <span className="project-table__metric">
-                      {project.labels.toLocaleString()}
+                      {(Array.isArray(project.labels) ? project.labels.length : (project.labels || 0)).toLocaleString()}
                     </span>
                   </td>
 

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api/v1';
+const BASE_URL = '/api/v1';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -93,9 +93,36 @@ export const toggleUserStatus = (user, newActive) => {
 // =====================
 // System Config
 // =====================
-export const getSystemConfig = () => api.get('/system-config');
+// =====================
+// System Config
+// =====================
+export const getSystemConfig = async () => {
+  const res = await api.get('/system-config');
+  const data = res.data?.result || res.data;
+  // Map snake_case to camelCase for the UI
+  return {
+    ...res,
+    data: {
+      ...res.data,
+      result: {
+        maxImageSize: data.max_image_file_size_mb,
+        aiEnabled: data.ai_labeling_enabled,
+        defaultPageSize: data.default_page_size,
+        allowedExtensions: data.allowed_image_extensions
+      }
+    }
+  };
+};
 
-export const updateSystemConfig = (data) => api.put('/system-config', data);
+export const updateSystemConfig = (data) => {
+  const payload = {
+    max_image_file_size_mb: data.maxImageSize,
+    ai_labeling_enabled: data.aiEnabled,
+    default_page_size: data.defaultPageSize || 25,
+    allowed_image_extensions: data.allowedExtensions || ["jpg", "jpeg", "png", "webp"]
+  };
+  return api.put('/system-config', payload);
+};
 
 // =====================
 // Activity Logs (Audit Logs)
@@ -119,6 +146,7 @@ export const getProjects = () => {
     }
   }), 500));
 };
+
 export const createProject = ({ name, description }) =>
   api.post('/projects', {
     name,
@@ -136,6 +164,7 @@ export const uploadGuidelineFile = (projectId, file) => {
     },
   });
 };
+
 // =====================
 // Tasks & Progress
 // =====================
@@ -151,36 +180,30 @@ export const getProjectProgress = (projectId) => {
   }), 800));
 };
 
-
+// Mock function for UploadImages.jsx until batch upload is refactored
 export const uploadImageMock = (projectId, file, onUploadProgress) => {
-  return new Promise((resolve) => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 20;
-      if (onUploadProgress) {
-        onUploadProgress({ loaded: progress, total: 100 });
-      }
-      if (progress >= 100) {
-        clearInterval(interval);
-        resolve({ data: { url: 'mock_url' } });
-      }
-    }, 200);
+  const formData = new FormData();
+  formData.append('files', file); // Note: backend expects 'files' list
+
+  return api.post('/images/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    onUploadProgress,
   });
 };
 
-
 // =====================
-// Label Management 
+// Labels
 // =====================
-
 export const getLabelsByProject = (projectId) =>
   api.get(`/projects/${projectId}/labels`);
 
-export const createLabel = (projectId, labelData) =>
-  api.post(`/projects/${projectId}/labels`, labelData);
+export const createLabel = (projectId, data) =>
+  api.post(`/projects/${projectId}/labels`, data);
 
-export const updateLabel = (projectId, labelId, labelData) =>
-  api.put(`/projects/${projectId}/labels/${labelId}`, labelData);
+export const updateLabel = (projectId, labelId, data) =>
+  api.put(`/projects/${projectId}/labels/${labelId}`, data);
 
 export const deleteLabel = (projectId, labelId) =>
   api.delete(`/projects/${projectId}/labels/${labelId}`);
