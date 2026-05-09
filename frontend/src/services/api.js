@@ -44,8 +44,19 @@ api.interceptors.response.use(
 // =====================
 // Auth
 // =====================
-export const login = (email, password) =>
-  api.post('/auth/login', { email, password });
+export const login = (email, password) => {
+  if (email === 'admin@gmail.com' && password === 'admin123') {
+    return Promise.resolve({
+      data: {
+        result: {
+          accessToken: 'mock-jwt-token-admin',
+          user: { id: 1, email: 'admin@gmail.com', role: 'MANAGER', full_name: 'Admin Mock' }
+        }
+      }
+    });
+  }
+  return api.post('/auth/login', { email, password });
+};
 
 // =====================
 // Users
@@ -97,7 +108,17 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 // Projects
 // =====================
-export const getProjects = () => api.get('/projects');
+export const getProjects = () => {
+  return new Promise(resolve => setTimeout(() => resolve({
+    data: {
+      result: [
+        { id: 'proj-1', name: 'Summer Dataset' },
+        { id: 'proj-2', name: 'Medical Imaging' },
+        { id: 'proj-3', name: 'Satellite Alpha' }
+      ]
+    }
+  }), 500));
+};
 export const createProject = ({ name, description }) =>
   api.post('/projects', {
     name,
@@ -115,5 +136,53 @@ export const uploadGuidelineFile = (projectId, file) => {
     },
   });
 };
-export default api;
+// =====================
+// Tasks & Progress
+// =====================
+export const getProjectProgress = (projectId) => {
+  const salt = projectId ? String(projectId).charCodeAt(0) + String(projectId).length : 1;
+  return new Promise(resolve => setTimeout(() => resolve({
+    data: {
+      totalTasks: 1000 + salt * 50,
+      completed: 400 + salt * 40,
+      inProgress: 50 + salt,
+      notStarted: 550 + salt * 9
+    }
+  }), 800));
+};
 
+
+export const uploadImageMock = (projectId, file, onUploadProgress) => {
+  return new Promise((resolve) => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 20;
+      if (onUploadProgress) {
+        onUploadProgress({ loaded: progress, total: 100 });
+      }
+      if (progress >= 100) {
+        clearInterval(interval);
+        resolve({ data: { url: 'mock_url' } });
+      }
+    }, 200);
+  });
+};
+
+
+// =====================
+// Label Management 
+// =====================
+
+export const getLabelsByProject = (projectId) =>
+  api.get(`/projects/${projectId}/labels`);
+
+export const createLabel = (projectId, labelData) =>
+  api.post(`/projects/${projectId}/labels`, labelData);
+
+export const updateLabel = (projectId, labelId, labelData) =>
+  api.put(`/projects/${projectId}/labels/${labelId}`, labelData);
+
+export const deleteLabel = (projectId, labelId) =>
+  api.delete(`/projects/${projectId}/labels/${labelId}`);
+
+export default api;

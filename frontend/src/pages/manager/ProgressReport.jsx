@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import KpiCard from '@/components/dashboard/KpiCard';
 import BrandLogo from '@/components/common/BrandLogo';
-import { Image, CheckCircle, Clock, AlertCircle, TrendingUp, Users } from 'lucide-react';
+import { Image, CheckCircle, Clock, AlertCircle, TrendingUp, Users, ChevronDown } from 'lucide-react';
+import { getProjects, getProjectProgress } from '@/services/api';
 import '@/styles/ProgressReport.css';
 
 const CAMPAIGNS = ['All Campaigns', 'Summer Dataset', 'Medical Imaging', 'Satellite Alpha', 'Urban Street View'];
@@ -118,13 +119,60 @@ export default function ProgressReport() {
   const [selectedCampaign, setSelectedCampaign] = useState('All Campaigns');
   const [selectedStatus, setSelectedStatus] = useState('All Statuses');
 
-  const closeSidebar = () => setSidebarOpen(false);
-  const toggleSidebar = () => setSidebarOpen((o) => !o);
+  // ── API State ──
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [progressData, setProgressData] = useState(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
+
+  // ── Fetch Projects ──
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setIsLoadingProjects(true);
+        const res = await getProjects();
+        const data = res.data?.result || [];
+        if (Array.isArray(data)) {
+          setProjects(data);
+          if (data.length > 0) {
+            setSelectedProjectId(data[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  // ── Fetch Stats when project changes ──
+  useEffect(() => {
+    if (!selectedProjectId) return;
+
+    const fetchStats = async () => {
+      try {
+        setIsLoadingStats(true);
+        const res = await getProjectProgress(selectedProjectId);
+        setProgressData(res.data);
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, [selectedProjectId]);
 
   const filteredAnnotators = useMemo(() => {
     return MOCK_ANNOTATORS.filter((annotator) => {
@@ -137,13 +185,26 @@ export default function ProgressReport() {
   }, [selectedCampaign, selectedStatus]);
 
   const stats = useMemo(() => {
+    if (progressData) {
+      const { totalTasks, completed, inProgress, notStarted } = progressData;
+      const completionRate = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+      return {
+        total: totalTasks,
+        completed,
+        inProgress,
+        pending: notStarted,
+        completionRate
+      };
+    }
+
+    // Fallback to mock logic if no API data yet
     const total = filteredAnnotators.reduce((sum, a) => sum + a.assigned, 0);
     const completed = filteredAnnotators.reduce((sum, a) => sum + a.completed, 0);
     const inProgress = filteredAnnotators.filter((a) => a.status === 'In Progress').length;
     const pending = filteredAnnotators.filter((a) => a.status === 'Pending').length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, inProgress, pending, completionRate };
-  }, [filteredAnnotators]);
+  }, [filteredAnnotators, progressData]);
 
   const userName = user?.fullName || user?.email || 'Manager';
   const userRole = user?.role === 'MANAGER' ? 'Lead Curator' : (user?.role || 'MANAGER');
@@ -199,6 +260,29 @@ export default function ProgressReport() {
               aria-label="Filter options"
             >
               <div className="progress-report-filter-group">
+                <span className="progress-report-filter-label text-slate-700 font-medium text-sm">Select Project:</span>
+                <div className="progress-report-project-selector">
+                  <select
+                    className="project-select-input"
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    disabled={isLoadingProjects}
+                  >
+                    {isLoadingProjects ? (
+                      <option>Loading projects...</option>
+                    ) : (
+                      projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <ChevronDown size={16} className="project-select-icon" />
+                </div>
+              </div>
+
+              <div className="progress-report-filter-group">
                 <span className="progress-report-filter-label text-slate-700 font-medium text-sm">Campaign:</span>
                 <div className="progress-report-pills">
                   {CAMPAIGNS.map((campaign) => (
@@ -210,23 +294,6 @@ export default function ProgressReport() {
                       aria-pressed={selectedCampaign === campaign}
                     >
                       {campaign}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="progress-report-filter-group">
-                <span className="progress-report-filter-label text-slate-700 font-medium text-sm">Status:</span>
-                <div className="progress-report-pills">
-                  {STATUSES.map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      className={`pill ${selectedStatus === status ? 'pill--active' : ''}`}
-                      onClick={() => setSelectedStatus(status)}
-                      aria-pressed={selectedStatus === status}
-                    >
-                      {status}
                     </button>
                   ))}
                 </div>
