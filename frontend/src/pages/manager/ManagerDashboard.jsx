@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
@@ -90,6 +90,81 @@ export default function ManagerDashboard() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+
+  const [dashboardData, setDashboardData] = useState({
+    totalProjects: '...',
+    imagesUploaded: '0',
+    activeAnnotators: '...',
+    pendingAssignments: '0'
+  });
+  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+  const [projectsList, setProjectsList] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { getProjects, getLogs, getUsers } = await import('@/services/api');
+        const [projectsRes, logsRes, usersRes] = await Promise.all([
+          getProjects().catch(() => ({ data: { result: { content: [] } } })),
+          getLogs(0, 4).catch(() => ({ data: { result: { content: [] } } })),
+          getUsers().catch(() => ({ data: { result: [] } }))
+        ]);
+
+        const pList = projectsRes.data?.result?.content || projectsRes.data?.result || [];
+        const totalProjects = Array.isArray(pList) ? pList.length : 0;
+        
+        let totalImages = 0;
+        if (Array.isArray(pList)) {
+          totalImages = pList.reduce((sum, p) => sum + (p.imageCount || p.images || 0), 0);
+        }
+
+        const usersList = usersRes.data?.result || [];
+        const activeAnnotators = usersList.filter(u => u.role === 'ANNOTATOR').length;
+
+        const logsList = logsRes.data?.result?.content || [];
+        const mappedActivities = logsList.map((log, index) => {
+          let icon = 'check_circle';
+          let bgClass = 'activity-item__icon--primary-container';
+          let colorClass = 'activity-item__icon--text-primary-container';
+          
+          if (log.action?.includes('PROJECT')) {
+            icon = 'folder_managed';
+            bgClass = 'activity-item__icon--secondary-container';
+            colorClass = 'activity-item__icon--text-secondary-container';
+          }
+
+          return {
+            id: log.id || `log-${index}`,
+            icon,
+            iconBgClass: bgClass,
+            iconColorClass: colorClass,
+            message: (
+              <>
+                <strong>{log.createdBy}</strong> performed {log.action}
+              </>
+            ),
+            timestamp: new Date(log.timestamp).toLocaleString(),
+            category: 'PROJECT ACTIVITY',
+          };
+        });
+
+        setProjectsList(Array.isArray(pList) ? pList : []);
+        setDashboardData(prev => ({
+          ...prev,
+          totalProjects: totalProjects.toString(),
+          imagesUploaded: totalImages.toLocaleString(),
+          activeAnnotators: activeAnnotators.toString()
+        }));
+        
+        if (mappedActivities.length > 0) {
+          setRecentActivities(mappedActivities);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -404,33 +479,32 @@ export default function ManagerDashboard() {
             <section className="manager-stat-row" aria-label="Key metrics">
               <KpiCard
                 title="Total Projects"
-                value="42"
+                value={dashboardData.totalProjects}
                 icon="folder_managed"
-                trend="+12%"
+                trend="Real-time"
               />
               <KpiCard
                 title="Images Uploaded"
-                value="125,400"
+                value={dashboardData.imagesUploaded}
                 icon="storage"
-                trend="+24%"
+                trend="Real-time"
               />
               <KpiCard
                 title="Active Annotators"
-                value="18"
+                value={dashboardData.activeAnnotators}
                 icon="group"
               />
               <KpiCard
                 title="Pending Assignments"
-                value="2,847"
+                value={dashboardData.pendingAssignments}
                 icon="assignment_turned_in"
-                trend="+8"
               />
             </section>
 
             {/* Row 3 — main span 9: stacked white card (table + activity) */}
             <div className="manager-dashboard-grid__main">
               <div className="manager-stack-card">
-                <ProjectTable totalProjects={42} embedded />
+                <ProjectTable projects={projectsList} totalProjects={projectsList.length} embedded />
                 <section
                   className="activity-section activity-section--in-stack"
                   aria-labelledby="recent-activity-heading"
@@ -448,7 +522,7 @@ export default function ManagerDashboard() {
                     </button>
                   </div>
                   <div className="activity-section__list">
-                    {ACTIVITIES.map((activity) => (
+                    {recentActivities.map((activity) => (
                       <ActivityItem
                         key={activity.id}
                         icon={activity.icon}
