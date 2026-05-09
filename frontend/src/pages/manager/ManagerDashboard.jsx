@@ -103,14 +103,12 @@ export default function ManagerDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { getProjects, getLogs, getUsers } = await import('@/services/api');
-        const [projectsRes, logsRes, usersRes] = await Promise.all([
-          getProjects().catch(() => ({ data: { result: { content: [] } } })),
-          getLogs(0, 4).catch(() => ({ data: { result: { content: [] } } })),
-          getUsers().catch(() => ({ data: { result: [] } }))
+        const { getProjects } = await import('@/services/api');
+        const [projectsRes] = await Promise.all([
+          getProjects().catch(() => ({ data: { result: { data: [] } } }))
         ]);
 
-        const pList = projectsRes.data?.result?.content || projectsRes.data?.result || [];
+        const pList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
         const totalProjects = Array.isArray(pList) ? pList.length : 0;
         
         let totalImages = 0;
@@ -118,47 +116,13 @@ export default function ManagerDashboard() {
           totalImages = pList.reduce((sum, p) => sum + (p.imageCount || p.images || 0), 0);
         }
 
-        const usersList = usersRes.data?.result || [];
-        const activeAnnotators = usersList.filter(u => u.role === 'ANNOTATOR').length;
-
-        const logsList = logsRes.data?.result?.content || [];
-        const mappedActivities = logsList.map((log, index) => {
-          let icon = 'check_circle';
-          let bgClass = 'activity-item__icon--primary-container';
-          let colorClass = 'activity-item__icon--text-primary-container';
-          
-          if (log.action?.includes('PROJECT')) {
-            icon = 'folder_managed';
-            bgClass = 'activity-item__icon--secondary-container';
-            colorClass = 'activity-item__icon--text-secondary-container';
-          }
-
-          return {
-            id: log.id || `log-${index}`,
-            icon,
-            iconBgClass: bgClass,
-            iconColorClass: colorClass,
-            message: (
-              <>
-                <strong>{log.createdBy}</strong> performed {log.action}
-              </>
-            ),
-            timestamp: new Date(log.timestamp).toLocaleString(),
-            category: 'PROJECT ACTIVITY',
-          };
-        });
-
         setProjectsList(Array.isArray(pList) ? pList : []);
         setDashboardData(prev => ({
           ...prev,
           totalProjects: totalProjects.toString(),
           imagesUploaded: totalImages.toLocaleString(),
-          activeAnnotators: activeAnnotators.toString()
+          activeAnnotators: '0' // Manager cannot view all users, API not implemented yet
         }));
-        
-        if (mappedActivities.length > 0) {
-          setRecentActivities(mappedActivities);
-        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       }

@@ -81,7 +81,7 @@ export default function AdminDashboard() {
           const usersList = usersRes.data?.result || [];
           const totalUsers = usersList.length;
 
-          const projectsList = projectsRes.data?.result?.content || projectsRes.data?.result || [];
+          const projectsList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
           const activeProjects = Array.isArray(projectsList) ? projectsList.length : 0;
           
           const logsList = logsRes.data?.result?.content || [];
