@@ -103,25 +103,49 @@ export default function ManagerDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { getProjects } = await import('@/services/api');
+        const { getProjects, getProjectProgress } = await import('@/services/api');
         const [projectsRes] = await Promise.all([
           getProjects().catch(() => ({ data: { result: { data: [] } } }))
         ]);
 
         const pList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
-        const totalProjects = Array.isArray(pList) ? pList.length : 0;
         
-        let totalImages = 0;
-        if (Array.isArray(pList)) {
-          totalImages = pList.reduce((sum, p) => sum + (p.imageCount || p.images || 0), 0);
-        }
+        // Fetch progress stats for all projects concurrently
+        const pListWithProgress = await Promise.all(
+          pList.map(async (project) => {
+            try {
+              const progRes = await getProjectProgress(project.id);
+              const progData = progRes.data || {};
+              const total = progData.totalTasks || 0;
+              const completed = progData.completed || 0;
+              
+              return {
+                ...project,
+                progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+                // Automatically deduce status from mock progress data
+                status: total > 0 && completed === total ? 'Completed' : (completed > 0 ? 'In Progress' : 'Pending'),
+                // For mock visualization, let's assume totalTasks is the imageCount
+                imageCount: total,
+                stats: progData
+              };
+            } catch (err) {
+              return { ...project, progress: 0, status: 'Pending', stats: {} };
+            }
+          })
+        );
 
-        setProjectsList(Array.isArray(pList) ? pList : []);
+        const totalProjects = pListWithProgress.length;
+        
+        const totalImages = pListWithProgress.reduce((sum, p) => sum + (p.stats?.totalTasks || 0), 0);
+        const totalPending = pListWithProgress.reduce((sum, p) => sum + (p.stats?.notStarted || 0), 0);
+
+        setProjectsList(pListWithProgress);
         setDashboardData(prev => ({
           ...prev,
           totalProjects: totalProjects.toString(),
           imagesUploaded: totalImages.toLocaleString(),
-          activeAnnotators: '0' // Manager cannot view all users, API not implemented yet
+          activeAnnotators: '0', // API not implemented yet
+          pendingAssignments: totalPending.toLocaleString()
         }));
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);

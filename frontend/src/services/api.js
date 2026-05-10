@@ -135,17 +135,7 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 // Projects
 // =====================
-export const getProjects = () => {
-  return new Promise(resolve => setTimeout(() => resolve({
-    data: {
-      result: [
-        { id: 'proj-1', name: 'Summer Dataset' },
-        { id: 'proj-2', name: 'Medical Imaging' },
-        { id: 'proj-3', name: 'Satellite Alpha' }
-      ]
-    }
-  }), 500));
-};
+export const getProjects = () => api.get('/projects');
 
 export const createProject = ({ name, description }) =>
   api.post('/projects', {
