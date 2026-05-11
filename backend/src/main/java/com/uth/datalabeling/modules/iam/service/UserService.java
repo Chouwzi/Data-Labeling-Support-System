@@ -43,6 +43,12 @@ public class UserService {
         .toList();
   }
 
+  public List<UserResponse> getUsersByRole(String role) {
+    return userRepository.findAllByRole(role).stream()
+        .map(userMapper::toUserResponse)
+        .toList();
+  }
+
   public UserResponse getUserById(UUID id) {
     return userRepository.findById(id)
         .map(userMapper::toUserResponse)

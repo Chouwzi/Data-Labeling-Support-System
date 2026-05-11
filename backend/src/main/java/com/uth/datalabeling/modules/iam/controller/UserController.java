@@ -21,11 +21,11 @@ import java.util.UUID;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
   UserService userService;
 
   @PostMapping
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
   @LogActivity(action = "CREATE_USER", entityType = "USER")
   public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserCreationRequest request) {
@@ -35,6 +35,7 @@ public class UserController {
   }
 
   @GetMapping
+  @PreAuthorize("hasRole('ADMIN')")
   @LogActivity(action = "VIEW_ALL_USERS")
   public ApiResponse<List<UserResponse>> getAllUsers() {
     return ApiResponse.<List<UserResponse>>builder()
@@ -42,7 +43,16 @@ public class UserController {
         .build();
   }
 
+  @GetMapping("/annotators")
+  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+  public ApiResponse<List<UserResponse>> getAnnotators() {
+    return ApiResponse.<List<UserResponse>>builder()
+        .result(userService.getUsersByRole("ANNOTATOR"))
+        .build();
+  }
+
   @GetMapping("/{userId}")
+  @PreAuthorize("hasRole('ADMIN')")
   @LogActivity(action = "VIEW_USER")
   public ApiResponse<UserResponse> getUser(@PathVariable("userId") UUID userId) {
     return ApiResponse.<UserResponse>builder()
@@ -51,6 +61,7 @@ public class UserController {
   }
 
   @PutMapping("/{userId}")
+  @PreAuthorize("hasRole('ADMIN')")
   @LogActivity(action = "UPDATE_USER", entityType = "USER", entityIdParam = "userId")
   public ApiResponse<UserResponse> updateUser(@PathVariable("userId") UUID userId,
       @Valid @RequestBody UserUpdateRequest request) {
@@ -60,6 +71,7 @@ public class UserController {
   }
 
   @DeleteMapping("/{userId}")
+  @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @LogActivity(action = "DELETE_USER", entityType = "USER", entityIdParam = "userId")
   public ApiResponse<Void> deleteUser(@PathVariable("userId") UUID userId) {
