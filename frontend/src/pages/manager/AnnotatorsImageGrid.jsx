@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ArrowLeft, Check, Image as ImageIcon, Loader, LayoutGrid } from 'lucide-react';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
@@ -6,32 +6,8 @@ import Toast from '@/components/Toast';
 import AnnotatorSelect from '@/components/AnnotatorSelect';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { getProjects, getTasks, getAnnotators, generateTasks, assignTasks } from '@/services/api';
 import '@/styles/AnnotatorsImageGrid.css';
-
-/* ── Mock images ──────────────────────────────────────────────── */
-
-const INITIAL_IMAGES = [
-  { id: 1, imageUrl: 'https://images.unsplash.com/photo-1767039050462-6c21a0ad1874?w=400&h=300&fit=crop', fileName: 'aerial_view_city_001.jpg', project: 'Urban Mapping Alpha', resolution: '1920×1080' },
-  { id: 2, imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=300&fit=crop', fileName: 'street_scene_tokyo_002.jpg', project: 'Autonomous Vehicle V4', resolution: '1920×1080' },
-  { id: 3, imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&h=300&fit=crop', fileName: 'forest_canopy_drone_003.jpg', project: 'Ecological Survey Beta', resolution: '3840×2160' },
-  { id: 4, imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop', fileName: 'office_interior_004.jpg', project: 'Smart Building Dataset', resolution: '2560×1440' },
-  { id: 5, imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=300&fit=crop', fileName: 'medical_xray_005.jpg', project: 'Medical Imaging V2', resolution: '2048×2048' },
-  { id: 6, imageUrl: 'https://images.unsplash.com/photo-1579820010410-c10411aaaa88?w=400&h=300&fit=crop', fileName: 'satellite_agriculture_006.jpg', project: 'Agricultural Monitor', resolution: '4096×4096' },
-  { id: 7, imageUrl: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=400&h=300&fit=crop', fileName: 'night_traffic_hk_007.jpg', project: 'Autonomous Vehicle V4', resolution: '1920×1080' },
-  { id: 8, imageUrl: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=300&fit=crop', fileName: 'coastline_satellite_008.jpg', project: 'Coastal Erosion Study', resolution: '3840×2160' },
-  { id: 9, imageUrl: 'https://images.unsplash.com/photo-1615746934560-3f38a9e4dd2a?w=400&h=300&fit=crop', fileName: 'warehouse_indoor_009.jpg', project: 'Logistics Automation', resolution: '2560×1440' },
-  { id: 10, imageUrl: 'https://images.unsplash.com/photo-1535016120720-40c646be5580?w=400&h=300&fit=crop', fileName: 'sports_stadium_010.jpg', project: 'Event Detection AI', resolution: '1920×1080' },
-];
-
-/* ── Mock annotators ─────────────────────────────────────────── */
-
-const MOCK_ANNOTATORS = [
-  { id: 'a1', name: 'Alice Wong', email: 'alice@datalabel.pro', workload: 12 },
-  { id: 'a2', name: 'Marcus Chen', email: 'marcus.chen@datalabel.pro', workload: 8 },
-  { id: 'a3', name: 'Priya Nair', email: 'priya.nair@datalabel.pro', workload: 5 },
-  { id: 'a4', name: 'Jordan Ellis', email: 'jordan.ellis@datalabel.pro', workload: 17 },
-  { id: 'a5', name: 'Sofia Reyes', email: 'sofia.reyes@datalabel.pro', workload: 3 },
-];
 
 /* ── Component ────────────────────────────────────────────────── */
 
@@ -40,12 +16,118 @@ export default function AnnotatorsImageGrid() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [images, setImages] = useState(INITIAL_IMAGES.map(img => ({ ...img, status: 'unassigned', assignee: null })));
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [annotators, setAnnotators] = useState([]);
+  const [images, setImages] = useState([]);
   const [activeTab, setActiveTab] = useState('unassigned');
   const [selectedImageIds, setSelectedImageIds] = useState([]);
   const [selectedAnnotatorId, setSelectedAnnotatorId] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Fetch projects and annotators on mount
+    const loadInitialData = async () => {
+      try {
+        const [projectsRes, annotatorsRes] = await Promise.all([
+          getProjects(),
+          getAnnotators()
+        ]);
+        
+        const projectsData = Array.isArray(projectsRes.data?.result?.data) 
+          ? projectsRes.data.result.data 
+          : (Array.isArray(projectsRes.data?.result) ? projectsRes.data.result : (Array.isArray(projectsRes.data) ? projectsRes.data : []));
+        
+        const annotatorsData = Array.isArray(annotatorsRes.data?.result) ? annotatorsRes.data.result : (Array.isArray(annotatorsRes.data) ? annotatorsRes.data : []);
+        
+        setProjects(projectsData);
+        setAnnotators(annotatorsData.map(a => ({
+          id: a.id,
+          name: a.fullName || a.email,
+          email: a.email,
+          workload: 0 // Mock workload if not available in API
+        })));
+        
+        if (projectsData.length > 0) {
+          setSelectedProjectId(projectsData[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load initial data:', error);
+        setToast({ message: 'Failed to load projects or annotators' });
+      }
+    };
+    
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    // Fetch tasks when project changes
+    const loadTasks = async () => {
+      if (!selectedProjectId) return;
+      
+      setIsLoading(true);
+      try {
+        const res = await getTasks(selectedProjectId, 'PENDING');
+        const tasksData = Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []);
+        
+        setImages(tasksData.map(task => ({
+          id: task.id,
+          imageUrl: task.imageUrl,
+          fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
+          project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
+          resolution: 'N/A', // Not available in TaskResponse
+          status: 'unassigned',
+          assignee: null
+        })));
+        
+        // Clear selection when project changes
+        setSelectedImageIds([]);
+      } catch (error) {
+        console.error('Failed to load tasks:', error);
+        setToast({ message: 'Failed to load images for selected project' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTasks();
+  }, [selectedProjectId, projects]);
+
+  const handleGenerateTasks = async () => {
+    const selectedProject = projects.find(p => p.id === selectedProjectId);
+    const datasetId = selectedProject?.dataset_id || selectedProject?.datasetId;
+    if (!selectedProject || !datasetId) {
+      setToast({ message: 'Project has no associated dataset' });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      await generateTasks(selectedProjectId, datasetId);
+      setToast({ message: 'Tasks generated successfully!' });
+      
+      // Reload tasks
+      const res = await getTasks(selectedProjectId, 'PENDING');
+      const tasksData = Array.isArray(res.data?.result?.data) ? res.data.result.data : (Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []));
+      
+      setImages(tasksData.map(task => ({
+        id: task.id,
+        imageUrl: task.imageUrl,
+        fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
+        project: selectedProject.name,
+        resolution: 'N/A',
+        status: 'unassigned',
+        assignee: null
+      })));
+    } catch (error) {
+      console.error('Failed to generate tasks:', error);
+      setToast({ message: 'Failed to generate tasks' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -74,28 +156,38 @@ export default function AnnotatorsImageGrid() {
 
   /* ── Assign ───────────────────────────────────────────────── */
 
-  const handleAssign = useCallback(() => {
+  const handleAssign = useCallback(async () => {
     if (selectedImageIds.length === 0 || !selectedAnnotatorId) return;
-    const annotator = MOCK_ANNOTATORS.find((a) => a.id === selectedAnnotatorId);
+    const annotator = annotators.find((a) => a.id === selectedAnnotatorId);
     if (!annotator) return;
 
     setIsAssigning(true);
-    setTimeout(() => {
+    try {
+      await assignTasks(selectedProjectId, {
+        task_ids: selectedImageIds,
+        annotator_id: selectedAnnotatorId
+      });
+
       setImages((prev) => prev.map((img) => 
         selectedImageIds.includes(img.id)
           ? { ...img, status: 'assigned', assignee: annotator.name }
           : img
       ));
+      
       setSelectedImageIds([]);
       setSelectedAnnotatorId('');
-      setIsAssigning(false);
 
       const count = selectedImageIds.length;
       setToast({
         message: `Successfully allocated ${count} image${count !== 1 ? 's' : ''} to ${annotator.name}`,
       });
-    }, 1600);
-  }, [selectedImageIds, selectedAnnotatorId]);
+    } catch (error) {
+      console.error('Failed to assign tasks:', error);
+      setToast({ message: 'Failed to assign tasks' });
+    } finally {
+      setIsAssigning(false);
+    }
+  }, [selectedImageIds, selectedAnnotatorId, selectedProjectId, annotators]);
 
   const closeToast = useCallback(() => setToast(null), []);
 
@@ -143,6 +235,37 @@ export default function AnnotatorsImageGrid() {
             <p className="aig-page-subtitle">
               Select images and choose an annotator to allocate work items to your team.
             </p>
+
+            {/* Project Selector */}
+            <div className="aig-project-selector" style={{ marginTop: '15px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label htmlFor="project-select" style={{ fontWeight: '500', fontSize: '14px', color: '#4b5563' }}>Project:</label>
+              <select
+                id="project-select"
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#fff',
+                  fontSize: '14px',
+                  minWidth: '200px',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                }}
+              >
+                {projects.length === 0 ? (
+                  <option value="">No projects available</option>
+                ) : (
+                  projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {isLoading && <Loader size={16} className="aig-assign-btn__spinner" />}
+            </div>
           </div>
 
           {/* Tabs */}
@@ -240,6 +363,17 @@ export default function AnnotatorsImageGrid() {
                   ? 'All images have been allocated to annotators. New uploads will appear here.'
                   : 'No images have been assigned yet.'}
               </p>
+              {activeTab === 'unassigned' && selectedProjectId && (
+                <button
+                  type="button"
+                  className="aig-assign-btn"
+                  style={{ marginTop: '15px' }}
+                  onClick={handleGenerateTasks}
+                >
+                  <LayoutGrid size={15} style={{ marginRight: '8px' }} />
+                  <span>Generate Tasks from Dataset</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -293,7 +427,7 @@ export default function AnnotatorsImageGrid() {
           <div className="aig-sticky-bar__right">
             <div className="aig-assign-controls">
               <AnnotatorSelect
-                annotators={MOCK_ANNOTATORS}
+                annotators={annotators}
                 selectedId={selectedAnnotatorId}
                 onChange={setSelectedAnnotatorId}
                 placeholder="Choose annotator..."

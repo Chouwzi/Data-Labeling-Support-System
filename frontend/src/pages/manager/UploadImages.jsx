@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
-import { getProjects, uploadImageMock } from '@/services/api';
+import { getProjects, uploadSamples, createDataset, updateProject } from '@/services/api';
 import {
   Upload, X, CheckCircle, AlertCircle, Image, Loader2, Lightbulb,
   Trash2, ChevronRight, Info, Sparkles, Shield
@@ -143,14 +143,40 @@ export default function UploadImages() {
     setIsUploading(false);
   }, [files]);
 
-  const handleUpload = useCallback(() => {
+  const handleUpload = useCallback(async () => {
     if (!projectId) {
       alert('Please select a project before uploading images.');
       return;
     }
 
+    const selectedProject = projectsList.find(p => p.id === projectId);
+    let datasetId = selectedProject?.dataset_id || selectedProject?.datasetId;
+    
+    if (!datasetId) {
+      setIsUploading(true);
+      try {
+        // 1. Create dataset
+        const datasetRes = await createDataset(selectedProject.name);
+        datasetId = datasetRes.data.result.id;
+        
+        // 2. Update project with datasetId
+        await updateProject(projectId, { dataset_id: datasetId });
+        
+        // Update local state
+        setProjectsList(prev => prev.map(p => p.id === projectId ? { ...p, datasetId } : p));
+      } catch (error) {
+        console.error('Failed to create dataset for project:', error);
+        alert('Failed to initialize dataset for this project.');
+        setIsUploading(false);
+        return;
+      }
+    }
+
     const readyFiles = files.filter((f) => f.status === 'ready');
-    if (readyFiles.length === 0) return;
+    if (readyFiles.length === 0) {
+      setIsUploading(false);
+      return;
+    }
 
     setFiles((prev) =>
       prev.map((f) => ({
@@ -164,7 +190,7 @@ export default function UploadImages() {
     Promise.allSettled(
       readyFiles.map(async (fileObj) => {
         try {
-          await uploadImageMock(projectId, fileObj.file, (progressEvent) => {
+          await uploadSamples(datasetId, fileObj.file, (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setFiles((prev) => prev.map(f => 
               f.id === fileObj.id ? { ...f, progress: percentCompleted } : f
