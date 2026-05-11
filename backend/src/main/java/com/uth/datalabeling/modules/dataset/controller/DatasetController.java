@@ -38,6 +38,7 @@ public class DatasetController {
      * Lấy danh sách tất cả tập dữ liệu.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ApiResponse<List<DatasetResponse>> getAllDatasets() {
         return ApiResponse.<List<DatasetResponse>>builder()
                 .result(datasetService.getAllDatasets())
@@ -48,6 +49,7 @@ public class DatasetController {
      * Lấy chi tiết một tập dữ liệu theo ID.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ApiResponse<DatasetResponse> getDataset(@PathVariable UUID id) {
         return ApiResponse.<DatasetResponse>builder()
                 .result(datasetService.getDatasetById(id))
@@ -58,6 +60,7 @@ public class DatasetController {
      * Lấy danh sách các mẫu dữ liệu (DataSamples) trong tập dữ liệu.
      */
     @GetMapping("/{id}/samples")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ApiResponse<List<DataSampleResponse>> getSamples(@PathVariable UUID id) {
         return ApiResponse.<List<DataSampleResponse>>builder()
                 .result(datasetService.getSamplesByDataset(id))
