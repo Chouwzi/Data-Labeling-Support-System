@@ -10,12 +10,11 @@ import java.util.Map;
 @Configuration
 public class CloudinaryConfig {
 
-    @org.springframework.beans.factory.annotation.Value("${CLOUDINARY_URL:cloudinary://key:secret@cloudname}")
+    @org.springframework.beans.factory.annotation.Value("${CLOUDINARY_URL:}")
     private String cloudinaryUrl;
 
     @Bean
     public Cloudinary cloudinary() {
-        // Use the injected CLOUDINARY_URL which defaults to a dummy value if missing (for tests)
         return new Cloudinary(cloudinaryUrl);
     }
 }

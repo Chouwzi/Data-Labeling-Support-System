@@ -215,15 +215,11 @@ export default function Projects() {
         const raw = response.data?.result ?? response.data ?? {};
 
 
+        // Guideline file upload is not supported by backend yet
         if (file && raw.id) {
-          try {
-            await uploadGuidelineFile(raw.id, file);
-          } catch (uploadErr) {
-            console.warn('Upload failed:', uploadErr.response?.data);
-            setErrors({
-              submit: 'Project created successfully, but file upload failed.',
-            });
-          }
+          console.warn('Guideline file upload is not supported by backend yet.');
+          // The backend expects a URL in guidelineUrl field instead of a file upload.
+          // Since we cannot modify the backend, we skip this call to avoid 500/404 errors.
         }
 
         setSubmitSuccess(true);

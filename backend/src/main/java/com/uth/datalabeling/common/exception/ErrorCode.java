@@ -27,6 +27,8 @@ public enum ErrorCode {
   USER_NOT_FOUND(404, 40401, "Không tìm thấy người dùng"),
   PROJECT_NOT_FOUND(404, 40402, "Không tìm thấy dự án"),
   LABEL_NOT_FOUND(404, 40403, "Không tìm thấy nhãn dán"),
+  DATASET_NOT_FOUND(404, 40404, "Không tìm thấy tập dữ liệu"),
+  TASK_NOT_FOUND(404, 40405, "Không tìm thấy công việc"),
 
   // 405 Method Not Allowed
   METHOD_NOT_ALLOWED(405, 40500, "Phương thức không được hỗ trợ"),

@@ -63,6 +63,8 @@ export const login = (email, password) => {
 // =====================
 export const getUsers = () => api.get('/users');
 
+export const getAnnotators = () => api.get('/users/annotators');
+
 export const createUser = (data) => api.post('/users', data);
 
 export const updateUser = (userId, data) => api.put(`/users/${userId}`, data);
@@ -137,12 +139,27 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 export const getProjects = () => api.get('/projects');
 
+export const getTasks = (projectId, status) =>
+  api.get(`/projects/${projectId}/tasks`, { params: { status } });
+
+export const generateTasks = (projectId, datasetId) =>
+  api.post(`/projects/${projectId}/tasks/generate`, null, { params: { datasetId } });
+
+export const assignTasks = (projectId, data) =>
+  api.put(`/projects/${projectId}/tasks/assign`, data);
+
 export const createProject = ({ name, description }) =>
   api.post('/projects', {
     name,
     description,
     labels: [],
   });
+
+export const createDataset = (name) =>
+  api.post('/datasets', { name });
+
+export const updateProject = (projectId, data) =>
+  api.put(`/projects/${projectId}`, data);
 
 export const uploadGuidelineFile = (projectId, file) => {
   const formData = new FormData();
@@ -155,27 +172,12 @@ export const uploadGuidelineFile = (projectId, file) => {
   });
 };
 
-// =====================
-// Tasks & Progress
-// =====================
-export const getProjectProgress = (projectId) => {
-  const salt = projectId ? String(projectId).charCodeAt(0) + String(projectId).length : 1;
-  return new Promise(resolve => setTimeout(() => resolve({
-    data: {
-      totalTasks: 1000 + salt * 50,
-      completed: 400 + salt * 40,
-      inProgress: 50 + salt,
-      notStarted: 550 + salt * 9
-    }
-  }), 800));
-};
-
-// Mock function for UploadImages.jsx until batch upload is refactored
-export const uploadImageMock = (projectId, file, onUploadProgress) => {
+// Function to upload samples to a dataset
+export const uploadSamples = (datasetId, file, onUploadProgress) => {
   const formData = new FormData();
-  formData.append('files', file); // Note: backend expects 'files' list
+  formData.append('file', file); // Backend expects 'file' key
 
-  return api.post('/images/upload', formData, {
+  return api.post(`/datasets/${datasetId}/samples`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
