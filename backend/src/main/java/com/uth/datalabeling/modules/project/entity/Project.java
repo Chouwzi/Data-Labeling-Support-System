@@ -1,5 +1,6 @@
 package com.uth.datalabeling.modules.project.entity;
 
+import com.uth.datalabeling.modules.dataset.entity.Dataset;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,9 @@ public class Project {
     @Column(nullable = false)
     UUID managerId;
 
-    UUID datasetId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dataset_id")
+    Dataset dataset;
 
     @Column(nullable = false)
     String status;
