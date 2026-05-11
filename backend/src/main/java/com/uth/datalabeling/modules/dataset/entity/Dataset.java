@@ -12,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Thực thể Tập dữ liệu (Dataset).
+ * Chứa danh sách các mẫu dữ liệu (DataSample) để dùng cho các dự án gắn nhãn.
+ */
 @Entity
 @Table(name = "datasets")
 @Data
@@ -26,18 +30,18 @@ public class Dataset {
     UUID id;
 
     @Column(nullable = false)
-    String name;
+    String name; // Tên tập dữ liệu
 
     @Column(length = 1000)
-    String description;
+    String description; // Mô tả tập dữ liệu
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id")
-    User creator;
+    User creator; // Người tạo tập dữ liệu
 
     @OneToMany(mappedBy = "dataset", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    List<DataSample> dataSamples = new ArrayList<>();
+    List<DataSample> dataSamples = new ArrayList<>(); // Danh sách các mẫu dữ liệu
 
     @CreationTimestamp
     @Column(updatable = false)

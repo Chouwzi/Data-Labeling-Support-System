@@ -34,6 +34,9 @@ public class TaskService {
     UserRepository userRepository;
     TaskMapper taskMapper;
 
+    /**
+     * Tạo danh sách công việc (Tasks) từ các mẫu dữ liệu trong một tập dữ liệu (Dataset).
+     */
     @Transactional
     public void generateTasksFromDataset(UUID projectId, UUID datasetId) {
         Project project = projectRepository.findById(projectId)
@@ -42,7 +45,7 @@ public class TaskService {
         Dataset dataset = datasetRepository.findById(datasetId)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
 
-        // Create a task for each sample in the dataset
+        // Tạo một task cho mỗi mẫu dữ liệu trong dataset
         dataset.getDataSamples().forEach(sample -> {
             Task task = Task.builder()
                     .project(project)
@@ -53,6 +56,9 @@ public class TaskService {
         });
     }
 
+    /**
+     * Phân bổ danh sách công việc cho một người gắn nhãn (Annotator).
+     */
     @Transactional
     public List<TaskResponse> assignTasks(TaskAssignRequest request) {
         User annotator = userRepository.findById(request.getAnnotatorId())
@@ -70,9 +76,12 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lấy danh sách công việc của dự án, hỗ trợ lọc theo trạng thái.
+     */
     @Transactional(readOnly = true)
     public List<TaskResponse> getTasksByProject(UUID projectId, String status) {
-        // Simple implementation for now, could be improved with custom queries
+        // Hiện tại dùng cách lọc đơn giản, có thể tối ưu bằng custom query trong repository
         return taskRepository.findAll().stream()
                 .filter(task -> task.getProject().getId().equals(projectId))
                 .filter(task -> status == null || task.getStatus().equalsIgnoreCase(status))

@@ -22,6 +22,10 @@ public class TaskController {
 
     TaskService taskService;
 
+    /**
+     * Tạo danh sách công việc (Tasks) cho dự án từ một tập dữ liệu (Dataset).
+     * Yêu cầu quyền MANAGER hoặc ADMIN.
+     */
     @PostMapping("/generate")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ApiResponse<Void> generateTasks(
@@ -33,6 +37,10 @@ public class TaskController {
                 .build();
     }
 
+    /**
+     * Lấy danh sách công việc của một dự án, có thể lọc theo trạng thái.
+     * Yêu cầu quyền MANAGER, ADMIN hoặc ANNOTATOR.
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'ANNOTATOR')")
     public ApiResponse<List<TaskResponse>> getTasks(
@@ -43,12 +51,16 @@ public class TaskController {
                 .build();
     }
 
+    /**
+     * Phân bổ công việc cho người gắn nhãn (Annotator).
+     * Yêu cầu quyền MANAGER hoặc ADMIN.
+     */
     @PutMapping("/assign")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ApiResponse<List<TaskResponse>> assignTasks(
             @PathVariable UUID projectId,
             @RequestBody @Valid TaskAssignRequest request) {
-        // In a real scenario, we might want to verify that the tasks belong to the projectId
+        // Trong thực tế, cần kiểm tra các task này có thuộc về projectId hay không
         return ApiResponse.<List<TaskResponse>>builder()
                 .result(taskService.assignTasks(request))
                 .build();

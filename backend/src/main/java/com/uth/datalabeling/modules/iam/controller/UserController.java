@@ -24,6 +24,9 @@ import java.util.UUID;
 public class UserController {
   UserService userService;
 
+  /**
+   * Tạo mới một người dùng.
+   */
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.CREATED)
@@ -34,6 +37,9 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Lấy danh sách tất cả người dùng.
+   */
   @GetMapping
   @PreAuthorize("hasRole('ADMIN')")
   @LogActivity(action = "VIEW_ALL_USERS")
@@ -43,6 +49,9 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Lấy danh sách những người gắn nhãn (Annotators).
+   */
   @GetMapping("/annotators")
   @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   public ApiResponse<List<UserResponse>> getAnnotators() {
@@ -51,6 +60,9 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Lấy thông tin chi tiết một người dùng theo ID.
+   */
   @GetMapping("/{userId}")
   @PreAuthorize("hasRole('ADMIN')")
   @LogActivity(action = "VIEW_USER")
@@ -60,6 +72,9 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Cập nhật thông tin người dùng.
+   */
   @PutMapping("/{userId}")
   @PreAuthorize("hasRole('ADMIN')")
   @LogActivity(action = "UPDATE_USER", entityType = "USER", entityIdParam = "userId")
@@ -70,6 +85,9 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Xóa một người dùng.
+   */
   @DeleteMapping("/{userId}")
   @PreAuthorize("hasRole('ADMIN')")
   @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -77,7 +95,7 @@ public class UserController {
   public ApiResponse<Void> deleteUser(@PathVariable("userId") UUID userId) {
     userService.deleteUser(userId);
     return ApiResponse.<Void>builder()
-        .message("User has been deleted")
+        .message("Người dùng đã được xóa thành công.")
         .build();
   }
 }

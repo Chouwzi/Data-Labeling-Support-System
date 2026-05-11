@@ -11,6 +11,10 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Thực thể Mẫu dữ liệu (Data Sample).
+ * Đại diện cho một hình ảnh hoặc một đơn vị dữ liệu trong một tập dữ liệu.
+ */
 @Entity
 @Table(name = "data_samples")
 @Data
@@ -26,14 +30,14 @@ public class DataSample {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dataset_id", nullable = false)
-    Dataset dataset;
+    Dataset dataset; // Thuộc về tập dữ liệu nào
 
     @Column(name = "image_url", nullable = false, length = 500)
-    String imageUrl;
+    String imageUrl; // Đường dẫn hình ảnh
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    Map<String, Object> metadata;
+    Map<String, Object> metadata; // Thông tin bổ sung (dạng JSON)
 
     @CreationTimestamp
     @Column(updatable = false)

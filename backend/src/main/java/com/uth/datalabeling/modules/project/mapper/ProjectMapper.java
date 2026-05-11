@@ -21,6 +21,7 @@ public interface ProjectMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "managerId", ignore = true)
+    @Mapping(target = "dataset", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -32,6 +33,7 @@ public interface ProjectMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "managerId", ignore = true)
+    @Mapping(target = "dataset", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -41,6 +43,7 @@ public interface ProjectMapper {
     @Mapping(target = "labels", ignore = true)
     void updateProject(@MappingTarget Project project, ProjectUpdateRequest request);
 
+    @Mapping(target = "datasetId", source = "dataset.id")
     ProjectResponse toProjectResponse(Project project);
 
     @Mapping(target = "id", ignore = true)

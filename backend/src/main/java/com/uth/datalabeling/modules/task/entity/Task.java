@@ -12,6 +12,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Thực thể Công việc (Task).
+ * Kết nối một mẫu dữ liệu (Sample) với một dự án (Project) và một người gắn nhãn (Annotator).
+ */
 @Entity
 @Table(name = "tasks")
 @Data
@@ -27,19 +31,19 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
-    Project project;
+    Project project; // Thuộc dự án nào
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "annotator_id")
-    User annotator;
+    User annotator; // Người được giao thực hiện (Annotator)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sample_id", nullable = false)
-    DataSample sample;
+    DataSample sample; // Mẫu dữ liệu cần gắn nhãn
 
     @Column(length = 50)
     @Builder.Default
-    String status = "PENDING";
+    String status = "PENDING"; // Trạng thái: PENDING, ASSIGNED, IN_PROGRESS, DONE...
 
     @CreationTimestamp
     @Column(updatable = false)

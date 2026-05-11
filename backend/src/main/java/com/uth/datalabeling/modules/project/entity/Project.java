@@ -30,22 +30,22 @@ public class Project {
     UUID id;
 
     @Column(nullable = false)
-    String name;
+    String name; // Tên dự án
 
     @Column(length = 500)
-    String description;
+    String description; // Mô tả dự án
 
-    String guidelineUrl;
+    String guidelineUrl; // Link tài liệu hướng dẫn
 
     @Column(nullable = false)
-    UUID managerId;
+    UUID managerId; // ID của quản lý dự án
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dataset_id")
-    Dataset dataset;
+    Dataset dataset; // Tập dữ liệu được liên kết với dự án
 
     @Column(nullable = false)
-    String status;
+    String status; // Trạng thái dự án: ACTIVE, COMPLETED, ARCHIVED...
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

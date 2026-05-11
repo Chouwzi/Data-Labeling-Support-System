@@ -17,6 +17,7 @@ import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.mapper.ProjectMapper;
 import com.uth.datalabeling.modules.project.repository.ProjectRepository;
+import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class ProjectService {
     ProjectRepository projectRepository;
     ProjectAccessService projectAccessService;
     ProjectMapper projectMapper;
+    DatasetRepository datasetRepository;
 
 
     /**
@@ -51,6 +53,12 @@ public class ProjectService {
 
         // map request → entity
         Project project = projectMapper.toProject(request);
+
+        // handle dataset if provided
+        if (request.getDatasetId() != null) {
+            project.setDataset(datasetRepository.findById(request.getDatasetId())
+                    .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND)));
+        }
 
 
         // set thông tin hệ thống
@@ -123,6 +131,12 @@ public class ProjectService {
 
         projectMapper.updateProject(project, request);
         project.setUpdatedBy(projectAccessService.getCurrentUser().getId());
+
+        // handle dataset update if provided
+        if (request.getDatasetId() != null) {
+            project.setDataset(datasetRepository.findById(request.getDatasetId())
+                    .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND)));
+        }
 
         if (request.getLabels() != null) {
             syncLabels(project, request);
