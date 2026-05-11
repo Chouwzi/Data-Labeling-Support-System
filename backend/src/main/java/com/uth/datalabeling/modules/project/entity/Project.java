@@ -1,5 +1,6 @@
 package com.uth.datalabeling.modules.project.entity;
 
+import com.uth.datalabeling.modules.dataset.entity.Dataset;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,20 +30,22 @@ public class Project {
     UUID id;
 
     @Column(nullable = false)
-    String name;
+    String name; // Tên dự án
 
     @Column(length = 500)
-    String description;
+    String description; // Mô tả dự án
 
-    String guidelineUrl;
-
-    @Column(nullable = false)
-    UUID managerId;
-
-    UUID datasetId;
+    String guidelineUrl; // Link tài liệu hướng dẫn
 
     @Column(nullable = false)
-    String status;
+    UUID managerId; // ID của quản lý dự án
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dataset_id")
+    Dataset dataset; // Tập dữ liệu được liên kết với dự án
+
+    @Column(nullable = false)
+    String status; // Trạng thái dự án: ACTIVE, COMPLETED, ARCHIVED...
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

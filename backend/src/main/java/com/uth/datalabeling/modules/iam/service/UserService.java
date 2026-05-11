@@ -25,6 +25,9 @@ public class UserService {
   UserMapper userMapper;
   PasswordEncoder passwordEncoder;
 
+  /**
+   * Tạo người dùng mới.
+   */
   public UserResponse createUser(UserCreationRequest request) {
     if (userRepository.existsByEmail(request.getEmail())) {
       throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
@@ -32,23 +35,41 @@ public class UserService {
 
     User user = userMapper.toUser(request);
 
-    // Hash password bằng BCrypt
+    // Mã hóa mật khẩu bằng BCrypt
     user.setPassword(passwordEncoder.encode(user.getPassword()));
     return userMapper.toUserResponse(userRepository.save(user));
   }
 
+  /**
+   * Lấy tất cả người dùng.
+   */
   public List<UserResponse> getAllUsers() {
     return userRepository.findAll().stream()
         .map(userMapper::toUserResponse)
         .toList();
   }
 
+  /**
+   * Lấy danh sách người dùng theo vai trò (Role).
+   */
+  public List<UserResponse> getUsersByRole(String role) {
+    return userRepository.findAllByRole(role).stream()
+        .map(userMapper::toUserResponse)
+        .toList();
+  }
+
+  /**
+   * Lấy người dùng theo ID.
+   */
   public UserResponse getUserById(UUID id) {
     return userRepository.findById(id)
         .map(userMapper::toUserResponse)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
   }
 
+  /**
+   * Cập nhật thông tin người dùng.
+   */
   public UserResponse updateUser(UUID id, UserUpdateRequest request) {
     User user = userRepository.findById(id)
         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -68,6 +89,9 @@ public class UserService {
     return userMapper.toUserResponse(userRepository.save(user));
   }
 
+  /**
+   * Xóa người dùng theo ID.
+   */
   public void deleteUser(UUID id) {
     if (!userRepository.existsById(id)) {
       throw new AppException(ErrorCode.USER_NOT_FOUND);

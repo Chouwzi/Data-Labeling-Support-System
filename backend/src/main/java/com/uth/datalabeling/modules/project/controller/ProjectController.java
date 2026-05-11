@@ -74,7 +74,7 @@ public class ProjectController {
      * Lấy chi tiết một dự án.
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN', 'ANNOTATOR', 'REVIEWER')")
     @LogActivity(action = "VIEW_PROJECT", entityType = "PROJECT", entityIdParam = "id")
     public ApiResponse<ProjectResponse> getProjectById(@PathVariable UUID id) {
         ProjectResponse response = projectService.getProjectById(id);

@@ -81,12 +81,13 @@ public class UserControllerTest {
                 .id(userId)
                 .email("test@example.com")
                 .fullName("Test Admin")
-                .role("ADMIN")
+                .role("ANNOTATOR")
                 .active(true)
                 .build();
 
         Mockito.when(userService.createUser(any(UserCreationRequest.class))).thenReturn(mockResponse);
         Mockito.when(userService.getAllUsers()).thenReturn(List.of(mockResponse));
+        Mockito.when(userService.getUsersByRole("ANNOTATOR")).thenReturn(List.of(mockResponse));
         Mockito.when(userService.getUserById(userId)).thenReturn(mockResponse);
         Mockito.when(userService.updateUser(eq(userId), any(UserUpdateRequest.class))).thenReturn(mockResponse);
         Mockito.doNothing().when(userService).deleteUser(userId);
@@ -135,7 +136,15 @@ public class UserControllerTest {
     void deleteUser_WithAdminRole_ReturnsNoContent() throws Exception {
         mockMvc.perform(delete("/users/" + userId))
                 .andExpect(status().isNoContent())
-                .andExpect(jsonPath("$.message").value("User has been deleted"));
+                .andExpect(jsonPath("$.message").value("Người dùng đã được xóa thành công."));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getAnnotators_WithAdminRole_ReturnsList() throws Exception {
+        mockMvc.perform(get("/users/annotators"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result[0].role").value("ANNOTATOR"));
     }
 
     // --- NEGATIVE TESTS (ROLE = ANNOTATOR) ---
