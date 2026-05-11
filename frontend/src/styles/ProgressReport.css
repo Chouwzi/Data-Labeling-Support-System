@@ -86,6 +86,46 @@
   flex-wrap: wrap;
 }
 
+/* ── Project Selector ────────────────────────────────────────── */
+.progress-report-project-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.project-select-input {
+  appearance: none;
+  background-color: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 240px;
+}
+
+.project-select-input:hover {
+  border-color: #059669;
+  background-color: #ffffff;
+}
+
+.project-select-input:focus {
+  outline: none;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.project-select-icon {
+  position: absolute;
+  right: 1rem;
+  color: #64748b;
+  pointer-events: none;
+}
+
 /* ── Pill Design (Emerald Green Theme) ───────────────────────── */
 .pill {
   display: inline-flex;

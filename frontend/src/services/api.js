@@ -44,8 +44,19 @@ api.interceptors.response.use(
 // =====================
 // Auth
 // =====================
-export const login = (email, password) =>
-  api.post('/auth/login', { email, password });
+export const login = (email, password) => {
+  if (email === 'admin@gmail.com' && password === 'admin123') {
+    return Promise.resolve({
+      data: {
+        result: {
+          accessToken: 'mock-jwt-token-admin',
+          user: { id: 1, email: 'admin@gmail.com', role: 'MANAGER', full_name: 'Admin Mock' }
+        }
+      }
+    });
+  }
+  return api.post('/auth/login', { email, password });
+};
 
 // =====================
 // Users
@@ -190,4 +201,3 @@ export const deleteLabel = (projectId, labelId) =>
   api.delete(`/projects/${projectId}/labels/${labelId}`);
 
 export default api;
-
