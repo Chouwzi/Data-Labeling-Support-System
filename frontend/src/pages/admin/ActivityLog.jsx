@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getLogs } from '@/services/api';
 import '@/styles/AdminDashboard.css';
@@ -82,7 +82,7 @@ const handleLogout = () => {
         minute: '2-digit',
         second: '2-digit'
       });
-    } catch (_) {
+    } catch {
       return 'N/A';
     }
   };

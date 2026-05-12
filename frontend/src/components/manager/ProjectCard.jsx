@@ -2,6 +2,7 @@ import { Edit2, Eye, Clock, Image as ImageIcon, Tag, Users } from 'lucide-react'
 
 export default function ProjectCard({ project, statusColors }) {
   const status = statusColors[project.status] || statusColors.initialized;
+  const isNew = Boolean(project.isNew);
 
   return (
     <article className="project-card" role="listitem">

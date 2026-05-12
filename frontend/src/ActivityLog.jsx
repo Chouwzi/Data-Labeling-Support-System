@@ -2,10 +2,53 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from './contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
 import './ActivityLog.css';
+
+const MOCK_LOGS = [
+  {
+    id: 1,
+    timestamp: '2026-05-12T08:00:00.000Z',
+    userEmail: 'admin@gmail.com',
+    action: 'USER_LOGIN',
+    targetName: 'System',
+    status: 'SUCCESS'
+  },
+  {
+    id: 2,
+    timestamp: '2026-05-12T07:00:00.000Z',
+    userEmail: 'admin@gmail.com',
+    action: 'CONFIG_UPDATE',
+    targetName: 'AI Labeling Settings',
+    status: 'SUCCESS'
+  },
+  {
+    id: 3,
+    timestamp: '2026-05-12T06:00:00.000Z',
+    userEmail: 'staff@gmail.com',
+    action: 'DATA_UPLOAD',
+    targetName: 'Dataset Batch #23',
+    status: 'SUCCESS'
+  },
+  {
+    id: 4,
+    timestamp: '2026-05-12T05:00:00.000Z',
+    userEmail: 'system',
+    action: 'BACKUP_COMPLETE',
+    targetName: 'Nightly Backup',
+    status: 'INFO'
+  },
+  {
+    id: 5,
+    timestamp: '2026-05-12T04:00:00.000Z',
+    userEmail: 'admin@gmail.com',
+    action: 'USER_LOGOUT',
+    targetName: 'System',
+    status: 'INFO'
+  }
+];
 
 const ActivityLog = () => {
   const { user, logout } = useAuth();
@@ -13,48 +56,7 @@ const ActivityLog = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Mock data - Replace with actual API when available
-  const [logs] = useState([
-    {
-      id: 1,
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      userEmail: 'admin@gmail.com',
-      action: 'USER_LOGIN',
-      targetName: 'System',
-      status: 'SUCCESS'
-    },
-    {
-      id: 2,
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      userEmail: 'admin@gmail.com',
-      action: 'CONFIG_UPDATE',
-      targetName: 'AI Labeling Settings',
-      status: 'SUCCESS'
-    },
-    {
-      id: 3,
-      timestamp: new Date(Date.now() - 10800000).toISOString(),
-      userEmail: 'staff@gmail.com',
-      action: 'DATA_UPLOAD',
-      targetName: 'Dataset Batch #23',
-      status: 'SUCCESS'
-    },
-    {
-      id: 4,
-      timestamp: new Date(Date.now() - 14400000).toISOString(),
-      userEmail: 'system',
-      action: 'BACKUP_COMPLETE',
-      targetName: 'Nightly Backup',
-      status: 'INFO'
-    },
-    {
-      id: 5,
-      timestamp: new Date(Date.now() - 18000000).toISOString(),
-      userEmail: 'admin@gmail.com',
-      action: 'USER_LOGOUT',
-      targetName: 'System',
-      status: 'INFO'
-    }
-  ]);
+  const [logs] = useState(MOCK_LOGS);
 
   const handleLogout = () => {
     logout();

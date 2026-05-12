@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import KpiCard from '@/components/dashboard/KpiCard';
 import BrandLogo from '@/components/common/BrandLogo';
 import { Image, CheckCircle, Clock, AlertCircle, TrendingUp, Users, ChevronDown } from 'lucide-react';
-import { getProjects, getProjectProgress } from '@/services/api';
+import { getProjects, getTasks } from '@/services/api';
 import '@/styles/ProgressReport.css';
 
 const CAMPAIGNS = ['All Campaigns', 'Summer Dataset', 'Medical Imaging', 'Satellite Alpha', 'Urban Street View'];
@@ -124,7 +124,6 @@ export default function ProgressReport() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [progressData, setProgressData] = useState(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -157,32 +156,81 @@ export default function ProgressReport() {
   }, []);
 
   // ── Fetch Stats when project changes ──
+  const [annotatorsData, setAnnotatorsData] = useState([]);
+
   useEffect(() => {
     if (!selectedProjectId) return;
 
     const fetchStats = async () => {
       try {
-        setIsLoadingStats(true);
-        const res = await getProjectProgress(selectedProjectId);
-        setProgressData(res.data);
+        const res = await getTasks(selectedProjectId);
+        const tasks = Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []);
+        
+        const total = tasks.length;
+        const completed = tasks.filter(t => t.status === 'DONE').length;
+        const pending = tasks.filter(t => t.status === 'PENDING').length;
+        const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
+        
+        setProgressData({
+          totalTasks: total,
+          completed: completed,
+          notStarted: pending,
+          inProgress: inProgress
+        });
+
+        // Group tasks by annotator
+        const annotatorMap = {};
+        tasks.forEach(task => {
+          if (task.annotatorId) {
+            const name = task.annotatorName || 'Unknown';
+            if (!annotatorMap[task.annotatorId]) {
+              annotatorMap[task.annotatorId] = {
+                id: task.annotatorId,
+                name: name,
+                initials: name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+                avatarColor: '#ecfdf5',
+                avatarBorder: '#d1fae5',
+                avatarText: '#059669',
+                campaign: 'Project Tasks',
+                assigned: 0,
+                completed: 0,
+                status: 'Pending'
+              };
+            }
+            annotatorMap[task.annotatorId].assigned += 1;
+            if (task.status === 'DONE') {
+              annotatorMap[task.annotatorId].completed += 1;
+            }
+          }
+        });
+
+        const annotatorsList = Object.values(annotatorMap).map(a => {
+          const progress = a.assigned > 0 ? Math.round((a.completed / a.assigned) * 100) : 0;
+          return {
+            ...a,
+            status: progress === 100 ? 'Completed' : (progress > 0 ? 'In Progress' : 'Pending')
+          };
+        });
+
+        setAnnotatorsData(annotatorsList);
       } catch (err) {
         console.error('Error fetching stats:', err);
       } finally {
-        setIsLoadingStats(false);
+        // Reserved for future loading state UI.
       }
     };
     fetchStats();
   }, [selectedProjectId]);
 
   const filteredAnnotators = useMemo(() => {
-    return MOCK_ANNOTATORS.filter((annotator) => {
+    return annotatorsData.filter((annotator) => {
       const matchesCampaign =
         selectedCampaign === 'All Campaigns' || annotator.campaign === selectedCampaign;
       const matchesStatus =
         selectedStatus === 'All Statuses' || annotator.status === selectedStatus;
       return matchesCampaign && matchesStatus;
     });
-  }, [selectedCampaign, selectedStatus]);
+  }, [selectedCampaign, selectedStatus, annotatorsData]);
 
   const stats = useMemo(() => {
     if (progressData) {

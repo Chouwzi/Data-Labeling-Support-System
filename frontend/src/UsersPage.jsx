@@ -7,7 +7,7 @@ import Filters from './components/Filters';
 import CreateGroupModal from './components/CreateGroupModal';
 import CreateUserForm from './components/CreateUserForm';
 import Modal from './components/Modal';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from './contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, createUser as createUserApi, updateUser as updateUserApi } from './utils/api';
 import './AdminDashboard.css';

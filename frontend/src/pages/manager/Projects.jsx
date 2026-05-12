@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -8,7 +8,7 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
-import { createProject, getProjects, uploadGuidelineFile } from '@/services/api';
+import { createProject, getProjects } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
@@ -76,8 +76,7 @@ export default function Projects() {
 
   // ── Project list state ──
   const [projects, setProjects] = useState([]);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [loadError, setLoadError] = useState(null);
+  const [, setIsLoadingProjects] = useState(false);
 
   // View mode
   const [viewMode, setViewMode] = useState('table');
@@ -92,9 +91,7 @@ export default function Projects() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
   const [errors, setErrors] = useState({});
-  const [newProjectId, setNewProjectId] = useState(null);
   const fileInputRef = useRef(null);
 
 
@@ -137,7 +134,6 @@ export default function Projects() {
     setFileError('');
     setErrors({});
     setSubmitSuccess(false);
-    setNewProjectName('');
   }, [isSubmitting]);
 
   const validateForm = () => {
@@ -249,8 +245,6 @@ export default function Projects() {
         }
 
 
-        setNewProjectId(newProject.id);
-        setTimeout(() => setNewProjectId(null), 5000);
         setActiveFilter('initialized');
 
         setTimeout(() => closeCreateModal(), 2000);

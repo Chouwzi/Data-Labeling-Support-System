@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -206,7 +206,7 @@ export default function UploadImages() {
     ).finally(() => {
       setIsUploading(false);
     });
-  }, [files, projectId]);
+  }, [files, projectId, projectsList]);
 
   const readyCount = files.filter((f) => f.status === 'ready').length;
   const doneCount = files.filter((f) => f.status === 'done').length;

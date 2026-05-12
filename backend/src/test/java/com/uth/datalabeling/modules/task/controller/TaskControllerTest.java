@@ -22,8 +22,11 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.mockito.ArgumentCaptor;
 
 @WebMvcTest(TaskController.class)
 @Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class})
@@ -62,19 +65,25 @@ public class TaskControllerTest {
     @WithMockUser(roles = "MANAGER")
     void assignTasks_Success() throws Exception {
         UUID projectId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID annotatorId = UUID.randomUUID();
         String json = """
                 {
-                    "taskIds": ["%s"],
-                    "annotatorId": "%s"
+                    "task_ids": ["%s"],
+                    "annotator_id": "%s"
                 }
-                """.formatted(UUID.randomUUID(), UUID.randomUUID());
+                """.formatted(taskId, annotatorId);
 
         mockMvc.perform(put("/projects/" + projectId + "/tasks/assign")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk());
-        
-        Mockito.verify(taskService).assignTasks(any());
+
+        ArgumentCaptor<com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest> requestCaptor =
+                ArgumentCaptor.forClass(com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest.class);
+        verify(taskService).assignTasks(requestCaptor.capture());
+        assertEquals(List.of(taskId), requestCaptor.getValue().getTaskIds());
+        assertEquals(annotatorId, requestCaptor.getValue().getAnnotatorId());
     }
 
     @Test

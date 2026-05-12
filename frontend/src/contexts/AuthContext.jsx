@@ -1,12 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
-const AuthContext = createContext(null);
+import { useState, useCallback } from 'react';
+import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const accessToken = localStorage.getItem('accessToken');
     const role = localStorage.getItem('role');
     const email = localStorage.getItem('email');
@@ -14,10 +10,11 @@ export function AuthProvider({ children }) {
     const fullName = localStorage.getItem('fullName');
 
     if (accessToken && role) {
-      setUser({ accessToken, role, email, userId, fullName });
+      return { accessToken, role: role.toUpperCase(), email, userId, fullName };
     }
-    setIsLoading(false);
-  }, []);
+    return null;
+  });
+  const isLoading = false;
 
   const login = useCallback((userData) => {
     const { accessToken, role, email, userId, fullName } = userData;
@@ -26,7 +23,7 @@ export function AuthProvider({ children }) {
     if (email) localStorage.setItem('email', email);
     if (userId) localStorage.setItem('userId', userId);
     if (fullName) localStorage.setItem('fullName', fullName);
-    setUser({ accessToken, role, email, userId, fullName });
+    setUser({ accessToken, role: role ? role.toUpperCase() : role, email, userId, fullName });
   }, []);
 
   const logout = useCallback(() => {
@@ -62,13 +59,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-export default AuthContext;
