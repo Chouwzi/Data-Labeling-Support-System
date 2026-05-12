@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
     const fullName = localStorage.getItem('fullName');
 
     if (accessToken && role) {
-      setUser({ accessToken, role, email, userId, fullName });
+      setUser({ accessToken, role: role.toUpperCase(), email, userId, fullName });
     }
     setIsLoading(false);
   }, []);
@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
     if (email) localStorage.setItem('email', email);
     if (userId) localStorage.setItem('userId', userId);
     if (fullName) localStorage.setItem('fullName', fullName);
-    setUser({ accessToken, role, email, userId, fullName });
+    setUser({ accessToken, role: role ? role.toUpperCase() : role, email, userId, fullName });
   }, []);
 
   const logout = useCallback(() => {

@@ -20,8 +20,11 @@ import { getDashboardRoute, DEFAULT_ROUTE } from '@/utils/auth';
 
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  
+  console.log('PublicRoute', { isAuthenticated, isLoading, user });
 
   if (isLoading) {
+    console.log('PublicRoute is loading, returning null');
     return null;
   }
 

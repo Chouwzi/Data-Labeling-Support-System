@@ -7,6 +7,7 @@ import { getDashboardRoute } from '@/utils/auth';
 import '@/styles/Login.css';
 
 export default function Login() {
+  console.log('Rendering Login component');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
