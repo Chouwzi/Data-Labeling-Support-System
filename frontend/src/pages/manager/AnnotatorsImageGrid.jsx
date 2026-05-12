@@ -164,6 +164,8 @@ export default function AnnotatorsImageGrid() {
     setIsAssigning(true);
     try {
       await assignTasks(selectedProjectId, {
+        taskIds: selectedImageIds,
+        annotatorId: selectedAnnotatorId,
         task_ids: selectedImageIds,
         annotator_id: selectedAnnotatorId
       });
@@ -183,7 +185,8 @@ export default function AnnotatorsImageGrid() {
       });
     } catch (error) {
       console.error('Failed to assign tasks:', error);
-      setToast({ message: 'Failed to assign tasks' });
+      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
+      setToast({ message: `Failed to assign tasks: ${errorMsg}` });
     } finally {
       setIsAssigning(false);
     }

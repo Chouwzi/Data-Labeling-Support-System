@@ -93,7 +93,7 @@ export default function Login() {
 
   return (
     <main className="login-wrapper">
-      <div className="login-card fade-in-up">
+      <div className="login-card">
         <header className="login-header">
           <div className="logo-mark">
             <BrandLogo size={48} />

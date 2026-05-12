@@ -10,6 +10,8 @@ import Projects from '@/pages/manager/Projects';
 import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
+import AssignedImages from '@/pages/annotator/AssignedImages';
+import AnnotationWorkspace from '@/pages/annotator/AnnotationWorkspace';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import SystemConfig from '@/pages/admin/SystemConfig';
 import UsersPage from '@/pages/admin/UsersPage';
@@ -22,7 +24,11 @@ function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
-    return null;
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+      </div>
+    );
   }
 
   if (isAuthenticated) {
@@ -169,6 +175,22 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['ANNOTATOR']}>
             <AnnotatorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/annotator/images"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AssignedImages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/annotator/workspace/:imageId"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotationWorkspace />
           </ProtectedRoute>
         }
       />

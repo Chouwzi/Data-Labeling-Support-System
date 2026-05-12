@@ -139,6 +139,25 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 export const getProjects = () => api.get('/projects');
 
+export const getProjectProgress = async (projectId) => {
+  const response = await api.get(`/projects/${projectId}/tasks`);
+  const tasks = response.data.result || [];
+  
+  const totalTasks = tasks.length;
+  const completed = tasks.filter(t => t.status === 'DONE').length;
+  const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
+  const notStarted = tasks.filter(t => t.status === 'PENDING').length;
+  
+  return {
+    data: {
+      totalTasks,
+      completed,
+      inProgress,
+      notStarted
+    }
+  };
+};
+
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
 

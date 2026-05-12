@@ -7,14 +7,18 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    const role = localStorage.getItem('role');
-    const email = localStorage.getItem('email');
-    const userId = localStorage.getItem('userId');
-    const fullName = localStorage.getItem('fullName');
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const role = localStorage.getItem('role');
+      const email = localStorage.getItem('email');
+      const userId = localStorage.getItem('userId');
+      const fullName = localStorage.getItem('fullName');
 
-    if (accessToken && role) {
-      setUser({ accessToken, role, email, userId, fullName });
+      if (accessToken && role) {
+        setUser({ accessToken, role, email, userId, fullName });
+      }
+    } catch (error) {
+      console.error('Failed to read from localStorage:', error);
     }
     setIsLoading(false);
   }, []);

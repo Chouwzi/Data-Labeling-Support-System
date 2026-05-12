@@ -49,6 +49,8 @@ public enum ErrorCode {
   INVALID_DEFAULT_PAGE_SIZE(422, 42203, "Kích thước trang mặc định phải trong khoảng 5-200"),
   INVALID_ALLOWED_IMAGE_EXTENSIONS(422, 42204, "Danh sách định dạng ảnh cho phép tối đa 10 phần tử"),
   INVALID_IMAGE_EXTENSION(422, 42205, "Định dạng ảnh chỉ được chứa chữ và số"),
+  TASK_IDS_REQUIRED(422, 42206, "Danh sách ID công việc không được để trống"),
+  ANNOTATOR_ID_REQUIRED(422, 42207, "ID người gắn nhãn không được để trống"),
 
   // 429 Too Many Requests
   TOO_MANY_REQUESTS(429, 42900, "Vượt quá giới hạn yêu cầu"),
