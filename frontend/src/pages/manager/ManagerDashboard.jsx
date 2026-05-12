@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import KpiCard from '@/components/dashboard/KpiCard';
@@ -8,7 +8,6 @@ import ActivityItem from '@/components/dashboard/ActivityItem';
 import BrandLogo from '@/components/common/BrandLogo';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ManagerRightPanel from '@/pages/manager/ManagerRightPanel';
-import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
 import { createProject } from '@/services/api';
 import { FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle } from 'lucide-react';
@@ -97,7 +96,7 @@ export default function ManagerDashboard() {
     activeAnnotators: '...',
     pendingAssignments: '0'
   });
-  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+  const [recentActivities] = useState(ACTIVITIES);
   const [projectsList, setProjectsList] = useState([]);
 
   useEffect(() => {

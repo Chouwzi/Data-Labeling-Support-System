@@ -8,9 +8,9 @@ import CreateGroupModal from '@/components/CreateGroupModal';
 import CreateUserForm from '@/components/CreateUserForm';
 import Modal from '@/components/Modal';
 import RoleModal from '@/components/RoleModal';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getUsers, deleteUser, createUser, updateUserRole, toggleUserStatus } from '@/services/api';
+import { getUsers, createUser, updateUserRole, toggleUserStatus } from '@/services/api';
 import '@/styles/AdminDashboard.css';
 import '@/styles/UsersPage.css';
 
@@ -105,15 +105,6 @@ export default function UsersPage() {
         prev.map((u) => (u.id === user.id ? { ...u, active: !newActive } : u))
       );
       console.error('Toggle status failed:', err);
-    }
-  };
-
-  const handleDeleteUser = async (userId) => {
-    try {
-      await deleteUser(userId);
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-    } catch (err) {
-      console.error('Xóa user thất bại:', err);
     }
   };
 

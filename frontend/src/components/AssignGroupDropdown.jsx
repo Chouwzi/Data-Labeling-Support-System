@@ -1,9 +1,7 @@
 import { Users } from 'lucide-react';
 import './AssignGroupDropdown.css';
 
-export default function AssignGroupDropdown({ userId, currentGroupId, groups, onAssignGroup, disabled }) {
-  const currentGroup = groups.find((g) => g.id === currentGroupId);
-
+export default function AssignGroupDropdown({ currentGroupId, groups, onAssignGroup, disabled }) {
   return (
     <div className="assign-group">
       <label className="assign-group__label">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import BrandLogo from '@/components/common/BrandLogo';
 import { login as apiLogin } from '@/services/api';
 import { getDashboardRoute } from '@/utils/auth';

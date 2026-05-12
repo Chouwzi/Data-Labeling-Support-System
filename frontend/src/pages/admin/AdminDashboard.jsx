@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import KpiCard from '@/components/dashboard/KpiCard';
@@ -148,11 +148,6 @@ export default function AdminDashboard() {
       });
     }
     setTimeout(() => setToast(null), 3000);
-  };
-
-  // Logic điều hướng sang trang Nhật ký (LTJ-58)
-  const handleViewAllLogs = () => {
-    navigate('/admin/logs');
   };
 
   const userName = user?.fullName || user?.email || 'Administrator';

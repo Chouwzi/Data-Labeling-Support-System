@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { UserPlus, Mail, User, Lock, Shield, CheckCircle, Eye, EyeOff} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext'; 
+import { useAuth } from '../contexts/useAuth';
 import { createUser } from '@/services/api';
 import './CreateUserForm.css';
 

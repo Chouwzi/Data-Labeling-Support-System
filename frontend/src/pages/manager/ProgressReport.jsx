@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
@@ -124,7 +124,6 @@ export default function ProgressReport() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [progressData, setProgressData] = useState(null);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -164,7 +163,6 @@ export default function ProgressReport() {
 
     const fetchStats = async () => {
       try {
-        setIsLoadingStats(true);
         const res = await getTasks(selectedProjectId);
         const tasks = Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []);
         
@@ -218,7 +216,7 @@ export default function ProgressReport() {
       } catch (err) {
         console.error('Error fetching stats:', err);
       } finally {
-        setIsLoadingStats(false);
+        // Reserved for future loading state UI.
       }
     };
     fetchStats();

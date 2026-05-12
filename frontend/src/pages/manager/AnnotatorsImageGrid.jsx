@@ -4,7 +4,7 @@ import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import Toast from '@/components/Toast';
 import AnnotatorSelect from '@/components/AnnotatorSelect';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getProjects, getTasks, getAnnotators, generateTasks, assignTasks } from '@/services/api';
 import '@/styles/AnnotatorsImageGrid.css';
