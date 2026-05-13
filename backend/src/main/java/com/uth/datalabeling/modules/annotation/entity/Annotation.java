@@ -52,6 +52,10 @@ public class Annotation {
     @Column(columnDefinition = "jsonb", nullable = false)
     List<Map<String, Object>> result;
 
+    @Column(nullable = false)
+    @Builder.Default
+    Boolean isNull = false;
+
     Integer leadTimeSeconds;
 
     @Column(nullable = false, length = 50)

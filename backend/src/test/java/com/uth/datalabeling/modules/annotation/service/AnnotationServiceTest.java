@@ -129,6 +129,37 @@ class AnnotationServiceTest {
     }
 
     @Test
+    void submitAnnotation_AllowsNullImageWithEmptyResult() {
+        UUID annotationId = UUID.randomUUID();
+        request.setResult(List.of());
+        request.setIsNull(true);
+        request.setLeadTimeSeconds(12);
+
+        when(projectAccessService.getCurrentUser()).thenReturn(annotator);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(assignedTask));
+        when(annotationRepository.save(any(Annotation.class))).thenAnswer(invocation -> {
+            Annotation annotation = invocation.getArgument(0);
+            annotation.setId(annotationId);
+            return annotation;
+        });
+
+        AnnotationResponse response = annotationService.submitAnnotation(taskId, request);
+
+        assertEquals(annotationId, response.getId());
+        assertEquals(List.of(), response.getResult());
+        assertEquals(true, response.getIsNull());
+        assertEquals(12, response.getLeadTimeSeconds());
+        assertEquals("SUBMITTED", assignedTask.getStatus());
+
+        ArgumentCaptor<Annotation> annotationCaptor = ArgumentCaptor.forClass(Annotation.class);
+        verify(annotationRepository).save(annotationCaptor.capture());
+        Annotation saved = annotationCaptor.getValue();
+        assertEquals(List.of(), saved.getResult());
+        assertEquals(true, saved.getIsNull());
+        verify(taskRepository).save(assignedTask);
+    }
+
+    @Test
     void submitAnnotation_RejectsTaskAssignedToAnotherAnnotator() {
         User otherAnnotator = User.builder().id(UUID.randomUUID()).role("ANNOTATOR").build();
         assignedTask.setAnnotator(otherAnnotator);

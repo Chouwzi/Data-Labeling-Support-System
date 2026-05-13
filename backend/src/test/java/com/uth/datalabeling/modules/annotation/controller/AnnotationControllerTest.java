@@ -144,6 +144,43 @@ class AnnotationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @WithMockUser(roles = "ANNOTATOR")
+    void submitAnnotation_AllowsNullImageWithEmptyResult() throws Exception {
+        UUID taskId = UUID.randomUUID();
+        UUID annotationId = UUID.randomUUID();
+        UUID annotatorId = UUID.randomUUID();
+        LocalDateTime submittedAt = LocalDateTime.of(2026, 5, 13, 11, 10);
+        AnnotationResponse response = AnnotationResponse.builder()
+                .id(annotationId)
+                .taskId(taskId)
+                .annotatorId(annotatorId)
+                .status("SUBMITTED")
+                .result(List.of())
+                .isNull(true)
+                .leadTimeSeconds(12)
+                .submittedAt(submittedAt)
+                .build();
+
+        when(annotationService.submitAnnotation(eq(taskId), any())).thenReturn(response);
+
+        String json = """
+                {
+                  "result": [],
+                  "is_null": true,
+                  "lead_time_seconds": 12
+                }
+                """;
+
+        mockMvc.perform(post("/tasks/" + taskId + "/annotations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.result.result").isEmpty())
+                .andExpect(jsonPath("$.result.isNull").value(true))
+                .andExpect(jsonPath("$.result.leadTimeSeconds").value(12));
+    }
+
     private String validJson(UUID labelId) {
         return """
                 {

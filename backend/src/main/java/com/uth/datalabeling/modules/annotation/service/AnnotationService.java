@@ -44,13 +44,16 @@ public class AnnotationService {
 
         validateTaskOwnership(task, currentUser);
         validateTaskStatus(task);
-        validateAnnotationResult(task, request.getResult());
+        boolean nullImage = Boolean.TRUE.equals(request.getIsNull());
+        List<Map<String, Object>> result = request.getResult() == null ? List.of() : request.getResult();
+        validateAnnotationResult(task, result, nullImage);
 
         LocalDateTime submittedAt = LocalDateTime.now();
         Annotation annotation = Annotation.builder()
                 .task(task)
                 .annotator(currentUser)
-                .result(request.getResult())
+                .result(result)
+                .isNull(nullImage)
                 .leadTimeSeconds(request.getLeadTimeSeconds())
                 .status(STATUS_SUBMITTED)
                 .submittedAt(submittedAt)
@@ -76,8 +79,11 @@ public class AnnotationService {
         }
     }
 
-    private void validateAnnotationResult(Task task, List<Map<String, Object>> result) {
+    private void validateAnnotationResult(Task task, List<Map<String, Object>> result, boolean nullImage) {
         if (result == null || result.isEmpty()) {
+            if (nullImage) {
+                return;
+            }
             throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation result is required");
         }
 
@@ -126,6 +132,7 @@ public class AnnotationService {
                 .annotatorId(annotation.getAnnotator().getId())
                 .status(annotation.getStatus())
                 .result(annotation.getResult())
+                .isNull(Boolean.TRUE.equals(annotation.getIsNull()))
                 .leadTimeSeconds(annotation.getLeadTimeSeconds())
                 .submittedAt(annotation.getSubmittedAt())
                 .build();

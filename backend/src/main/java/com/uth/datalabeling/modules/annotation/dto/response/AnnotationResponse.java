@@ -23,6 +23,7 @@ public class AnnotationResponse {
     UUID annotatorId;
     String status;
     List<Map<String, Object>> result;
+    Boolean isNull;
     Integer leadTimeSeconds;
     LocalDateTime submittedAt;
 }
