@@ -1,91 +1,171 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
+import ReviewerSidebar from '@/components/reviewer/ReviewerSidebar';
+import Topbar from '@/components/common/Topbar';
+import KpiCard from '@/components/dashboard/KpiCard';
+import { ClipboardCheck, CheckSquare, XSquare, Clock, Filter, Search } from 'lucide-react';
 import '@/styles/Dashboard.css';
+import '@/styles/ReviewerDashboard.css';
+
+// Mock Data for Pending Reviews
+const MOCK_REVIEWS = [
+  {
+    id: 1,
+    imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b311?w=400&h=300&fit=crop',
+    fileName: 'landscape_01.jpg',
+    annotatorName: 'Maya L.',
+    submitTime: '10 mins ago',
+    status: 'Pending Review',
+    boxCount: 5,
+  },
+  {
+    id: 2,
+    imageUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=300&fit=crop',
+    fileName: 'nature_02.jpg',
+    annotatorName: 'James W.',
+    submitTime: '30 mins ago',
+    status: 'Pending Review',
+    boxCount: 12,
+  },
+  {
+    id: 3,
+    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
+    fileName: 'forest_03.jpg',
+    annotatorName: 'Maya L.',
+    submitTime: '1 hour ago',
+    status: 'Waiting For Approval',
+    boxCount: 8,
+  },
+];
 
 export default function ReviewerDashboard() {
-  const { logout, user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const handleLoginAgain = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
+  const filteredReviews = MOCK_REVIEWS.filter((review) => {
+    const matchesSearch = review.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          review.annotatorName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || review.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <main className="dashboard-wrapper">
-      <div className="dashboard-header fade-in-up">
-        <div className="dashboard-logo">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-            <rect x="4" y="4" width="40" height="40" rx="10" fill="#006c51" fillOpacity="0.1" stroke="#006c51" strokeWidth="1.5"/>
-            <circle cx="16" cy="16" r="5" fill="#006c51"/>
-            <circle cx="32" cy="16" r="5" fill="#00a67e"/>
-            <circle cx="16" cy="32" r="5" fill="#00a67e"/>
-            <circle cx="32" cy="32" r="5" fill="#006c51"/>
-          </svg>
-          <div className="dashboard-title-group">
-            <h1 className="dashboard-title">REVIEWER DASHBOARD</h1>
-            <p className="dashboard-subtitle">{user?.fullName || user?.email || 'Reviewer'}</p>
+    <div className="dashboard-layout">
+      <ReviewerSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
+      
+      <div className="dashboard-main">
+        <Topbar
+          userName={user?.fullName || 'Reviewer'}
+          userRole="Data Reviewer"
+          searchPlaceholder="Search reviews..."
+          onMenuClick={() => setSidebarOpen(true)}
+          onLogout={handleLogout}
+        />
+
+        <main className="dashboard-content">
+          <div className="content-header">
+            <div>
+              <h1 className="content-title">Reviewer Dashboard</h1>
+              <p className="content-subtitle">Manage and verify annotations quality</p>
+            </div>
           </div>
-        </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Đăng xuất
-        </button>
+
+          {/* KPI Cards */}
+          <div className="kpi-grid">
+            <KpiCard
+              title="Pending Review"
+              value="12"
+              icon={ClipboardCheck}
+              trend="4 new"
+              variant="warning"
+            />
+            <KpiCard
+              title="Approved Today"
+              value="45"
+              icon={CheckSquare}
+              trend="+12%"
+              variant="success"
+            />
+            <KpiCard
+              title="Rejected Today"
+              value="3"
+              icon={XSquare}
+              trend="-2%"
+              variant="danger"
+            />
+            <KpiCard
+              title="Avg. Review Time"
+              value="2.5m"
+              icon={Clock}
+              trend="-10s"
+              variant="primary"
+            />
+          </div>
+
+          {/* Filters & Search */}
+          <div className="filter-bar">
+            <div className="search-wrapper">
+              <Search size={18} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search by file or annotator..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            <div className="filter-group">
+              <Filter size={18} className="filter-icon" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Pending Review">Pending Review</option>
+                <option value="Waiting For Approval">Waiting For Approval</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Grid List */}
+          <div className="reviews-grid">
+            {filteredReviews.map((review) => (
+              <div key={review.id} className="review-card">
+                <div className="review-card__image-container">
+                  <img src={review.imageUrl} alt={review.fileName} className="review-card__image" />
+                  <span className={`status-badge status-badge--${review.status === 'Pending Review' ? 'warning' : 'info'}`}>
+                    {review.status}
+                  </span>
+                </div>
+                <div className="review-card__content">
+                  <h3 className="review-card__title">{review.fileName}</h3>
+                  <div className="review-card__meta">
+                    <p><span>Annotator:</span> {review.annotatorName}</p>
+                    <p><span>Submitted:</span> {review.submitTime}</p>
+                    <p><span>Boxes:</span> {review.boxCount}</p>
+                  </div>
+                  <button
+                    className="btn btn--primary btn--full"
+                    onClick={() => navigate(`/reviewer/review/${review.id}`)}
+                  >
+                    Review
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
       </div>
-
-      <div className="dashboard-content fade-in-up">
-        <div className="welcome-card">
-          <h2 className="welcome-title">
-            Chào mừng, {user?.fullName || 'Reviewer'}!
-          </h2>
-          <p className="welcome-text">Role hiện tại: {user?.role || 'REVIEWER'}</p>
-          <p className="welcome-text">Kiểm tra và phê duyệt các nhãn đã gắn.</p>
-          <div className="dashboard-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-            <button className="logout-btn" type="button" onClick={handleLoginAgain}>
-              Đăng nhập lại
-            </button>
-          </div>
-        </div>
-
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-              </svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">89</span>
-              <span className="stat-label">Nhãn đã duyệt</span>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-              </svg>
-            </div>
-            <div className="stat-info">
-              <span className="stat-value">12</span>
-              <span className="stat-label">Nhãn bị từ chối</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </main>
+    </div>
   );
 }
