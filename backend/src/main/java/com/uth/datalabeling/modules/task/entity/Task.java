@@ -45,6 +45,9 @@ public class Task {
     @Builder.Default
     String status = "PENDING"; // Trạng thái: PENDING, ASSIGNED, IN_PROGRESS, DONE...
 
+    @Column(name = "assigned_at")
+    LocalDateTime assignedAt;
+
     @CreationTimestamp
     @Column(updatable = false)
     LocalDateTime createdAt;

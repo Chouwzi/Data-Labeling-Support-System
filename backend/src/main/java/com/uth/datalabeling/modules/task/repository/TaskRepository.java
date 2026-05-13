@@ -24,7 +24,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
             WHERE t.annotator.id = :annotatorId
               AND (:projectId IS NULL OR t.project.id = :projectId)
               AND (:status IS NULL OR UPPER(t.status) = :status)
-            ORDER BY t.updatedAt DESC, t.createdAt DESC
+            ORDER BY t.assignedAt DESC, t.createdAt DESC
             """)
     Page<Task> findAssignedImagesForAnnotator(
             @Param("annotatorId") UUID annotatorId,

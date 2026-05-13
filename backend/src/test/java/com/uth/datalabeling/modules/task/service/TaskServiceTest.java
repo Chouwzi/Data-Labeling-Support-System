@@ -106,6 +106,7 @@ public class TaskServiceTest {
         assertNotNull(result);
         assertEquals("ASSIGNED", task.getStatus());
         assertEquals(annotator, task.getAnnotator());
+        assertNotNull(task.getAssignedAt());
         verify(taskRepository).saveAll(anyList());
     }
 
@@ -127,6 +128,7 @@ public class TaskServiceTest {
         UUID taskId = UUID.randomUUID();
         UUID sampleId = UUID.randomUUID();
         LocalDateTime createdAt = LocalDateTime.of(2026, 5, 13, 9, 0);
+        LocalDateTime assignedAt = LocalDateTime.of(2026, 5, 13, 9, 15);
         LocalDateTime updatedAt = LocalDateTime.of(2026, 5, 13, 10, 25);
         User annotator = User.builder().id(annotatorId).email("ann@example.com").role("ANNOTATOR").build();
         Project projectWithName = Project.builder()
@@ -144,6 +146,7 @@ public class TaskServiceTest {
                 .annotator(annotator)
                 .status("ASSIGNED")
                 .createdAt(createdAt)
+                .assignedAt(assignedAt)
                 .updatedAt(updatedAt)
                 .build();
         Pageable pageable = PageRequest.of(0, 10);
@@ -166,15 +169,16 @@ public class TaskServiceTest {
         assertEquals(sampleId, image.getSampleId());
         assertEquals("https://cdn.example.com/image-001.jpg", image.getImageUrl());
         assertEquals("ASSIGNED", image.getStatus());
-        assertEquals(updatedAt, image.getAssignedAt());
+        assertEquals(assignedAt, image.getAssignedAt());
         verify(projectAccessService).getCurrentUser();
         verify(taskRepository).findAssignedImagesForAnnotator(annotatorId, projectId, "ASSIGNED", pageable);
     }
 
     @Test
-    void getMyAssignedImages_FallsBackToCreatedAtWhenUpdatedAtIsNull() {
+    void getMyAssignedImages_FallsBackToCreatedAtWhenAssignedAtIsNull() {
         UUID annotatorId = UUID.randomUUID();
         LocalDateTime createdAt = LocalDateTime.of(2026, 5, 13, 9, 0);
+        LocalDateTime updatedAt = LocalDateTime.of(2026, 5, 13, 10, 25);
         User annotator = User.builder().id(annotatorId).role("ANNOTATOR").build();
         Task task = Task.builder()
                 .id(UUID.randomUUID())
@@ -183,6 +187,7 @@ public class TaskServiceTest {
                 .annotator(annotator)
                 .status("ASSIGNED")
                 .createdAt(createdAt)
+                .updatedAt(updatedAt)
                 .build();
         Pageable pageable = PageRequest.of(0, 10);
 

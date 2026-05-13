@@ -72,10 +72,12 @@ public class TaskService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         List<Task> tasks = taskRepository.findAllById(request.getTaskIds());
+        LocalDateTime assignedAt = LocalDateTime.now();
         
         tasks.forEach(task -> {
             task.setAnnotator(annotator);
             task.setStatus("ASSIGNED");
+            task.setAssignedAt(assignedAt);
         });
 
         return taskRepository.saveAll(tasks).stream()
@@ -128,7 +130,7 @@ public class TaskService {
     }
 
     private AssignedImageResponse toAssignedImageResponse(Task task) {
-        LocalDateTime assignedAt = task.getUpdatedAt() != null ? task.getUpdatedAt() : task.getCreatedAt();
+        LocalDateTime assignedAt = task.getAssignedAt() != null ? task.getAssignedAt() : task.getCreatedAt();
         return AssignedImageResponse.builder()
                 .taskId(task.getId())
                 .projectId(task.getProject().getId())
