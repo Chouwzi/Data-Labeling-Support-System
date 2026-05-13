@@ -537,3 +537,9 @@
   gap: 12px;
   margin-top: 24px;
 }
+
+/* Scrollable wrapper for sidebar content */
+.panel-content-scrollable {
+  flex: 1;
+  overflow-y: auto;
+}

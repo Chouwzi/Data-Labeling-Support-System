@@ -29,12 +29,25 @@ export default function ReviewWorkspace() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   
   const review = MOCK_REVIEW_DETAIL; // In real app, fetch by id
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleApprove = () => {
+    setShowApproveModal(true);
+  };
+
+  const handleConfirmApprove = () => {
+    // Simulate API call to update status to Completed
+    console.log('Approved task', id);
+    // In real app: await api.updateTaskStatus(id, 'Completed');
+    setShowApproveModal(false);
+    navigate('/reviewer'); // Go back to list
   };
 
   return (
@@ -106,55 +119,74 @@ export default function ReviewWorkspace() {
 
             {/* Right: Info & Actions */}
             <div className="review-sidebar-panel">
-              <div className="panel-section">
-                <h2 className="section-title">Detail Information</h2>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Image ID:</span>
-                    <span className="info-value">{review.id}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Project:</span>
-                    <span className="info-value">{review.projectName}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Annotator:</span>
-                    <span className="info-value">{review.annotatorName}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Submission Date:</span>
-                    <span className="info-value">{review.submitDate}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Total Labels:</span>
-                    <span className="info-value">{review.annotations.length}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Type:</span>
-                    <span className="info-value">{review.labelType}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="panel-section">
-                <h2 className="section-title">Label List</h2>
-                <div className="label-list">
-                  {review.annotations.map((ann) => (
-                    <div key={ann.id} className="label-item" style={{ borderLeftColor: ann.color }}>
-                      <span className="label-name">{ann.label}</span>
-                      <span className="label-coords">[{ann.x}, {ann.y}, {ann.width}, {ann.height}]</span>
+              <div className="panel-content-scrollable">
+                <div className="panel-section">
+                  <h2 className="section-title">Detail Information</h2>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="info-label">Image ID:</span>
+                      <span className="info-value">{review.id}</span>
                     </div>
-                  ))}
+                    <div className="info-item">
+                      <span className="info-label">Project:</span>
+                      <span className="info-value">{review.projectName}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Annotator:</span>
+                      <span className="info-value">{review.annotatorName}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Submission Date:</span>
+                      <span className="info-value">{review.submitDate}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Total Labels:</span>
+                      <span className="info-value">{review.annotations.length}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Type:</span>
+                      <span className="info-value">{review.labelType}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="panel-section">
+                  <h2 className="section-title">Label List</h2>
+                  <div className="label-list">
+                    {review.annotations.map((ann) => (
+                      <div key={ann.id} className="label-item" style={{ borderLeftColor: ann.color }}>
+                        <span className="label-name">{ann.label}</span>
+                        <span className="label-coords">[{ann.x}, {ann.y}, {ann.width}, {ann.height}]</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Actions removed for LTJ-104 */}
+              <div className="panel-actions">
+                <button className="btn btn--success btn--full" onClick={handleApprove}>
+                  <Check size={18} style={{ marginRight: '8px' }} />
+                  Approve
+                </button>
+              </div>
             </div>
           </div>
         </main>
       </div>
 
-      {/* Modals removed for LTJ-104 */}
+      {/* Approve Confirmation Modal */}
+      {showApproveModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 className="modal-title">Confirm Approval</h2>
+            <p className="modal-text">Are you sure you want to approve this image and mark it as Completed?</p>
+            <div className="modal-actions">
+              <button className="btn btn--secondary" onClick={() => setShowApproveModal(false)}>Cancel</button>
+              <button className="btn btn--success" onClick={handleConfirmApprove}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
