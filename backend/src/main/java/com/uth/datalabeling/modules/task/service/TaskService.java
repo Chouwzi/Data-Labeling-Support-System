@@ -2,13 +2,16 @@ package com.uth.datalabeling.modules.task.service;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
+import com.uth.datalabeling.common.response.PageResponse;
 import com.uth.datalabeling.modules.dataset.entity.Dataset;
 import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.repository.ProjectRepository;
+import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest;
+import com.uth.datalabeling.modules.task.dto.response.AssignedImageResponse;
 import com.uth.datalabeling.modules.task.dto.response.TaskResponse;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.mapper.TaskMapper;
@@ -16,9 +19,12 @@ import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,6 +39,7 @@ public class TaskService {
     DatasetRepository datasetRepository;
     UserRepository userRepository;
     TaskMapper taskMapper;
+    ProjectAccessService projectAccessService;
 
     /**
      * Tạo danh sách công việc (Tasks) từ các mẫu dữ liệu trong một tập dữ liệu (Dataset).
@@ -87,5 +94,49 @@ public class TaskService {
                 .filter(task -> status == null || task.getStatus().equalsIgnoreCase(status))
                 .map(taskMapper::toTaskResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy danh sách hình ảnh được giao cho annotator đang đăng nhập.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AssignedImageResponse> getMyAssignedImages(UUID projectId, String status, Pageable pageable) {
+        User currentUser = projectAccessService.getCurrentUser();
+        String normalizedStatus = normalizeStatus(status);
+        Page<Task> taskPage = taskRepository.findAssignedImagesForAnnotator(
+                currentUser.getId(),
+                projectId,
+                normalizedStatus,
+                pageable);
+
+        return PageResponse.<AssignedImageResponse>builder()
+                .currentPage(taskPage.getNumber())
+                .totalPages(taskPage.getTotalPages())
+                .pageSize(taskPage.getSize())
+                .totalElements(taskPage.getTotalElements())
+                .data(taskPage.getContent().stream()
+                        .map(this::toAssignedImageResponse)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return null;
+        }
+        return status.trim().toUpperCase();
+    }
+
+    private AssignedImageResponse toAssignedImageResponse(Task task) {
+        LocalDateTime assignedAt = task.getUpdatedAt() != null ? task.getUpdatedAt() : task.getCreatedAt();
+        return AssignedImageResponse.builder()
+                .taskId(task.getId())
+                .projectId(task.getProject().getId())
+                .projectName(task.getProject().getName())
+                .sampleId(task.getSample().getId())
+                .imageUrl(task.getSample().getImageUrl())
+                .status(task.getStatus())
+                .assignedAt(assignedAt)
+                .build();
     }
 }
