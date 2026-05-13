@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import BrandLogo from '@/components/common/BrandLogo';
 import { login as apiLogin } from '@/services/api';
 import { getDashboardRoute } from '@/utils/auth';
 import '@/styles/Login.css';
 
 export default function Login() {
+  console.log('Rendering Login component');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

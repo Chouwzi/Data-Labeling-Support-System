@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/useAuth';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import LabelLegend from '@/components/annotator/LabelLegend';
@@ -8,7 +8,8 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import BrandLogo from '@/components/common/BrandLogo';
 import { FileText, Download, Eye, ExternalLink } from 'lucide-react';
 import { getProjects, getProjectProgress } from '@/services/api';
-import '@/styles/ManagerDashboard.css'; // Reuse layout styles
+import '@/styles/Dashboard.css';
+import '@/styles/ManagerDashboard.css';
 
 export default function AnnotatorDashboard() {
   const { user, logout } = useAuth();

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import Login from '@/pages/auth/Login';
 import LandingPage from '@/pages/common/LandingPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -22,6 +22,8 @@ import { getDashboardRoute, DEFAULT_ROUTE } from '@/utils/auth';
 
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  
+  console.log('PublicRoute', { isAuthenticated, isLoading, user });
 
   if (isLoading) {
     return (
@@ -137,10 +139,18 @@ function App() {
         }
       />
       <Route
-        path="/manager/reports"
+        path="/manager/annotators"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <AnnotatorsImageGrid />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/reports"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ProgressReport />
           </ProtectedRoute>
         }
       />

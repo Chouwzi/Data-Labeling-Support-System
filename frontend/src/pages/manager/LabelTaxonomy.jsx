@@ -11,7 +11,7 @@ import {
   ChevronRight,
   ArrowLeft,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -97,7 +97,7 @@ export default function LabelTaxonomy() {
         hex: l.color_hex || l.colorHex || l.hex
       }));
       setLabels(mappedLabels);
-    } catch (err) {
+    } catch {
       addToast("Could not load labels from server", 'error');
     }
   }, [projectId, addToast]);
@@ -109,7 +109,7 @@ export default function LabelTaxonomy() {
         // Handle both paginated PageResponse and flat List for safety
         const projectData = res.data?.result?.data || res.data?.result || [];
         setProjectsList(Array.isArray(projectData) ? projectData : []);
-      } catch (err) {
+      } catch {
         addToast("Could not load projects", 'error');
       }
     }
@@ -200,7 +200,7 @@ export default function LabelTaxonomy() {
       await deleteLabel(projectId, id);
       addToast("Label removed", 'info');
       fetchLabels();
-    } catch (err) {
+    } catch {
       addToast("Error deleting label", 'error');
     } finally {
       setDeletingId(null);

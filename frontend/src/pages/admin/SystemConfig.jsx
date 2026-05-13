@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import SystemConfigPanel from '@/components/system/SystemConfigPanel';
@@ -34,7 +34,7 @@ export default function SystemConfig() {
           maxImageSize: data.maxImageSize ?? 10,
           aiEnabled: data.aiEnabled ?? true,
         });
-      } catch (err) {
+      } catch {
         setError('Không thể tải cấu hình. Vui lòng thử lại.');
       } finally {
         setLoading(false);

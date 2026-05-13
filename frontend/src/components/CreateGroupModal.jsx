@@ -9,8 +9,6 @@ export default function CreateGroupModal({ isOpen, onClose, onSave }) {
 
   useEffect(() => {
     if (isOpen) {
-      setGroupName('');
-      setError('');
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import KpiCard from '@/components/dashboard/KpiCard';
@@ -8,7 +8,6 @@ import ActivityItem from '@/components/dashboard/ActivityItem';
 import BrandLogo from '@/components/common/BrandLogo';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ManagerRightPanel from '@/pages/manager/ManagerRightPanel';
-import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
 import { createProject } from '@/services/api';
 import { FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle } from 'lucide-react';
@@ -97,39 +96,48 @@ export default function ManagerDashboard() {
     activeAnnotators: '...',
     pendingAssignments: '0'
   });
-  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+  const [recentActivities] = useState(ACTIVITIES);
   const [projectsList, setProjectsList] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { getProjects, getProjectProgress } = await import('@/services/api');
+        const { getProjects, getTasks } = await import('@/services/api');
         const [projectsRes] = await Promise.all([
           getProjects().catch(() => ({ data: { result: { data: [] } } }))
         ]);
 
         const pList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
         
-        // Fetch progress stats for all projects concurrently
+        // Fetch tasks for all projects concurrently to calculate progress
         const pListWithProgress = await Promise.all(
           pList.map(async (project) => {
             try {
-              const progRes = await getProjectProgress(project.id);
-              const progData = progRes.data || {};
-              const total = progData.totalTasks || 0;
-              const completed = progData.completed || 0;
+              const tasksRes = await getTasks(project.id);
+              const tasks = Array.isArray(tasksRes.data?.result) ? tasksRes.data.result : (Array.isArray(tasksRes.data) ? tasksRes.data : []);
+              
+              const total = tasks.length;
+              const completed = tasks.filter(t => t.status === 'DONE').length;
+              const pending = tasks.filter(t => t.status === 'PENDING').length;
+              const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
+              
+              const progData = {
+                totalTasks: total,
+                completed: completed,
+                notStarted: pending,
+                inProgress: inProgress
+              };
               
               return {
                 ...project,
                 progress: total > 0 ? Math.round((completed / total) * 100) : 0,
-                // Automatically deduce status from mock progress data
-                status: total > 0 && completed === total ? 'Completed' : (completed > 0 ? 'In Progress' : 'Pending'),
-                // For mock visualization, let's assume totalTasks is the imageCount
+                status: total > 0 && completed === total ? 'Completed' : (completed > 0 || inProgress > 0 ? 'In Progress' : 'Pending'),
                 imageCount: total,
                 stats: progData
               };
             } catch (err) {
-              return { ...project, progress: 0, status: 'Pending', stats: {} };
+              console.error(`Failed to fetch tasks for project ${project.id}:`, err);
+              return { ...project, progress: 0, status: 'Pending', stats: { totalTasks: 0, completed: 0, notStarted: 0, inProgress: 0 } };
             }
           })
         );

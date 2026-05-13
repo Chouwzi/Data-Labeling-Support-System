@@ -4,7 +4,7 @@ import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import Toast from '@/components/Toast';
 import AnnotatorSelect from '@/components/AnnotatorSelect';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getProjects, getTasks, getAnnotators, generateTasks, assignTasks } from '@/services/api';
 import '@/styles/AnnotatorsImageGrid.css';
@@ -17,6 +17,8 @@ export default function AnnotatorsImageGrid() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [projects, setProjects] = useState([]);
+  
+  console.log('Rendering AnnotatorsImageGrid', { projects, sidebarOpen });
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [annotators, setAnnotators] = useState([]);
   const [images, setImages] = useState([]);
@@ -67,9 +69,9 @@ export default function AnnotatorsImageGrid() {
     const loadTasks = async () => {
       if (!selectedProjectId) return;
       
-      setIsLoading(true);
+      // Loading handled by hook
       try {
-        const res = await getTasks(selectedProjectId, 'PENDING');
+        const res = await getTasks(selectedProjectId);
         const tasksData = Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []);
         
         setImages(tasksData.map(task => ({
@@ -78,8 +80,8 @@ export default function AnnotatorsImageGrid() {
           fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
           project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
           resolution: 'N/A', // Not available in TaskResponse
-          status: 'unassigned',
-          assignee: null
+          status: task.status === 'PENDING' ? 'unassigned' : 'assigned',
+          assignee: task.annotatorName || null
         })));
         
         // Clear selection when project changes
@@ -88,7 +90,7 @@ export default function AnnotatorsImageGrid() {
         console.error('Failed to load tasks:', error);
         setToast({ message: 'Failed to load images for selected project' });
       } finally {
-        setIsLoading(false);
+        // Loading handled by hook
       }
     };
     
@@ -109,7 +111,7 @@ export default function AnnotatorsImageGrid() {
       setToast({ message: 'Tasks generated successfully!' });
       
       // Reload tasks
-      const res = await getTasks(selectedProjectId, 'PENDING');
+      const res = await getTasks(selectedProjectId);
       const tasksData = Array.isArray(res.data?.result?.data) ? res.data.result.data : (Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []));
       
       setImages(tasksData.map(task => ({
@@ -118,8 +120,8 @@ export default function AnnotatorsImageGrid() {
         fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
         project: selectedProject.name,
         resolution: 'N/A',
-        status: 'unassigned',
-        assignee: null
+        status: task.status === 'PENDING' ? 'unassigned' : 'assigned',
+        assignee: task.annotatorName || null
       })));
     } catch (error) {
       console.error('Failed to generate tasks:', error);
