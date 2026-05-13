@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
@@ -32,7 +32,7 @@ export default function AssignedImages() {
         setLoading(true);
         const projectsRes = await getProjects();
         const projects = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
-        
+
         if (projects.length > 0) {
           // Lấy dự án đầu tiên làm mẫu
           const project = projects[0];
@@ -40,9 +40,9 @@ export default function AssignedImages() {
           const tasks = tasksRes.data?.result || [];
 
           const userId = localStorage.getItem('userId');
-          
+
           // Lọc task được giao cho user hiện tại
-          const assignedTasks = tasks.filter(task => 
+          const assignedTasks = tasks.filter(task =>
             task.annotatorId === userId || task.annotatorId === parseInt(userId)
           );
 
@@ -64,9 +64,9 @@ export default function AssignedImages() {
             return {
               id: task.id,
               name: filename,
-              status: task.status === 'ASSIGNED' ? 'Todo' : 
-                      task.status === 'IN_PROGRESS' ? 'In Progress' : 
-                      task.status === 'DONE' ? 'Completed' : 'Todo',
+              status: task.status === 'ASSIGNED' ? 'Todo' :
+                task.status === 'IN_PROGRESS' ? 'In Progress' :
+                  task.status === 'DONE' ? 'Completed' : 'Todo',
               updatedAt: task.updatedAt ? new Date(task.updatedAt).toLocaleString() : 'N/A',
               thumbnail: task.imageUrl || 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=300&h=200&fit=crop'
             };
