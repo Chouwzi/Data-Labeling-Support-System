@@ -11,6 +11,7 @@ import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
+import ReviewWorkspace from '@/pages/reviewer/ReviewWorkspace';
 import SystemConfig from '@/pages/admin/SystemConfig';
 import UsersPage from '@/pages/admin/UsersPage';
 import ActivityLog from '@/pages/admin/ActivityLog';
@@ -188,6 +189,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>
             <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/review/:id"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewWorkspace />
           </ProtectedRoute>
         }
       />

@@ -9,6 +9,17 @@ export function AuthProvider({ children }) {
     const userId = localStorage.getItem('userId');
     const fullName = localStorage.getItem('fullName');
 
+    // Tự động xóa token mock nếu phát hiện để tránh kẹt phiên giả
+    if (accessToken === 'mock-jwt-token-admin' || accessToken === 'dummy_token') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('role');
+      localStorage.removeItem('email');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('fullName');
+      window.location.href = '/login';
+      return;
+    }
+
     if (accessToken && role) {
       return { accessToken, role: role.toUpperCase(), email, userId, fullName };
     }
