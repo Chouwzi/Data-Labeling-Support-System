@@ -12,6 +12,8 @@ import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import ReviewWorkspace from '@/pages/reviewer/ReviewWorkspace';
+import ReviewerPending from '@/pages/reviewer/ReviewerPending';
+import ReviewerCompleted from '@/pages/reviewer/ReviewerCompleted';
 import SystemConfig from '@/pages/admin/SystemConfig';
 import UsersPage from '@/pages/admin/UsersPage';
 import ActivityLog from '@/pages/admin/ActivityLog';
@@ -192,6 +194,22 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>
             <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/pending"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerPending />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/completed"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerCompleted />
           </ProtectedRoute>
         }
       />
