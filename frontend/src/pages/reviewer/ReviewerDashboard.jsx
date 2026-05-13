@@ -85,28 +85,28 @@ export default function ReviewerDashboard() {
               title="Pending Review"
               value="12"
               icon={ClipboardCheck}
-              trend={{ value: '4 new', isPositive: false }}
+              trend="4 new"
               variant="warning"
             />
             <KpiCard
               title="Approved Today"
               value="45"
               icon={CheckSquare}
-              trend={{ value: '+12%', isPositive: true }}
+              trend="+12%"
               variant="success"
             />
             <KpiCard
               title="Rejected Today"
               value="3"
               icon={XSquare}
-              trend={{ value: '-2%', isPositive: true }}
+              trend="-2%"
               variant="danger"
             />
             <KpiCard
               title="Avg. Review Time"
               value="2.5m"
               icon={Clock}
-              trend={{ value: '-10s', isPositive: true }}
+              trend="-10s"
               variant="primary"
             />
           </div>

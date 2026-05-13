@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import ReviewerSidebar from '@/components/reviewer/ReviewerSidebar';
 import Topbar from '@/components/common/Topbar';
 import RejectModal from '@/components/reviewer/RejectModal';

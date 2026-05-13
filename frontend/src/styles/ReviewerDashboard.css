@@ -8,9 +8,16 @@
 
 .dashboard-main {
   flex: 1;
+  margin-left: 15rem;
   display: flex;
   flex-direction: column;
   min-width: 0; /* Prevent flex children from overflowing */
+}
+
+@media (max-width: 1024px) {
+  .dashboard-main {
+    margin-left: 0;
+  }
 }
 
 .dashboard-content {
