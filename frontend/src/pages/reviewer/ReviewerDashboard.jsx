@@ -12,7 +12,7 @@ import '@/styles/ReviewerDashboard.css';
 const MOCK_REVIEWS = [
   {
     id: 1,
-    imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b311?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=1',
     fileName: 'landscape_01.jpg',
     annotatorName: 'Maya L.',
     submitTime: '10 mins ago',
@@ -21,7 +21,7 @@ const MOCK_REVIEWS = [
   },
   {
     id: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=2',
     fileName: 'nature_02.jpg',
     annotatorName: 'James W.',
     submitTime: '30 mins ago',
@@ -30,7 +30,7 @@ const MOCK_REVIEWS = [
   },
   {
     id: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
+    imageUrl: 'https://picsum.photos/400/300?random=3',
     fileName: 'forest_03.jpg',
     annotatorName: 'Maya L.',
     submitTime: '1 hour ago',
@@ -156,7 +156,7 @@ export default function ReviewerDashboard() {
                   </div>
                   <button
                     className="btn btn--primary btn--full"
-                    onClick={() => navigate(`/reviewer/review/${review.id}`)}
+                    onClick={() => navigate(`/reviewer/workspace/${review.id}`)}
                   >
                     Review
                   </button>

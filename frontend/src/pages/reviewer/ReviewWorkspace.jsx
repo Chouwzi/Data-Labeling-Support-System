@@ -11,7 +11,7 @@ import '@/styles/ReviewerDashboard.css';
 // Mock Data for a specific review
 const MOCK_REVIEW_DETAIL = {
   id: 1,
-  imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b311?w=1200&h=800&fit=crop',
+  imageUrl: 'https://picsum.photos/1200/800',
   fileName: 'landscape_01.jpg',
   projectName: 'Scenic Auto-Label',
   annotatorName: 'Maya L.',
@@ -29,36 +29,12 @@ export default function ReviewWorkspace() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false);
   
   const review = MOCK_REVIEW_DETAIL; // In real app, fetch by id
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
-  };
-
-  const handleApprove = () => {
-    setShowApproveModal(true);
-  };
-
-  const handleConfirmApprove = () => {
-    // Simulate API call
-    console.log('Approved task', id);
-    setShowApproveModal(false);
-    navigate('/reviewer');
-  };
-
-  const handleReject = () => {
-    setShowRejectModal(true);
-  };
-
-  const handleConfirmReject = (reason, categories) => {
-    // Simulate API call
-    console.log('Rejected task', id, { reason, categories });
-    setShowRejectModal(false);
-    navigate('/reviewer');
   };
 
   return (
@@ -172,42 +148,13 @@ export default function ReviewWorkspace() {
                 </div>
               </div>
 
-              <div className="panel-actions">
-                <button className="btn btn--danger btn--full" onClick={handleReject}>
-                  <X size={18} style={{ marginRight: '8px' }} />
-                  Reject
-                </button>
-                <button className="btn btn--success btn--full" onClick={handleApprove}>
-                  <Check size={18} style={{ marginRight: '8px' }} />
-                  Approve
-                </button>
-              </div>
+              {/* Actions removed for LTJ-104 */}
             </div>
           </div>
         </main>
       </div>
 
-      {/* Approve Confirmation Modal */}
-      {showApproveModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2 className="modal-title">Confirm Approval</h2>
-            <p className="modal-text">Are you sure you want to approve this image?</p>
-            <div className="modal-actions">
-              <button className="btn btn--secondary" onClick={() => setShowApproveModal(false)}>Cancel</button>
-              <button className="btn btn--success" onClick={handleConfirmApprove}>Confirm</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reject Modal */}
-      {showRejectModal && (
-        <RejectModal
-          onClose={() => setShowRejectModal(false)}
-          onConfirm={handleConfirmReject}
-        />
-      )}
+      {/* Modals removed for LTJ-104 */}
     </div>
   );
 }
