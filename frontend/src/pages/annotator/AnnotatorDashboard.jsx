@@ -103,11 +103,6 @@ export default function AnnotatorDashboard() {
     navigate('/login', { replace: true });
   };
 
-  const handleLoginAgain = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
-
   return (
     <div className="manager-layout">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
@@ -123,20 +118,7 @@ export default function AnnotatorDashboard() {
 
         <main className="manager-content">
           <div className="dashboard-content fade-in-up">
-            <div className="welcome-card">
-              <h2 className="welcome-title">
-                Welcome, {user?.fullName || 'Annotator'}!
-              </h2>
-              <p className="welcome-text">Current role: {user?.role || 'ANNOTATOR'}</p>
-              <p className="welcome-text">Continue your labeling tasks with precision.</p>
-              <div className="dashboard-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                <button className="logout-btn" type="button" onClick={handleLoginAgain}>
-                  Login Again
-                </button>
-              </div>
-            </div>
-
-        <div className="stats-grid">
+            <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
               <FileText size={24} />

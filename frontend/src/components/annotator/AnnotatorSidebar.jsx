@@ -5,7 +5,7 @@ import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/annotator' },
-  { id: 'guidelines', label: 'Guidelines', icon: BookOpen, path: '/annotator' }, // For now, points to dashboard
+  { id: 'guidelines', label: 'Guidelines', icon: BookOpen, path: '/annotator/guidelines' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/annotator/settings' },
 ];
 
