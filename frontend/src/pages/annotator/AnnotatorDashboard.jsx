@@ -16,10 +16,39 @@ export default function AnnotatorDashboard() {
       try {
         setIsLoading(true);
         const res = await getProjects();
-        const data = res.data?.result?.data || res.data?.result || res.data || [];
+        let data = res.data?.result?.data || res.data?.result || res.data || [];
+        
+        // Mock data for testing if no projects are returned
+        if (!Array.isArray(data) || data.length === 0) {
+          data = [
+            {
+              id: 'mock-1',
+              name: 'Urban Infrastructure Mapping',
+              description: 'Identifying building footprints and road networks from high-resolution satellite imagery.',
+              guidelineUrl: 'https://example.com/guideline1.pdf'
+            },
+            {
+              id: 'mock-2',
+              name: 'Agricultural Crop Classification',
+              description: 'Classifying different types of crops (corn, wheat, soy) based on spectral signatures.',
+              guidelineUrl: null
+            },
+            {
+              id: 'mock-3',
+              name: 'Traffic Sign Recognition',
+              description: 'Labeling standard traffic signs and signal states for autonomous vehicle training.',
+              guidelineUrl: 'https://example.com/guideline3.pdf'
+            }
+          ];
+        }
+        
         setProjects(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch projects:', error);
+        // Fallback mock data on error
+        setProjects([
+          { id: 'err-1', name: 'Sample Project (API Error)', description: 'This is mock data shown because the API failed.', guidelineUrl: '#' }
+        ]);
       } finally {
         setIsLoading(false);
       }
@@ -59,20 +88,20 @@ export default function AnnotatorDashboard() {
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Đăng xuất
+          Logout
         </button>
       </div>
 
       <div className="dashboard-content fade-in-up">
         <div className="welcome-card">
           <h2 className="welcome-title">
-            Chào mừng, {user?.fullName || 'Annotator'}!
+            Welcome, {user?.fullName || 'Annotator'}!
           </h2>
-          <p className="welcome-text">Role hiện tại: {user?.role || 'ANNOTATOR'}</p>
-          <p className="welcome-text">Tiếp tục công việc gắn nhãn của bạn.</p>
+          <p className="welcome-text">Current role: {user?.role || 'ANNOTATOR'}</p>
+          <p className="welcome-text">Continue your labeling tasks with precision.</p>
           <div className="dashboard-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
             <button className="logout-btn" type="button" onClick={handleLoginAgain}>
-              Đăng nhập lại
+              Login Again
             </button>
           </div>
         </div>
@@ -84,7 +113,7 @@ export default function AnnotatorDashboard() {
             </div>
             <div className="stat-info">
               <span className="stat-value">156</span>
-              <span className="stat-label">Nhãn hoàn thành</span>
+              <span className="stat-label">Labels Completed</span>
             </div>
           </div>
 
@@ -97,7 +126,7 @@ export default function AnnotatorDashboard() {
             </div>
             <div className="stat-info">
               <span className="stat-value">24</span>
-              <span className="stat-label">Giờ làm việc</span>
+              <span className="stat-label">Working Hours</span>
             </div>
           </div>
         </div>
@@ -106,15 +135,15 @@ export default function AnnotatorDashboard() {
         <div className="guideline-section">
           <div className="section-header">
             <BookOpen size={20} className="section-icon" />
-            <h3 className="section-title">HƯỚNG DẪN DỰ ÁN</h3>
+            <h3 className="section-title">PROJECT GUIDELINES</h3>
           </div>
 
           {isLoading ? (
-            <div className="loading-state">Đang tải danh sách dự án...</div>
+            <div className="loading-state">Loading projects...</div>
           ) : projects.length === 0 ? (
             <div className="empty-guideline">
               <Info size={32} />
-              <p>Bạn chưa được gán vào dự án nào.</p>
+              <p>You are not assigned to any projects yet.</p>
             </div>
           ) : (
             <div className="guideline-grid">
@@ -125,9 +154,9 @@ export default function AnnotatorDashboard() {
                       <FileText size={24} />
                     </div>
                     <div className="guideline-card__details">
-                      <h4 className="guideline-card__name">{project.name || 'Dự án không tên'}</h4>
+                      <h4 className="guideline-card__name">{project.name || 'Unnamed Project'}</h4>
                       <p className="guideline-card__desc">
-                        {project.description || 'Không có mô tả dự án.'}
+                        {project.description || 'No project description available.'}
                       </p>
                     </div>
                   </div>
@@ -138,24 +167,24 @@ export default function AnnotatorDashboard() {
                         <button 
                           className="guideline-btn guideline-btn--view"
                           onClick={() => window.open(project.guidelineUrl, '_blank')}
-                          title="Xem trực tiếp"
+                          title="View Online"
                         >
                           <ExternalLink size={16} />
-                          <span>Xem</span>
+                          <span>View</span>
                         </button>
                         <a 
                           href={project.guidelineUrl} 
                           download 
                           className="guideline-btn guideline-btn--download"
-                          title="Tải về máy"
+                          title="Download File"
                         >
                           <Download size={16} />
-                          <span>Tải về</span>
+                          <span>Download</span>
                         </a>
                       </>
                     ) : (
                       <span className="guideline-not-available">
-                        Chưa có hướng dẫn
+                        Guideline not available
                       </span>
                     )}
                   </div>
