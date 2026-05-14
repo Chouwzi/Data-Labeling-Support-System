@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import { getProjects } from '@/services/api';
 import { FileText, Download, ExternalLink, Info, BookOpen } from 'lucide-react';
+import Topbar from '@/components/common/Topbar';
+import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import '@/styles/Dashboard.css';
+import '@/styles/ManagerDashboard.css';
 
 export default function AnnotatorDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+  const closeSidebar = () => setSidebarOpen(false);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -102,44 +108,32 @@ export default function AnnotatorDashboard() {
   };
 
   return (
-    <main className="dashboard-wrapper">
-      <div className="dashboard-header fade-in-up">
-        <div className="dashboard-logo">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-            <rect x="4" y="4" width="40" height="40" rx="10" fill="#006c51" fillOpacity="0.1" stroke="#006c51" strokeWidth="1.5"/>
-            <circle cx="16" cy="16" r="5" fill="#006c51"/>
-            <circle cx="32" cy="16" r="5" fill="#00a67e"/>
-            <circle cx="16" cy="32" r="5" fill="#00a67e"/>
-            <circle cx="32" cy="32" r="5" fill="#006c51"/>
-          </svg>
-          <div className="dashboard-title-group">
-            <h1 className="dashboard-title">ANNOTATOR DASHBOARD</h1>
-            <p className="dashboard-subtitle">{user?.fullName || user?.email || 'Annotator'}</p>
-          </div>
-        </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Logout
-        </button>
-      </div>
+    <div className="manager-layout">
+      <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
+      
+      <div className="manager-main">
+        <Topbar 
+          onMenuClick={toggleSidebar}
+          userName={user?.fullName || 'Annotator'}
+          userRole="Annotator"
+          onLogout={logout}
+          showCenterLinks
+        />
 
-      <div className="dashboard-content fade-in-up">
-        <div className="welcome-card">
-          <h2 className="welcome-title">
-            Welcome, {user?.fullName || 'Annotator'}!
-          </h2>
-          <p className="welcome-text">Current role: {user?.role || 'ANNOTATOR'}</p>
-          <p className="welcome-text">Continue your labeling tasks with precision.</p>
-          <div className="dashboard-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-            <button className="logout-btn" type="button" onClick={handleLoginAgain}>
-              Login Again
-            </button>
-          </div>
-        </div>
+        <main className="manager-content">
+          <div className="dashboard-content fade-in-up">
+            <div className="welcome-card">
+              <h2 className="welcome-title">
+                Welcome, {user?.fullName || 'Annotator'}!
+              </h2>
+              <p className="welcome-text">Current role: {user?.role || 'ANNOTATOR'}</p>
+              <p className="welcome-text">Continue your labeling tasks with precision.</p>
+              <div className="dashboard-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+                <button className="logout-btn" type="button" onClick={handleLoginAgain}>
+                  Login Again
+                </button>
+              </div>
+            </div>
 
         <div className="stats-grid">
           <div className="stat-card">
@@ -246,9 +240,10 @@ export default function AnnotatorDashboard() {
               ))}
             </div>
           )}
-        </div>
-
+          </div>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
