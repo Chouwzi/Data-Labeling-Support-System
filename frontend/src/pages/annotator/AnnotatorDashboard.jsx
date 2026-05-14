@@ -16,38 +16,73 @@ export default function AnnotatorDashboard() {
       try {
         setIsLoading(true);
         const res = await getProjects();
+        const mockData = [
+          {
+            id: 'mock-1',
+            name: 'Urban Infrastructure Mapping',
+            description: 'Identifying building footprints and road networks from high-resolution satellite imagery.',
+            guidelineUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            labels: [
+              { name: 'Building', color: '#3b82f6' },
+              { name: 'Road', color: '#64748b' },
+              { name: 'Vegetation', color: '#22c55e' },
+              { name: 'Water', color: '#0ea5e9' }
+            ]
+          },
+          {
+            id: 'mock-2',
+            name: 'Agricultural Crop Classification',
+            description: 'Classifying different types of crops (corn, wheat, soy) based on spectral signatures.',
+            guidelineUrl: null,
+            labels: [
+              { name: 'Corn', color: '#eab308' },
+              { name: 'Wheat', color: '#f59e0b' },
+              { name: 'Soybean', color: '#84cc16' }
+            ]
+          },
+          {
+            id: 'mock-3',
+            name: 'Traffic Sign Recognition',
+            description: 'Labeling standard traffic signs and signal states for autonomous vehicle training.',
+            guidelineUrl: 'https://raw.githubusercontent.com/mdn/learning-area/master/html/forms/file-examples/test.txt',
+            labels: [
+              { name: 'Prohibitory', color: '#ef4444' },
+              { name: 'Warning', color: '#f97316' },
+              { name: 'Mandatory', color: '#2563eb' }
+            ]
+          }
+        ];
+
         let data = res.data?.result?.data || res.data?.result || res.data || [];
         
-        // Mock data for testing if no projects are returned
+        // Use mock if no projects are returned
         if (!Array.isArray(data) || data.length === 0) {
-          data = [
-            {
-              id: 'mock-1',
-              name: 'Urban Infrastructure Mapping',
-              description: 'Identifying building footprints and road networks from high-resolution satellite imagery.',
-              guidelineUrl: 'https://example.com/guideline1.pdf'
-            },
-            {
-              id: 'mock-2',
-              name: 'Agricultural Crop Classification',
-              description: 'Classifying different types of crops (corn, wheat, soy) based on spectral signatures.',
-              guidelineUrl: null
-            },
-            {
-              id: 'mock-3',
-              name: 'Traffic Sign Recognition',
-              description: 'Labeling standard traffic signs and signal states for autonomous vehicle training.',
-              guidelineUrl: 'https://example.com/guideline3.pdf'
-            }
-          ];
+          data = mockData;
         }
         
-        setProjects(Array.isArray(data) ? data : []);
+        setProjects(data);
       } catch (error) {
-        console.error('Failed to fetch projects:', error);
-        // Fallback mock data on error
+        console.error('Failed to fetch projects (showing mock instead):', error);
+        // Fallback to full mock list on error (like 403)
         setProjects([
-          { id: 'err-1', name: 'Sample Project (API Error)', description: 'This is mock data shown because the API failed.', guidelineUrl: '#' }
+          {
+            id: 'mock-1',
+            name: 'Urban Infrastructure Mapping',
+            description: 'Identifying building footprints and road networks from high-resolution satellite imagery.',
+            guidelineUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+          },
+          {
+            id: 'mock-2',
+            name: 'Agricultural Crop Classification',
+            description: 'Classifying different types of crops (corn, wheat, soy) based on spectral signatures.',
+            guidelineUrl: null
+          },
+          {
+            id: 'mock-3',
+            name: 'Traffic Sign Recognition',
+            description: 'Labeling standard traffic signs and signal states for autonomous vehicle training.',
+            guidelineUrl: 'https://raw.githubusercontent.com/mdn/learning-area/master/html/forms/file-examples/test.txt'
+          }
         ]);
       } finally {
         setIsLoading(false);
@@ -158,6 +193,25 @@ export default function AnnotatorDashboard() {
                       <p className="guideline-card__desc">
                         {project.description || 'No project description available.'}
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Task 83: Label Taxonomy / Legend */}
+                  <div className="label-taxonomy">
+                    <h5 className="taxonomy-title">LABEL LEGEND</h5>
+                    <div className="taxonomy-grid">
+                      {(project.labels || []).map((label, idx) => (
+                        <div key={idx} className="taxonomy-item">
+                          <span 
+                            className="taxonomy-color" 
+                            style={{ backgroundColor: label.color }} 
+                          />
+                          <span className="taxonomy-name">{label.name}</span>
+                        </div>
+                      ))}
+                      {(!project.labels || project.labels.length === 0) && (
+                        <span className="taxonomy-empty">No labels defined</span>
+                      )}
                     </div>
                   </div>
                   
