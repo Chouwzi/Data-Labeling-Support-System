@@ -65,9 +65,32 @@
   width: 28px;
 }
 
-.toast-success-icon {
-  color: #1f8a65;
+.toast-main-icon {
   flex-shrink: 0;
+}
+
+.toast-icon--success {
+  color: #10b981;
+}
+
+.toast-icon--error {
+  color: #ef4444;
+}
+
+.toast-icon--warning {
+  color: #f59e0b;
+}
+
+.toast--error {
+  border-left: 4px solid #ef4444;
+}
+
+.toast--warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.toast--success {
+  border-left: 4px solid #10b981;
 }
 
 /* === Middle Section – Content === */

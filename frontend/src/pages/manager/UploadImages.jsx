@@ -5,6 +5,7 @@ import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
 import { getProjects, uploadSamples, createDataset, updateProject } from '@/services/api';
+import Toast from '@/components/Toast';
 import {
   Upload, X, CheckCircle, AlertCircle, Image, Loader2, Lightbulb,
   Trash2, ChevronRight, Info, Sparkles, Shield
@@ -38,6 +39,7 @@ export default function UploadImages() {
 
   const [projectId, setProjectId] = useState('');
   const [projectsList, setProjectsList] = useState([]);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -70,7 +72,10 @@ export default function UploadImages() {
       return { valid: false, error: 'Only JPEG and PNG formats are accepted' };
     }
     if (file.size > MAX_SIZE_BYTES) {
-      return { valid: false, error: `Exceeds ${MAX_SIZE_MB}MB limit` };
+      return {
+        valid: false,
+        error: `Size too large: ${formatFileSize(file.size)}. Limit is ${MAX_SIZE_MB}MB.`
+      };
     }
     return { valid: true, error: null };
   }, []);
@@ -90,6 +95,22 @@ export default function UploadImages() {
         error,
       };
     });
+
+    const invalidEntries = newEntries.filter(e => e.status === 'invalid');
+    if (invalidEntries.length > 0) {
+      const sizeErrorCount = invalidEntries.filter(e => e.error.includes('Size')).length;
+      if (sizeErrorCount > 0) {
+        setToast({
+          type: 'error',
+          message: `${sizeErrorCount} file(s) exceed the ${MAX_SIZE_MB}MB size limit and were marked as invalid.`
+        });
+      } else {
+        setToast({ 
+          type: 'error',
+          message: `${invalidEntries.length} file(s) are invalid and cannot be uploaded.` 
+        });
+      }
+    }
 
     setFiles((prev) => {
       const existingNames = new Set(prev.map((f) => f.name));
@@ -151,17 +172,17 @@ export default function UploadImages() {
 
     const selectedProject = projectsList.find(p => p.id === projectId);
     let datasetId = selectedProject?.dataset_id || selectedProject?.datasetId;
-    
+
     if (!datasetId) {
       setIsUploading(true);
       try {
         // 1. Create dataset
         const datasetRes = await createDataset(selectedProject.name);
         datasetId = datasetRes.data.result.id;
-        
+
         // 2. Update project with datasetId
         await updateProject(projectId, { dataset_id: datasetId });
-        
+
         // Update local state
         setProjectsList(prev => prev.map(p => p.id === projectId ? { ...p, datasetId } : p));
       } catch (error) {
@@ -192,7 +213,7 @@ export default function UploadImages() {
         try {
           await uploadSamples(datasetId, fileObj.file, (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setFiles((prev) => prev.map(f => 
+            setFiles((prev) => prev.map(f =>
               f.id === fileObj.id ? { ...f, progress: percentCompleted } : f
             ));
           });
@@ -249,9 +270,9 @@ export default function UploadImages() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  <select 
-                    className="form-field__input" 
-                    value={projectId} 
+                  <select
+                    className="form-field__input"
+                    value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
                     style={{ minWidth: '250px', margin: 0, padding: '8px 12px' }}
                     aria-label="Select Project"
@@ -361,9 +382,6 @@ export default function UploadImages() {
                         </p>
                         <p className="file-card__meta">
                           {formatFileSize(entry.size)}
-                          {entry.status === 'invalid' && entry.error && (
-                            <span className="file-card__error"> &bull; {entry.error}</span>
-                          )}
                         </p>
 
                         {/* Progress bar (only for uploading state) */}
@@ -390,8 +408,9 @@ export default function UploadImages() {
 
                         {/* Invalid indicator */}
                         {entry.status === 'invalid' && (
-                          <div className="file-card__invalid-label">
-                            <AlertCircle size={12} /> Invalid
+                          <div className="file-card__invalid-badge" title={entry.error}>
+                            <AlertCircle size={10} />
+                            <span>Invalid</span>
                           </div>
                         )}
                       </div>
@@ -450,10 +469,18 @@ export default function UploadImages() {
                       All {doneCount} image{doneCount !== 1 ? 's' : ''} uploaded successfully!
                       {invalidCount > 0 && (
                         <span className="upload-success-banner__warn">
-                          &bull; {invalidCount} file{invalidCount !== 1 ? 's' : ''} invalid
+                          &bull; {invalidCount} file{invalidCount !== 1 ? 's' : ''} skipped (invalid)
                         </span>
                       )}
                     </div>
+                  )}
+
+                  {toast && (
+                    <Toast 
+                      type={toast.type || 'success'} 
+                      message={toast.message} 
+                      onClose={() => setToast(null)} 
+                    />
                   )}
                 </div>
               )}
@@ -484,6 +511,19 @@ export default function UploadImages() {
                     <span className="upload-stat-row__label">Invalid</span>
                     <span className="upload-stat-row__value upload-stat-row__value--invalid">{invalidCount}</span>
                   </div>
+                  {invalidCount > 0 && (
+                    <div className="upload-invalid-alert">
+                      <div className="upload-invalid-alert__icon">
+                        <AlertCircle size={14} />
+                      </div>
+                      <div className="upload-invalid-alert__content">
+                        <p className="upload-invalid-alert__title">Invalid Files Detected</p>
+                        <p className="upload-invalid-alert__text">
+                          Please remove highlighted files to continue.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
