@@ -237,6 +237,7 @@ export default function AnnotatorDashboard() {
 
 // Sub-component for individual project card to manage its own search state
 function ProjectGuidelineCard({ project }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredLabels = (project.labels || []).filter(l => 
@@ -298,11 +299,11 @@ function ProjectGuidelineCard({ project }) {
           <>
             <button 
               className="guideline-btn guideline-btn--view"
-              onClick={() => window.open(project.guidelineUrl, '_blank')}
-              title="View Online"
+              onClick={() => navigate(`/annotator/projects/${project.id}/tasks`)}
+              title="View Image List"
             >
               <ExternalLink size={16} />
-              <span>View</span>
+              <span>View Tasks</span>
             </button>
             <a 
               href={project.guidelineUrl} 
