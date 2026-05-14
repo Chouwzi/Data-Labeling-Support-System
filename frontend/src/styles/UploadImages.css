@@ -343,14 +343,66 @@
   margin-top: 0.1rem;
 }
 
-.file-card__invalid-label {
+.file-card__invalid-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: #dc2626;
-  margin-top: 0.1rem;
+  gap: 0.3rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #ef4444;
+  background-color: #fef2f2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #fee2e2;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Invalid Alert in Summary */
+.upload-invalid-alert {
+  margin-top: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 0.875rem;
+  padding: 0.875rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  animation: fadeInSlide 0.3s ease;
+}
+
+.upload-invalid-alert__icon {
+  color: #ef4444;
+  background-color: #ffffff;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+  flex-shrink: 0;
+}
+
+.upload-invalid-alert__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.upload-invalid-alert__title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: #991b1b;
+  margin: 0;
+}
+
+.upload-invalid-alert__text {
+  font-size: 0.75rem;
+  color: #b91c1c;
+  margin: 0;
+  line-height: 1.4;
 }
 
 /* Remove Button */
