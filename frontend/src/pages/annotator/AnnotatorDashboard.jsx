@@ -1,17 +1,38 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
+import { getProjects } from '@/services/api';
+import { FileText, Download, ExternalLink, Info, BookOpen } from 'lucide-react';
 import '@/styles/Dashboard.css';
 
 export default function AnnotatorDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleLoginAgain = () => {
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setIsLoading(true);
+        const res = await getProjects();
+        const data = res.data?.result?.data || res.data?.result || res.data || [];
+        setProjects(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
-  const handleLogout = () => {
+  const handleLoginAgain = () => {
     logout();
     navigate('/login', { replace: true });
   };
@@ -59,10 +80,7 @@ export default function AnnotatorDashboard() {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
+              <FileText size={24} />
             </div>
             <div className="stat-info">
               <span className="stat-value">156</span>
@@ -82,6 +100,69 @@ export default function AnnotatorDashboard() {
               <span className="stat-label">Giờ làm việc</span>
             </div>
           </div>
+        </div>
+
+        {/* Guideline Section */}
+        <div className="guideline-section">
+          <div className="section-header">
+            <BookOpen size={20} className="section-icon" />
+            <h3 className="section-title">HƯỚNG DẪN DỰ ÁN</h3>
+          </div>
+
+          {isLoading ? (
+            <div className="loading-state">Đang tải danh sách dự án...</div>
+          ) : projects.length === 0 ? (
+            <div className="empty-guideline">
+              <Info size={32} />
+              <p>Bạn chưa được gán vào dự án nào.</p>
+            </div>
+          ) : (
+            <div className="guideline-grid">
+              {projects.map((project) => (
+                <div key={project.id} className="guideline-card">
+                  <div className="guideline-card__info">
+                    <div className="guideline-card__icon">
+                      <FileText size={24} />
+                    </div>
+                    <div className="guideline-card__details">
+                      <h4 className="guideline-card__name">{project.name || 'Dự án không tên'}</h4>
+                      <p className="guideline-card__desc">
+                        {project.description || 'Không có mô tả dự án.'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="guideline-card__actions">
+                    {project.guidelineUrl ? (
+                      <>
+                        <button 
+                          className="guideline-btn guideline-btn--view"
+                          onClick={() => window.open(project.guidelineUrl, '_blank')}
+                          title="Xem trực tiếp"
+                        >
+                          <ExternalLink size={16} />
+                          <span>Xem</span>
+                        </button>
+                        <a 
+                          href={project.guidelineUrl} 
+                          download 
+                          className="guideline-btn guideline-btn--download"
+                          title="Tải về máy"
+                        >
+                          <Download size={16} />
+                          <span>Tải về</span>
+                        </a>
+                      </>
+                    ) : (
+                      <span className="guideline-not-available">
+                        Chưa có hướng dẫn
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
