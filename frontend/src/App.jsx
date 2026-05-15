@@ -188,6 +188,14 @@ function App() {
         }
       />
       <Route
+        path="/annotator/projects/:projectId/tasks"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorTasks />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/reviewer"
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>

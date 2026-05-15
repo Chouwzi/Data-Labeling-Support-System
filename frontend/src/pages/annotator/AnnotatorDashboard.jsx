@@ -193,26 +193,25 @@ export default function AnnotatorDashboard() {
                   </div>
                   
                   <div className="guideline-card__actions">
+                    <button 
+                      className="guideline-btn guideline-btn--view"
+                      onClick={() => navigate(`/annotator/projects/${project.id}/tasks`)}
+                      title="View Image List"
+                    >
+                      <ExternalLink size={16} />
+                      <span>View Tasks</span>
+                    </button>
+
                     {project.guidelineUrl ? (
-                      <>
-                        <button 
-                          className="guideline-btn guideline-btn--view"
-                          onClick={() => window.open(project.guidelineUrl, '_blank')}
-                          title="View Online"
-                        >
-                          <ExternalLink size={16} />
-                          <span>View</span>
-                        </button>
-                        <a 
-                          href={project.guidelineUrl} 
-                          download 
-                          className="guideline-btn guideline-btn--download"
-                          title="Download File"
-                        >
-                          <Download size={16} />
-                          <span>Download</span>
-                        </a>
-                      </>
+                      <a 
+                        href={project.guidelineUrl} 
+                        download 
+                        className="guideline-btn guideline-btn--download"
+                        title="Download File"
+                      >
+                        <Download size={16} />
+                        <span>Download</span>
+                      </a>
                     ) : (
                       <span className="guideline-not-available">
                         Guideline not available
