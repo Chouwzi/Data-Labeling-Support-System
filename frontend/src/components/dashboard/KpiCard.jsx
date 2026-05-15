@@ -1,4 +1,4 @@
-import { User, Folder, HardDrive, CheckCircle } from 'lucide-react';
+import { User, Folder, HardDrive, CheckCircle, Clock } from 'lucide-react';
 import '@/styles/KpiCard.css';
 
 const ICONS = {
@@ -6,6 +6,7 @@ const ICONS = {
   folder_managed: Folder,
   storage: HardDrive,
   assignment_turned_in: CheckCircle,
+  clock: Clock,
 };
 
 export default function KpiCard({
@@ -15,6 +16,7 @@ export default function KpiCard({
   icon,
   trend,
   variant = 'default',
+  compact = false,
   progress,
   progressLabel,
   dotColors = [],
@@ -73,7 +75,7 @@ export default function KpiCard({
   }
 
   return (
-    <div className={`kpi-card kpi-card--summary ${trend ? 'kpi-card--with-trend' : ''}`}>
+    <div className={`kpi-card kpi-card--summary ${trend ? 'kpi-card--with-trend' : ''} ${compact ? 'kpi-card--compact' : ''}`}>
       <div className="kpi-card__header">
         <div className="kpi-card__icon">
           <IconComponent size={20} />

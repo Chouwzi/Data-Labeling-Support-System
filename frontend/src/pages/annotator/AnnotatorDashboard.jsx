@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
-import { getProjects, getProject, getMyAssignedImages } from '@/services/api';
+import { getProjects, getProject, getMyProjects, getLabelsByProject, getMyAssignedImages } from '@/services/api';
 import { FileText, Download, ExternalLink, Info, BookOpen, Search, Loader } from 'lucide-react';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
+import KpiCard from '@/components/dashboard/KpiCard';
 import '@/styles/Dashboard.css';
 import '@/styles/ManagerDashboard.css';
+import '@/styles/KpiCard.css';
 
 export default function AnnotatorDashboard() {
   const { logout, user } = useAuth();
@@ -15,6 +17,7 @@ export default function AnnotatorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
   const closeSidebar = () => setSidebarOpen(false);
@@ -23,40 +26,41 @@ export default function AnnotatorDashboard() {
     const fetchProjects = async () => {
       try {
         setIsLoading(true);
-        let projectList = [];
+        
+        // Fetch projects assigned to the current user (annotator/manager)
+        const res = await getMyProjects();
+        let projectList = res.data?.result?.data || res.data?.result || res.data || [];
+        if (!Array.isArray(projectList)) projectList = [];
+        
+        // Enhance projects with labels if they are not included in the main list
+        const detailedProjects = await Promise.all(
+          projectList.map(async (project) => {
+            let labels = project.labels || [];
+            
+            // If labels are not present, fetch them separately
+            if (labels.length === 0) {
+              try {
+                const labelRes = await getLabelsByProject(project.id);
+                labels = labelRes.data?.result?.data || labelRes.data?.result || [];
+                if (!Array.isArray(labels)) labels = [];
+              } catch (e) {
+                console.warn(`Could not fetch labels for project ${project.id}`, e);
+              }
+            }
+            
+            return {
+              ...project,
+              guidelineUrl: project.guideline_url || project.guidelineUrl,
+              labels: labels.map(label => ({
+                ...label,
+                color: label.color_hex || label.color,
+                rule: label.description || label.rule || 'Standard labeling rules apply.'
+              }))
+            };
+          })
+        );
 
-        if (user?.role === 'ANNOTATOR') {
-          // Annotators cannot access GET /projects (403), 
-          // so we fetch projects they are assigned to via their images
-          const assignedRes = await getMyAssignedImages({ size: 100 });
-          const images = assignedRes.data?.result?.data || [];
-          
-          // Extract unique project IDs (backend uses SNAKE_CASE)
-          const projectIds = [...new Set(images.map(img => img.project_id || img.projectId))].filter(Boolean);
-          
-          // Fetch details for each project (guidelines, labels)
-          const projectPromises = projectIds.map(id => getProject(id));
-          const projectResponses = await Promise.all(projectPromises);
-          
-          projectList = projectResponses.map(res => res.data?.result).filter(Boolean);
-        } else {
-          // Managers/Admins can use the main list
-          const res = await getProjects();
-          projectList = res.data?.result?.data || res.data?.result || res.data || [];
-          if (!Array.isArray(projectList)) projectList = projectList.data || [];
-        }
-
-        // Map backend snake_case to frontend expectations
-        const mappedData = projectList.map(project => ({
-          ...project,
-          guidelineUrl: project.guideline_url || project.guidelineUrl,
-          labels: (project.labels || []).map(label => ({
-            ...label,
-            color: label.color_hex || label.color
-          }))
-        }));
-
-        setProjects(mappedData);
+        setProjects(detailedProjects);
       } catch (error) {
         console.error('Failed to fetch projects:', error);
         setProjects([]);
@@ -83,30 +87,31 @@ export default function AnnotatorDashboard() {
           userRole="Annotator"
           onLogout={handleLogout}
           showCenterLinks
+          searchValue={dashboardSearchTerm}
+          onSearch={setDashboardSearchTerm}
+          searchPlaceholder="Search projects and guidelines..."
         />
 
         <main className="dashboard-content">
           <div className="dashboard-content-inner fade-in-up">
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <FileText size={24} />
-                </div>
-                <div className="stat-info">
-                  <span className="stat-value">156</span>
-                  <span className="stat-label">Labels Completed</span>
-                </div>
-              </div>
+            <div className="stats-grid stats-grid--compact">
+              <KpiCard 
+                title="Assigned Work" 
+                value={`${projects.length} Projects`}
+                subtitle={`${projects.reduce((acc, p) => acc + (p.imageCount || p.total_images || 0), 0)} Total Images`}
+                icon="folder_managed"
+                trend="Assigned"
+                compact
+              />
 
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <BookOpen size={24} />
-                </div>
-                <div className="stat-info">
-                  <span className="stat-value">24</span>
-                  <span className="stat-label">Working Hours</span>
-                </div>
-              </div>
+              <KpiCard 
+                title="Your Progress" 
+                value={`${projects.filter(p => p.status === 'COMPLETED' || p.progress === 100).length} Finished`}
+                subtitle={`${projects.reduce((acc, p) => acc + (p.completed_images || 0), 0)} Images Labeled`}
+                icon="assignment_turned_in"
+                trend={`${projects.length > 0 ? Math.round((projects.reduce((acc, p) => acc + (p.completed_images || 0), 0) / (projects.reduce((acc, p) => acc + (p.imageCount || p.total_images || 1), 0))) * 100) : 0}% Done`}
+                compact
+              />
             </div>
 
             <section className="guideline-section">
@@ -127,9 +132,19 @@ export default function AnnotatorDashboard() {
                 </div>
               ) : (
                 <div className="guideline-grid">
-                  {projects.map(project => (
-                    <ProjectGuidelineCard key={project.id} project={project} />
-                  ))}
+                  {projects
+                    .filter(project => 
+                      project.name?.toLowerCase().includes(dashboardSearchTerm.toLowerCase()) ||
+                      project.description?.toLowerCase().includes(dashboardSearchTerm.toLowerCase())
+                    )
+                    .map(project => (
+                      <ProjectGuidelineCard key={project.id} project={project} />
+                    ))}
+                  {projects.length > 0 && projects.filter(p => p.name?.toLowerCase().includes(dashboardSearchTerm.toLowerCase()) || p.description?.toLowerCase().includes(dashboardSearchTerm.toLowerCase())).length === 0 && (
+                    <div className="empty-guideline">
+                      <p>No projects match "{dashboardSearchTerm}"</p>
+                    </div>
+                  )}
                 </div>
               )}
             </section>
@@ -167,7 +182,6 @@ function ProjectGuidelineCard({ project }) {
         <div className="taxonomy-header">
           <h5 className="taxonomy-title">LABEL LEGEND</h5>
           <div className="taxonomy-search">
-            <Search size={12} className="search-icon" />
             <input 
               type="text" 
               placeholder="Search labels..." 
@@ -199,31 +213,25 @@ function ProjectGuidelineCard({ project }) {
       </div>
       
       <div className="guideline-card__actions">
-        {project.guidelineUrl ? (
-          <>
-            <button 
-              className="guideline-btn guideline-btn--view"
-              onClick={() => window.open(project.guidelineUrl, '_blank')}
-              title="View Online"
-            >
-              <ExternalLink size={16} />
-              <span>View</span>
-            </button>
-            <a 
-              href={project.guidelineUrl} 
-              download 
-              className="guideline-btn guideline-btn--download"
-              title="Download File"
-            >
-              <Download size={16} />
-              <span>Download</span>
-            </a>
-          </>
-        ) : (
-          <span className="guideline-not-available">
-            Guideline not available
-          </span>
-        )}
+        <button 
+          className={`guideline-btn guideline-btn--view ${!project.guidelineUrl ? 'guideline-btn--disabled' : ''}`}
+          onClick={() => project.guidelineUrl && window.open(project.guidelineUrl, '_blank')}
+          title={project.guidelineUrl ? "View Online" : "Guideline not available"}
+          disabled={!project.guidelineUrl}
+        >
+          <ExternalLink size={16} />
+          <span>View</span>
+        </button>
+        <a 
+          href={project.guidelineUrl || '#'} 
+          download={!!project.guidelineUrl}
+          className={`guideline-btn guideline-btn--download ${!project.guidelineUrl ? 'guideline-btn--disabled' : ''}`}
+          title={project.guidelineUrl ? "Download File" : "Guideline not available"}
+          onClick={(e) => !project.guidelineUrl && e.preventDefault()}
+        >
+          <Download size={16} />
+          <span>Download</span>
+        </a>
       </div>
     </div>
   );
