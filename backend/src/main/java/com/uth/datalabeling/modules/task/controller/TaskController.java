@@ -60,9 +60,8 @@ public class TaskController {
     public ApiResponse<List<TaskResponse>> assignTasks(
             @PathVariable UUID projectId,
             @RequestBody @Valid TaskAssignRequest request) {
-        // Trong thực tế, cần kiểm tra các task này có thuộc về projectId hay không
         return ApiResponse.<List<TaskResponse>>builder()
-                .result(taskService.assignTasks(request))
+                .result(taskService.assignTasks(projectId, request))
                 .build();
     }
 }

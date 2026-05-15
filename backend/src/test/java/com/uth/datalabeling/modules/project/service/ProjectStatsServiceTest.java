@@ -3,7 +3,7 @@ package com.uth.datalabeling.modules.project.service;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.project.dto.response.ProjectStatsResponse;
-import com.uth.datalabeling.modules.project.repository.ProjectRepository;
+import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -18,8 +18,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectStatsServiceTest {
@@ -28,7 +29,7 @@ class ProjectStatsServiceTest {
   private TaskRepository taskRepository;
 
   @Mock
-  private ProjectRepository projectRepository;
+  private ProjectAccessService projectAccessService;
 
   @InjectMocks
   private ProjectStatsService projectStatsService;
@@ -38,7 +39,8 @@ class ProjectStatsServiceTest {
   void getProjectStatistics_Success() {
     // Given
     UUID projectId = UUID.randomUUID();
-    given(projectRepository.existsById(projectId)).willReturn(true);
+    given(projectAccessService.findProjectAndCheckAccess(projectId, true))
+        .willReturn(Project.builder().id(projectId).build());
 
     List<TaskStatusCountDTO> mockCounts = List.of(
         new TaskStatusCountDTO("PENDING", 20L),
@@ -62,7 +64,8 @@ class ProjectStatsServiceTest {
   void getProjectStatistics_ProjectNotFound() {
     // Given
     UUID projectId = UUID.randomUUID();
-    given(projectRepository.existsById(projectId)).willReturn(false);
+    given(projectAccessService.findProjectAndCheckAccess(projectId, true))
+        .willThrow(new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
     // When & Then
     AppException exception = assertThrows(AppException.class, () -> {
@@ -70,6 +73,7 @@ class ProjectStatsServiceTest {
     });
 
     assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
+    verify(taskRepository, never()).countTasksByStatus(projectId);
   }
 
   @Test
@@ -77,7 +81,8 @@ class ProjectStatsServiceTest {
   void getProjectStatistics_NoTasks_ReturnsZeroStats() {
     // Given
     UUID projectId = UUID.randomUUID();
-    given(projectRepository.existsById(projectId)).willReturn(true);
+    given(projectAccessService.findProjectAndCheckAccess(projectId, true))
+        .willReturn(Project.builder().id(projectId).build());
     given(taskRepository.countTasksByStatus(projectId)).willReturn(List.of());
 
     // When

@@ -7,7 +7,6 @@ import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
-import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest;
 import com.uth.datalabeling.modules.task.dto.response.AssignedImageResponse;
@@ -41,9 +40,6 @@ public class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
-
-    @Mock
-    private ProjectRepository projectRepository;
 
     @Mock
     private DatasetRepository datasetRepository;
@@ -80,12 +76,24 @@ public class TaskServiceTest {
 
     @Test
     void generateTasksFromDataset_Success() {
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
         when(datasetRepository.findById(datasetId)).thenReturn(Optional.of(dataset));
 
         taskService.generateTasksFromDataset(projectId, datasetId);
 
+        verify(projectAccessService).findProjectAndCheckAccess(projectId, true);
         verify(taskRepository, times(1)).save(any(Task.class));
+    }
+
+    @Test
+    void generateTasksFromDataset_ShouldCheckManagerProjectAccessBeforeCreatingTasks() {
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true))
+                .thenThrow(new AppException(com.uth.datalabeling.common.exception.ErrorCode.FORBIDDEN));
+
+        assertThrows(AppException.class, () -> taskService.generateTasksFromDataset(projectId, datasetId));
+
+        verify(projectAccessService).findProjectAndCheckAccess(projectId, true);
+        verify(taskRepository, never()).save(any(Task.class));
     }
 
     @Test
@@ -93,15 +101,16 @@ public class TaskServiceTest {
         UUID annotatorId = UUID.randomUUID();
         User annotator = User.builder().id(annotatorId).role("ANNOTATOR").build();
         UUID taskId = UUID.randomUUID();
-        Task task = Task.builder().id(taskId).status("PENDING").build();
+        Task task = Task.builder().id(taskId).project(project).status("PENDING").build();
         TaskAssignRequest request = new TaskAssignRequest(List.of(taskId), annotatorId);
 
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
         when(userRepository.findById(annotatorId)).thenReturn(Optional.of(annotator));
-        when(taskRepository.findAllById(anyList())).thenReturn(List.of(task));
+        when(taskRepository.findAllById(anySet())).thenReturn(List.of(task));
         when(taskRepository.saveAll(anyList())).thenReturn(List.of(task));
         when(taskMapper.toTaskResponse(any(Task.class))).thenReturn(new TaskResponse());
 
-        List<TaskResponse> result = taskService.assignTasks(request);
+        List<TaskResponse> result = taskService.assignTasks(projectId, request);
 
         assertNotNull(result);
         assertEquals("ASSIGNED", task.getStatus());
@@ -111,15 +120,68 @@ public class TaskServiceTest {
     }
 
     @Test
+    void assignTasks_ShouldRejectNonAnnotatorAssignee() {
+        UUID reviewerId = UUID.randomUUID();
+        User reviewer = User.builder().id(reviewerId).role("REVIEWER").build();
+        UUID taskId = UUID.randomUUID();
+        Task task = Task.builder().id(taskId).status("PENDING").build();
+        TaskAssignRequest request = new TaskAssignRequest(List.of(taskId), reviewerId);
+
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+        when(userRepository.findById(reviewerId)).thenReturn(Optional.of(reviewer));
+
+        AppException ex = assertThrows(AppException.class, () -> taskService.assignTasks(projectId, request));
+
+        assertEquals(com.uth.datalabeling.common.exception.ErrorCode.FORBIDDEN, ex.getErrorCode());
+        verify(taskRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void assignTasks_ShouldRejectTasksOutsideTheRequestedProjectBoundary() {
+        UUID annotatorId = UUID.randomUUID();
+        UUID otherProjectId = UUID.randomUUID();
+        User annotator = User.builder().id(annotatorId).role("ANNOTATOR").build();
+        Project otherProject = Project.builder().id(otherProjectId).build();
+        UUID taskId = UUID.randomUUID();
+        Task taskFromAnotherProject = Task.builder()
+                .id(taskId)
+                .project(otherProject)
+                .status("PENDING")
+                .build();
+        TaskAssignRequest request = new TaskAssignRequest(List.of(taskId), annotatorId);
+
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+        when(userRepository.findById(annotatorId)).thenReturn(Optional.of(annotator));
+        when(taskRepository.findAllById(anySet())).thenReturn(List.of(taskFromAnotherProject));
+
+        AppException ex = assertThrows(AppException.class, () -> taskService.assignTasks(projectId, request));
+
+        assertEquals(com.uth.datalabeling.common.exception.ErrorCode.FORBIDDEN, ex.getErrorCode());
+        verify(taskRepository, never()).saveAll(anyList());
+    }
+
+    @Test
     void getTasksByProject_Success() {
         Task task = Task.builder().project(project).status("PENDING").build();
-        when(taskRepository.findAll()).thenReturn(List.of(task));
+        when(projectAccessService.findProjectAndCheckReadAccess(projectId)).thenReturn(project);
+        when(taskRepository.findByProjectId(projectId)).thenReturn(List.of(task));
         when(taskMapper.toTaskResponse(any())).thenReturn(new TaskResponse());
 
         List<TaskResponse> result = taskService.getTasksByProject(projectId, null);
 
         assertNotNull(result);
         assertEquals(1, result.size());
+    }
+
+    @Test
+    void getTasksByProject_ShouldCheckProjectReadAccessBeforeReturningTasks() {
+        when(projectAccessService.findProjectAndCheckReadAccess(projectId))
+                .thenThrow(new AppException(com.uth.datalabeling.common.exception.ErrorCode.FORBIDDEN));
+
+        assertThrows(AppException.class, () -> taskService.getTasksByProject(projectId, null));
+
+        verify(projectAccessService).findProjectAndCheckReadAccess(projectId);
+        verify(taskRepository, never()).findByProjectId(any());
     }
 
     @Test

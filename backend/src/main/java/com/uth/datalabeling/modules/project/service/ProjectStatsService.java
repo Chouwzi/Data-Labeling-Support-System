@@ -1,9 +1,6 @@
 package com.uth.datalabeling.modules.project.service;
 
-import com.uth.datalabeling.common.exception.AppException;
-import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.project.dto.response.ProjectStatsResponse;
-import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +17,11 @@ import java.util.stream.Collectors;
 public class ProjectStatsService {
 
     private final TaskRepository taskRepository;
-    private final ProjectRepository projectRepository;
+    private final ProjectAccessService projectAccessService;
 
     @Transactional(readOnly = true)
     public ProjectStatsResponse getProjectStatistics(UUID projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new AppException(ErrorCode.PROJECT_NOT_FOUND, "Không tìm thấy dự án với id: " + projectId);
-        }
+        projectAccessService.findProjectAndCheckAccess(projectId, true);
 
         List<TaskStatusCountDTO> statusCounts = taskRepository.countTasksByStatus(projectId);
 

@@ -13,7 +13,6 @@ import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.mapper.ProjectMapper;
 import com.uth.datalabeling.modules.project.repository.LabelRepository;
-import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LabelService {
     LabelRepository labelRepository;
-    ProjectRepository projectRepository;
     ProjectAccessService projectAccessService;
     ProjectMapper projectMapper;
 
@@ -97,8 +95,7 @@ public class LabelService {
      */
     @Transactional(readOnly = true)
     public List<LabelResponse> getLabelsByProject(UUID projectId) {
-        projectRepository.findByIdAndDeletedAtIsNull(projectId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        projectAccessService.findProjectAndCheckReadAccess(projectId);
 
         List<Label> labels = labelRepository.findByProjectIdAndDeletedAtIsNull(projectId);
         return labels.stream()

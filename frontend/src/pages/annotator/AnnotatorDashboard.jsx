@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
-import { getProjects } from '@/services/api';
+import { getMyProjects } from '@/services/api';
 import { FileText, Download, ExternalLink, Info, BookOpen } from 'lucide-react';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
@@ -13,6 +13,7 @@ export default function AnnotatorDashboard() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
@@ -22,75 +23,15 @@ export default function AnnotatorDashboard() {
     const fetchProjects = async () => {
       try {
         setIsLoading(true);
-        const res = await getProjects();
-        const mockData = [
-          {
-            id: 'mock-1',
-            name: 'Urban Infrastructure Mapping',
-            description: 'Identifying building footprints and road networks from high-resolution satellite imagery.',
-            guidelineUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-            labels: [
-              { name: 'Building', color: '#3b82f6' },
-              { name: 'Road', color: '#64748b' },
-              { name: 'Vegetation', color: '#22c55e' },
-              { name: 'Water', color: '#0ea5e9' }
-            ]
-          },
-          {
-            id: 'mock-2',
-            name: 'Agricultural Crop Classification',
-            description: 'Classifying different types of crops (corn, wheat, soy) based on spectral signatures.',
-            guidelineUrl: null,
-            labels: [
-              { name: 'Corn', color: '#eab308' },
-              { name: 'Wheat', color: '#f59e0b' },
-              { name: 'Soybean', color: '#84cc16' }
-            ]
-          },
-          {
-            id: 'mock-3',
-            name: 'Traffic Sign Recognition',
-            description: 'Labeling standard traffic signs and signal states for autonomous vehicle training.',
-            guidelineUrl: 'https://raw.githubusercontent.com/mdn/learning-area/master/html/forms/file-examples/test.txt',
-            labels: [
-              { name: 'Prohibitory', color: '#ef4444' },
-              { name: 'Warning', color: '#f97316' },
-              { name: 'Mandatory', color: '#2563eb' }
-            ]
-          }
-        ];
-
+        setLoadError('');
+        const res = await getMyProjects();
         let data = res.data?.result?.data || res.data?.result || res.data || [];
-        
-        // Use mock if no projects are returned
-        if (!Array.isArray(data) || data.length === 0) {
-          data = mockData;
-        }
-        
+        data = Array.isArray(data) ? data : [];
         setProjects(data);
       } catch (error) {
-        console.error('Failed to fetch projects (showing mock instead):', error);
-        // Fallback to full mock list on error (like 403)
-        setProjects([
-          {
-            id: 'mock-1',
-            name: 'Urban Infrastructure Mapping',
-            description: 'Identifying building footprints and road networks from high-resolution satellite imagery.',
-            guidelineUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-          },
-          {
-            id: 'mock-2',
-            name: 'Agricultural Crop Classification',
-            description: 'Classifying different types of crops (corn, wheat, soy) based on spectral signatures.',
-            guidelineUrl: null
-          },
-          {
-            id: 'mock-3',
-            name: 'Traffic Sign Recognition',
-            description: 'Labeling standard traffic signs and signal states for autonomous vehicle training.',
-            guidelineUrl: 'https://raw.githubusercontent.com/mdn/learning-area/master/html/forms/file-examples/test.txt'
-          }
-        ]);
+        console.error('Failed to fetch assigned projects:', error);
+        setProjects([]);
+        setLoadError('Unable to load your assigned project guidelines.');
       } finally {
         setIsLoading(false);
       }
@@ -152,6 +93,11 @@ export default function AnnotatorDashboard() {
 
           {isLoading ? (
             <div className="loading-state">Loading projects...</div>
+          ) : loadError ? (
+            <div className="empty-guideline">
+              <Info size={32} />
+              <p>{loadError}</p>
+            </div>
           ) : projects.length === 0 ? (
             <div className="empty-guideline">
               <Info size={32} />
@@ -181,7 +127,7 @@ export default function AnnotatorDashboard() {
                         <div key={idx} className="taxonomy-item">
                           <span 
                             className="taxonomy-color" 
-                            style={{ backgroundColor: label.color }} 
+                            style={{ backgroundColor: label.color || label.color_hex || label.colorHex }}
                           />
                           <span className="taxonomy-name">{label.name}</span>
                         </div>
@@ -193,18 +139,18 @@ export default function AnnotatorDashboard() {
                   </div>
                   
                   <div className="guideline-card__actions">
-                    {project.guidelineUrl ? (
+                    {(project.guidelineUrl || project.guideline_url) ? (
                       <>
                         <button 
                           className="guideline-btn guideline-btn--view"
-                          onClick={() => window.open(project.guidelineUrl, '_blank')}
+                          onClick={() => window.open(project.guidelineUrl || project.guideline_url, '_blank')}
                           title="View Online"
                         >
                           <ExternalLink size={16} />
                           <span>View</span>
                         </button>
                         <a 
-                          href={project.guidelineUrl} 
+                          href={project.guidelineUrl || project.guideline_url}
                           download 
                           className="guideline-btn guideline-btn--download"
                           title="Download File"

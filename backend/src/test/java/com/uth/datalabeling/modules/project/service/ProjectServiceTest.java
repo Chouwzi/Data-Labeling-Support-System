@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.*;
 
+import com.uth.datalabeling.common.response.PageResponse;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.iam.entity.User;
@@ -25,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * Kiểm thử đơn vị cho ProjectService.
@@ -197,5 +200,50 @@ class ProjectServiceTest {
 
         assertNotNull(existingProject.getDeletedAt());
         verify(projectRepository).save(existingProject);
+    }
+
+    @Test
+    void getMyAssignedProjects_ReturnsOnlyProjectsAssignedToCurrentAnnotator() {
+        User annotator = User.builder()
+                .id(UUID.randomUUID())
+                .email("annotator@test.com")
+                .role("ANNOTATOR")
+                .build();
+        Project assignedProject = Project.builder()
+                .id(UUID.randomUUID())
+                .name("Assigned Project")
+                .labels(new ArrayList<>())
+                .build();
+        ProjectResponse assignedResponse = ProjectResponse.builder()
+                .id(assignedProject.getId())
+                .name("Assigned Project")
+                .build();
+        PageRequest pageable = PageRequest.of(0, 10);
+
+        when(projectAccessService.getCurrentUser()).thenReturn(annotator);
+        when(projectRepository.findAssignedProjectsForAnnotator(annotator.getId(), pageable))
+                .thenReturn(new PageImpl<>(List.of(assignedProject), pageable, 1));
+        when(projectMapper.toProjectResponse(assignedProject)).thenReturn(assignedResponse);
+
+        PageResponse<ProjectResponse> response = projectService.getMyAssignedProjects(pageable);
+
+        assertEquals(1, response.getTotalElements());
+        assertEquals("Assigned Project", response.getData().get(0).getName());
+        verify(projectRepository).findAssignedProjectsForAnnotator(annotator.getId(), pageable);
+    }
+
+    @Test
+    void getProjectById_UsesReadAccessGuardForAnnotatorReadableProject() {
+        when(projectAccessService.findProjectAndCheckReadAccess(projectId)).thenReturn(existingProject);
+        when(projectMapper.toProjectResponse(existingProject)).thenReturn(ProjectResponse.builder()
+                .id(projectId)
+                .name(existingProject.getName())
+                .build());
+
+        ProjectResponse response = projectService.getProjectById(projectId);
+
+        assertEquals(projectId, response.getId());
+        verify(projectAccessService).findProjectAndCheckReadAccess(projectId);
+        verify(projectAccessService, never()).findProjectAndCheckAccess(projectId);
     }
 }

@@ -31,6 +31,9 @@ class ProjectFileServiceTest {
     private ProjectRepository projectRepository;
 
     @Mock
+    private ProjectAccessService projectAccessService;
+
+    @Mock
     private StorageService storageService;
 
     @InjectMocks
@@ -45,7 +48,7 @@ class ProjectFileServiceTest {
         MockMultipartFile mockFile = new MockMultipartFile(
                 "file", "guideline.pdf", "application/pdf", "dummy content".getBytes());
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
         when(storageService.store(mockFile, "projects")).thenReturn("/uploads/projects/123_guideline.pdf");
 
         when(projectFileRepository.saveAndFlush(any(ProjectFile.class))).thenAnswer(invocation -> {
@@ -72,7 +75,8 @@ class ProjectFileServiceTest {
         MockMultipartFile mockFile = new MockMultipartFile(
                 "file", "test.pdf", "application/pdf", "content".getBytes());
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.empty());
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true))
+                .thenThrow(new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
         AppException exception = assertThrows(AppException.class, () -> {
             projectFileService.upload(mockFile, projectId);
@@ -91,7 +95,7 @@ class ProjectFileServiceTest {
         MockMultipartFile mockFile = new MockMultipartFile(
                 "file", "script.exe", "application/pdf", "content".getBytes());
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
 
         AppException exception = assertThrows(AppException.class, () -> {
             projectFileService.upload(mockFile, projectId);
@@ -110,7 +114,7 @@ class ProjectFileServiceTest {
         MockMultipartFile mockFile = new MockMultipartFile(
                 "file", "test.pdf", "image/png", "content".getBytes());
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
 
         AppException exception = assertThrows(AppException.class, () -> {
             projectFileService.upload(mockFile, projectId);
@@ -128,7 +132,7 @@ class ProjectFileServiceTest {
         MockMultipartFile mockFile = new MockMultipartFile(
                 "file", "test.pdf", "application/pdf", new byte[0]);
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
 
         AppException exception = assertThrows(AppException.class, () -> {
             projectFileService.upload(mockFile, projectId);
@@ -147,5 +151,38 @@ class ProjectFileServiceTest {
 
         ProjectFile result = projectFileService.getById(fileId);
         assertEquals(fileId, result.getId());
+    }
+
+    @Test
+    void getByIdAndProjectId_ShouldCheckReadAccessBeforeReturningFile() {
+        UUID projectId = UUID.randomUUID();
+        UUID fileId = UUID.randomUUID();
+        Project project = new Project();
+        project.setId(projectId);
+        ProjectFile projectFile = new ProjectFile();
+        projectFile.setId(fileId);
+        projectFile.setProject(project);
+
+        when(projectAccessService.findProjectAndCheckReadAccess(projectId)).thenReturn(project);
+        when(projectFileRepository.findById(fileId)).thenReturn(Optional.of(projectFile));
+
+        ProjectFile result = projectFileService.getByIdAndProjectId(fileId, projectId);
+
+        assertEquals(fileId, result.getId());
+        verify(projectAccessService).findProjectAndCheckReadAccess(projectId);
+    }
+
+    @Test
+    void getByIdAndProjectId_ForbiddenProjectAccess_DoesNotLoadFile() {
+        UUID projectId = UUID.randomUUID();
+        UUID fileId = UUID.randomUUID();
+        when(projectAccessService.findProjectAndCheckReadAccess(projectId))
+                .thenThrow(new AppException(ErrorCode.FORBIDDEN));
+
+        AppException exception = assertThrows(AppException.class,
+                () -> projectFileService.getByIdAndProjectId(fileId, projectId));
+
+        assertEquals(ErrorCode.FORBIDDEN, exception.getErrorCode());
+        verify(projectFileRepository, never()).findById(any());
     }
 }

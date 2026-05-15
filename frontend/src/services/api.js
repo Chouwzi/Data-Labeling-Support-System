@@ -129,6 +129,8 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 export const getProjects = () => api.get('/projects');
 
+export const getMyProjects = () => api.get('/me/projects');
+
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
 
