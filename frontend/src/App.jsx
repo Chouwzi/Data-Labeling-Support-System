@@ -11,6 +11,7 @@ import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
+import ReviewWorkspace from '@/pages/reviewer/ReviewWorkspace';
 import SystemConfig from '@/pages/admin/SystemConfig';
 import UsersPage from '@/pages/admin/UsersPage';
 import ActivityLog from '@/pages/admin/ActivityLog';
@@ -29,7 +30,10 @@ function PublicRoute({ children }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={getDashboardRoute(user?.role)} replace />;
+    const target = getDashboardRoute(user?.role);
+    if (target !== '/login') {
+      return <Navigate to={target} replace />;
+    }
   }
 
   return children;
@@ -184,10 +188,26 @@ function App() {
         }
       />
       <Route
+        path="/annotator/projects/:projectId/tasks"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorTasks />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/reviewer"
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>
             <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/workspace/:id"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewWorkspace />
           </ProtectedRoute>
         }
       />

@@ -10,13 +10,18 @@ const api = axios.create({
 });
 
 // Gắn token vào mọi request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    const isLoginRequest = config.url?.includes('/auth/login');
+    
+    if (token && !isLoginRequest) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Xử lý lỗi 401 → clear token và redirect login
 api.interceptors.response.use(
@@ -45,16 +50,6 @@ api.interceptors.response.use(
 // Auth
 // =====================
 export const login = (email, password) => {
-  if (email === 'admin@gmail.com' && password === 'admin123') {
-    return Promise.resolve({
-      data: {
-        result: {
-          accessToken: 'mock-jwt-token-admin',
-          user: { id: 1, email: 'admin@gmail.com', role: 'MANAGER', full_name: 'Admin Mock' }
-        }
-      }
-    });
-  }
   return api.post('/auth/login', { email, password });
 };
 

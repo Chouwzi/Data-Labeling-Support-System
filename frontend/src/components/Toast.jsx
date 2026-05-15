@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, User, RotateCcw } from 'lucide-react';
+import { CheckCircle2, User, RotateCcw, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import './Toast.css';
 
 export default function Toast({
   message,
+  type = 'success', // 'success' | 'error' | 'warning'
   annotatorName,
   annotatorAvatar,
   imageCount,
@@ -44,10 +45,14 @@ export default function Toast({
 
   if (!visible && !exiting) return null;
 
+  const Icon = type === 'error' ? AlertCircle : (type === 'warning' ? AlertTriangle : CheckCircle2);
+  const iconClass = `toast-icon--${type}`;
+
   return (
     <div
       className={[
         'toast-container',
+        `toast--${type}`,
         exiting ? 'toast-exit' : 'toast-enter',
       ].filter(Boolean).join(' ')}
       role="alert"
@@ -55,24 +60,26 @@ export default function Toast({
       aria-atomic="true"
     >
       <div className="toast-left">
-        <CheckCircle2 size={24} strokeWidth={2} className="toast-success-icon" aria-hidden="true" />
+        <Icon size={24} strokeWidth={2} className={`toast-main-icon ${iconClass}`} aria-hidden="true" />
       </div>
 
       <div className="toast-middle">
         <p className="toast-message">{message}</p>
-        <div className="toast-annotator">
-          {annotatorAvatar ? (
-            <img src={annotatorAvatar} alt="" className="toast-annotator-avatar" />
-          ) : (
-            <User size={10} className="toast-annotator-icon" aria-hidden="true" />
-          )}
-          <span className="toast-annotator-name">{annotatorName}</span>
-          {imageCount !== undefined && (
-            <span className="toast-image-count">
-              {imageCount} images
-            </span>
-          )}
-        </div>
+        {annotatorName && (
+          <div className="toast-annotator">
+            {annotatorAvatar ? (
+              <img src={annotatorAvatar} alt="" className="toast-annotator-avatar" />
+            ) : (
+              <User size={10} className="toast-annotator-icon" aria-hidden="true" />
+            )}
+            <span className="toast-annotator-name">{annotatorName}</span>
+            {imageCount !== undefined && (
+              <span className="toast-image-count">
+                {imageCount} images
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="toast-right">

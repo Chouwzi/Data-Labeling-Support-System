@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ArrowLeft, Check, Image as ImageIcon, Loader, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, Check, Image as ImageIcon, Loader, LayoutGrid, Download } from 'lucide-react';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import Toast from '@/components/Toast';
@@ -74,15 +74,39 @@ export default function AnnotatorsImageGrid() {
         const res = await getTasks(selectedProjectId);
         const tasksData = Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []);
         
-        setImages(tasksData.map(task => ({
+        const mappedTasks = tasksData.map(task => ({
           id: task.id,
           imageUrl: task.imageUrl,
           fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
           project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
           resolution: 'N/A', // Not available in TaskResponse
-          status: task.status === 'PENDING' ? 'unassigned' : 'assigned',
+          status: task.status === 'PENDING' ? 'unassigned' : (task.status === 'COMPLETED' ? 'completed' : 'assigned'),
           assignee: task.annotatorName || null
-        })));
+        }));
+
+        // Mock data for testing Task 112 (Export COCO JSON)
+        const mockCompletedTasks = [
+          {
+            id: 'mock-comp-1',
+            imageUrl: 'https://picsum.photos/400/300?random=10',
+            fileName: 'mock_completed_01.jpg',
+            project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
+            resolution: '512x512',
+            status: 'completed',
+            assignee: 'Maya L.'
+          },
+          {
+            id: 'mock-comp-2',
+            imageUrl: 'https://picsum.photos/400/300?random=11',
+            fileName: 'mock_completed_02.jpg',
+            project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
+            resolution: '512x512',
+            status: 'completed',
+            assignee: 'James W.'
+          }
+        ];
+
+        setImages([...mappedTasks, ...mockCompletedTasks]);
         
         // Clear selection when project changes
         setSelectedImageIds([]);
@@ -120,7 +144,7 @@ export default function AnnotatorsImageGrid() {
         fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
         project: selectedProject.name,
         resolution: 'N/A',
-        status: task.status === 'PENDING' ? 'unassigned' : 'assigned',
+        status: task.status === 'PENDING' ? 'unassigned' : (task.status === 'COMPLETED' ? 'completed' : 'assigned'),
         assignee: task.annotatorName || null
       })));
     } catch (error) {
@@ -193,6 +217,42 @@ export default function AnnotatorsImageGrid() {
 
   const closeToast = useCallback(() => setToast(null), []);
 
+  const handleExportCOCO = () => {
+    const completedImages = images.filter(img => img.status === 'completed');
+    if (completedImages.length === 0) {
+      setToast({ message: 'No completed images to export' });
+      return;
+    }
+
+    // Build COCO JSON structure (Mock/Frontend simulation for Task 112)
+    const cocoData = {
+      images: completedImages.map((img, idx) => ({
+        id: idx,
+        file_name: img.fileName,
+        width: 512,
+        height: 512
+      })),
+      annotations: [
+        { id: 1, image_id: 0, category_id: 1, bbox: [100, 100, 50, 50] } // Mock annotation
+      ],
+      categories: [
+        { id: 1, name: "building", supercategory: "object" }
+      ]
+    };
+
+    const dataStr = JSON.stringify(cocoData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `export_coco_${selectedProjectId}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    setToast({ message: `Successfully exported ${completedImages.length} images to COCO JSON` });
+  };
+
   /* ── Derived ──────────────────────────────────────────────── */
 
   const displayedImages = images.filter((img) => img.status === activeTab);
@@ -239,34 +299,49 @@ export default function AnnotatorsImageGrid() {
             </p>
 
             {/* Project Selector */}
-            <div className="aig-project-selector" style={{ marginTop: '15px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label htmlFor="project-select" style={{ fontWeight: '500', fontSize: '14px', color: '#4b5563' }}>Project:</label>
-              <select
-                id="project-select"
-                value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: '#fff',
-                  fontSize: '14px',
-                  minWidth: '200px',
-                  outline: 'none',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                }}
-              >
-                {projects.length === 0 ? (
-                  <option value="">No projects available</option>
-                ) : (
-                  projects.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))
-                )}
-              </select>
-              {isLoading && <Loader size={16} className="aig-assign-btn__spinner" />}
+            <div className="aig-project-selector" style={{ marginTop: '15px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label htmlFor="project-select" style={{ fontWeight: '500', fontSize: '14px', color: '#4b5563' }}>Project:</label>
+                <select
+                  id="project-select"
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#fff',
+                    fontSize: '14px',
+                    minWidth: '200px',
+                    outline: 'none',
+                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                  }}
+                >
+                  {projects.length === 0 ? (
+                    <option value="">No projects available</option>
+                  ) : (
+                    projects.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {isLoading && <Loader size={16} className="aig-assign-btn__spinner" />}
+              </div>
+
+              {/* Export Button - Only show when there are completed images */}
+              {images.some(img => img.status === 'completed') && (
+                <button
+                  type="button"
+                  className="aig-assign-btn"
+                  style={{ marginLeft: 'auto', backgroundColor: '#059669', minWidth: 'auto' }}
+                  onClick={handleExportCOCO}
+                >
+                  <Download size={15} style={{ marginRight: '8px' }} />
+                  <span>Export COCO JSON</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -283,6 +358,12 @@ export default function AnnotatorsImageGrid() {
               onClick={() => { setActiveTab('assigned'); clearSelection(); }}
             >
               Assigned ({images.filter(img => img.status === 'assigned').length})
+            </button>
+            <button
+              className={`aig-tab ${activeTab === 'completed' ? 'aig-tab--active' : ''}`}
+              onClick={() => { setActiveTab('completed'); clearSelection(); }}
+            >
+              Completed ({images.filter(img => img.status === 'completed').length})
             </button>
           </div>
 
@@ -363,7 +444,9 @@ export default function AnnotatorsImageGrid() {
               <p className="aig-empty-state__body">
                 {activeTab === 'unassigned' 
                   ? 'All images have been allocated to annotators. New uploads will appear here.'
-                  : 'No images have been assigned yet.'}
+                  : activeTab === 'assigned'
+                    ? 'No images have been assigned yet.'
+                    : 'No images have been completed yet.'}
               </p>
               {activeTab === 'unassigned' && selectedProjectId && (
                 <button
