@@ -67,7 +67,7 @@ public class ProjectAccessService {
 
     /**
      * Tìm project cho các API chỉ đọc.
-     * ADMIN được đọc tất cả, MANAGER được đọc project của mình,
+     * ADMIN và REVIEWER được đọc tất cả, MANAGER được đọc project của mình,
      * ANNOTATOR chỉ được đọc project có task được giao.
      */
     public Project findProjectAndCheckReadAccess(java.util.UUID projectId) {
@@ -76,6 +76,7 @@ public class ProjectAccessService {
         User currentUser = getCurrentUser();
 
         if (isAdmin(currentUser)
+                || isReviewer(currentUser)
                 || Objects.equals(project.getManagerId(), currentUser.getId())
                 || isAssignedAnnotator(projectId, currentUser)) {
             return project;
@@ -87,6 +88,10 @@ public class ProjectAccessService {
     private boolean isAssignedAnnotator(java.util.UUID projectId, User currentUser) {
         return "ANNOTATOR".equals(currentUser.getRole())
                 && taskRepository.existsByProjectIdAndAnnotatorId(projectId, currentUser.getId());
+    }
+
+    private boolean isReviewer(User currentUser) {
+        return "REVIEWER".equals(currentUser.getRole());
     }
 
     /**

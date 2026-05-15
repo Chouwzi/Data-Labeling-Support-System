@@ -63,6 +63,23 @@ class ProjectAccessServiceTest {
     }
 
     @Test
+    void findProjectAndCheckReadAccess_AllowsReviewer() {
+        UUID projectId = UUID.randomUUID();
+        User reviewer = currentUser("reviewer@test.com", "REVIEWER");
+        Project project = Project.builder()
+                .id(projectId)
+                .managerId(UUID.randomUUID())
+                .build();
+
+        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
+        when(userRepository.findByEmail("reviewer@test.com")).thenReturn(Optional.of(reviewer));
+
+        Project result = projectAccessService.findProjectAndCheckReadAccess(projectId);
+
+        assertSame(project, result);
+    }
+
+    @Test
     void findProjectAndCheckReadAccess_RejectsUnassignedAnnotator() {
         UUID projectId = UUID.randomUUID();
         User annotator = currentUser("annotator@test.com", "ANNOTATOR");
