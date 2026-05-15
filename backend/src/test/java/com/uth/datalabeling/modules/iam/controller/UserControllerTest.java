@@ -107,6 +107,28 @@ public class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void createUser_WithInvalidRole_ReturnsUnprocessableEntity() throws Exception {
+        String invalidRoleJson = validCreationJson.replace("\"ADMIN\"", "\"SUPERUSER\"");
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidRoleJson))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void updateUser_WithInvalidRole_ReturnsUnprocessableEntity() throws Exception {
+        String invalidRoleJson = validUpdateJson.replace("\"ADMIN\"", "\"SUPERUSER\"");
+
+        mockMvc.perform(put("/users/" + userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidRoleJson))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void getAllUsers_WithAdminRole_ReturnsList() throws Exception {
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())

@@ -8,7 +8,6 @@ import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
-import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest;
 import com.uth.datalabeling.modules.task.dto.response.AssignedImageResponse;
@@ -25,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,7 +36,6 @@ import java.util.stream.Collectors;
 public class TaskService {
 
     TaskRepository taskRepository;
-    ProjectRepository projectRepository;
     DatasetRepository datasetRepository;
     UserRepository userRepository;
     TaskMapper taskMapper;
@@ -46,8 +46,7 @@ public class TaskService {
      */
     @Transactional
     public void generateTasksFromDataset(UUID projectId, UUID datasetId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        Project project = projectAccessService.findProjectAndCheckAccess(projectId, true);
 
         Dataset dataset = datasetRepository.findById(datasetId)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
@@ -67,11 +66,28 @@ public class TaskService {
      * Phân bổ danh sách công việc cho một người gắn nhãn (Annotator).
      */
     @Transactional
-    public List<TaskResponse> assignTasks(TaskAssignRequest request) {
+    public List<TaskResponse> assignTasks(UUID projectId, TaskAssignRequest request) {
+        projectAccessService.findProjectAndCheckAccess(projectId, true);
+
         User annotator = userRepository.findById(request.getAnnotatorId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        List<Task> tasks = taskRepository.findAllById(request.getTaskIds());
+        if (!"ANNOTATOR".equals(annotator.getRole())) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
+        Set<UUID> requestedTaskIds = new HashSet<>(request.getTaskIds());
+        List<Task> tasks = taskRepository.findAllById(requestedTaskIds);
+        if (tasks.size() != requestedTaskIds.size()) {
+            throw new AppException(ErrorCode.TASK_NOT_FOUND);
+        }
+
+        boolean hasTaskOutsideProject = tasks.stream()
+                .anyMatch(task -> task.getProject() == null || !projectId.equals(task.getProject().getId()));
+        if (hasTaskOutsideProject) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
         LocalDateTime assignedAt = LocalDateTime.now();
         
         tasks.forEach(task -> {
@@ -90,10 +106,13 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<TaskResponse> getTasksByProject(UUID projectId, String status) {
-        // Hiện tại dùng cách lọc đơn giản, có thể tối ưu bằng custom query trong repository
-        return taskRepository.findAll().stream()
-                .filter(task -> task.getProject().getId().equals(projectId))
-                .filter(task -> status == null || task.getStatus().equalsIgnoreCase(status))
+        projectAccessService.findProjectAndCheckReadAccess(projectId);
+
+        List<Task> tasks = status == null || status.trim().isEmpty()
+                ? taskRepository.findByProjectId(projectId)
+                : taskRepository.findByProjectIdAndStatusIgnoreCase(projectId, status.trim());
+
+        return tasks.stream()
                 .map(taskMapper::toTaskResponse)
                 .collect(Collectors.toList());
     }

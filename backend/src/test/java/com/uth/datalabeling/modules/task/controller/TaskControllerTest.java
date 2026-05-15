@@ -81,7 +81,7 @@ public class TaskControllerTest {
 
         ArgumentCaptor<com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest> requestCaptor =
                 ArgumentCaptor.forClass(com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest.class);
-        verify(taskService).assignTasks(requestCaptor.capture());
+        verify(taskService).assignTasks(eq(projectId), requestCaptor.capture());
         assertEquals(List.of(taskId), requestCaptor.getValue().getTaskIds());
         assertEquals(annotatorId, requestCaptor.getValue().getAnnotatorId());
     }

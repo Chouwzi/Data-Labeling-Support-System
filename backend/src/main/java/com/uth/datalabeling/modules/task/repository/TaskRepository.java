@@ -15,6 +15,12 @@ import java.util.UUID;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
 
+    boolean existsByProjectIdAndAnnotatorId(UUID projectId, UUID annotatorId);
+
+    List<Task> findByProjectId(UUID projectId);
+
+    List<Task> findByProjectIdAndStatusIgnoreCase(UUID projectId, String status);
+
     @Query("SELECT new com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO(t.status, COUNT(t)) " +
            "FROM Task t WHERE t.project.id = :projectId GROUP BY t.status")
     List<TaskStatusCountDTO> countTasksByStatus(@Param("projectId") UUID projectId);

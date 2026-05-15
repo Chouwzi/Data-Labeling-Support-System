@@ -6,12 +6,15 @@ import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.repository.ProjectRepository;
+import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 /**
  * Dịch vụ dùng chung cho việc lấy thông tin user hiện tại
@@ -27,6 +30,7 @@ public class ProjectAccessService {
 
     UserRepository userRepository;
     ProjectRepository projectRepository;
+    TaskRepository taskRepository;
 
     /**
      * Lấy User hiện tại từ SecurityContext.
@@ -54,11 +58,40 @@ public class ProjectAccessService {
 
         if (requireManagerAccess) {
             User currentUser = getCurrentUser();
-            if (!isAdmin(currentUser) && !project.getManagerId().equals(currentUser.getId())) {
+            if (!isAdmin(currentUser) && !Objects.equals(project.getManagerId(), currentUser.getId())) {
                 throw new AppException(ErrorCode.FORBIDDEN);
             }
         }
         return project;
+    }
+
+    /**
+     * Tìm project cho các API chỉ đọc.
+     * ADMIN và REVIEWER được đọc tất cả, MANAGER được đọc project của mình,
+     * ANNOTATOR chỉ được đọc project có task được giao.
+     */
+    public Project findProjectAndCheckReadAccess(java.util.UUID projectId) {
+        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        User currentUser = getCurrentUser();
+
+        if (isAdmin(currentUser)
+                || isReviewer(currentUser)
+                || Objects.equals(project.getManagerId(), currentUser.getId())
+                || isAssignedAnnotator(projectId, currentUser)) {
+            return project;
+        }
+
+        throw new AppException(ErrorCode.FORBIDDEN);
+    }
+
+    private boolean isAssignedAnnotator(java.util.UUID projectId, User currentUser) {
+        return "ANNOTATOR".equals(currentUser.getRole())
+                && taskRepository.existsByProjectIdAndAnnotatorId(projectId, currentUser.getId());
+    }
+
+    private boolean isReviewer(User currentUser) {
+        return "REVIEWER".equals(currentUser.getRole());
     }
 
     /**

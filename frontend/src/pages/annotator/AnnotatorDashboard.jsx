@@ -13,6 +13,7 @@ export default function AnnotatorDashboard() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
@@ -81,12 +82,7 @@ export default function AnnotatorDashboard() {
         ];
 
         let data = res.data?.result?.data || res.data?.result || res.data || [];
-        
-        // Use mock if no projects are returned
-        if (!Array.isArray(data) || data.length === 0) {
-          data = mockData;
-        }
-        
+        data = Array.isArray(data) ? data : [];
         setProjects(data);
       } catch (err) {
         // Task 84 will handle real integration. For now, silence 403 to keep console clean.
@@ -215,6 +211,11 @@ export default function AnnotatorDashboard() {
 
           {isLoading ? (
             <div className="loading-state">Loading projects...</div>
+          ) : loadError ? (
+            <div className="empty-guideline">
+              <Info size={32} />
+              <p>{loadError}</p>
+            </div>
           ) : projects.length === 0 ? (
             <div className="empty-guideline">
               <Info size={32} />

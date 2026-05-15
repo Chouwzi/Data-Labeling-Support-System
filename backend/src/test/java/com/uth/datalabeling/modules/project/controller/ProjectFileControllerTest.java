@@ -58,7 +58,7 @@ class ProjectFileControllerTest {
 
         when(projectFileService.upload(any(), eq(projectId))).thenReturn(projectFile);
 
-        mockMvc.perform(multipart("/api/projects/{projectId}/files", projectId)
+        mockMvc.perform(multipart("/projects/{projectId}/files", projectId)
                 .file(mockFile)
                 .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk())
@@ -82,7 +82,7 @@ class ProjectFileControllerTest {
 
         when(projectFileService.getByIdAndProjectId(fileId, projectId)).thenReturn(projectFile);
 
-        mockMvc.perform(get("/api/projects/{projectId}/files/{id}", projectId, fileId))
+        mockMvc.perform(get("/projects/{projectId}/files/{id}", projectId, fileId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(fileId.toString()))
                 .andExpect(jsonPath("$.fileName").value("test.pdf"));
@@ -107,7 +107,7 @@ class ProjectFileControllerTest {
         // Expect Exception because GlobalExceptionHandler is not attached to this standalone mockMvc
         // So the nested exception AppException will be thrown and wrapped in nested exception
         try {
-            mockMvc.perform(get("/api/projects/{projectId}/files/{id}", wrongProjectId, fileId));
+            mockMvc.perform(get("/projects/{projectId}/files/{id}", wrongProjectId, fileId));
         } catch (Exception e) {
             assertTrue(e.getCause().getMessage().contains("không thuộc về project này"));
         }

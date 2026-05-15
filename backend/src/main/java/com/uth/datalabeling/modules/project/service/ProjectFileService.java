@@ -22,13 +22,12 @@ public class ProjectFileService {
 
     ProjectFileRepository repository;
     ProjectRepository projectRepository;
+    ProjectAccessService projectAccessService;
     StorageService storageService;
 
     public ProjectFile upload(MultipartFile file, UUID projectId) {
 
-        // Check project tồn tại
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        Project project = projectAccessService.findProjectAndCheckAccess(projectId, true);
 
         // validate định dạng, dung lượng
         validateFile(file);
@@ -88,6 +87,8 @@ public class ProjectFileService {
      * Lấy file theo ID và xác minh file thuộc về đúng project.
      */
     public ProjectFile getByIdAndProjectId(UUID fileId, UUID projectId) {
+        projectAccessService.findProjectAndCheckReadAccess(projectId);
+
         ProjectFile file = getById(fileId);
 
         if (!file.getProject().getId().equals(projectId)) {

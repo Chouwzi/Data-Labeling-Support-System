@@ -29,7 +29,7 @@ public class ImageController {
     ImageService imageService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     @Operation(summary = "Tải lên nhiều hình ảnh", description = "Hỗ trợ tải lên nhiều file ảnh với định dạng được cấu hình trong hệ thống")
     public ResponseEntity<ApiResponse<List<ImageUploadResponse>>> uploadImages(
             @RequestPart("files") List<MultipartFile> files) {

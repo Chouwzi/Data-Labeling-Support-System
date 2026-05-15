@@ -2,8 +2,13 @@ package com.uth.datalabeling.modules.image.controller;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
+import com.uth.datalabeling.config.SecurityConfig;
 import com.uth.datalabeling.modules.image.dto.response.ImageUploadResponse;
 import com.uth.datalabeling.modules.image.service.ImageService;
+import com.uth.datalabeling.modules.iam.repository.UserRepository;
+import com.uth.datalabeling.security.jwt.JwtAccessDeniedHandler;
+import com.uth.datalabeling.security.jwt.JwtAuthenticationEntryPoint;
+import com.uth.datalabeling.security.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -11,8 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,8 +39,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Uses @WebMvcTest to load the Spring Security filter chain together with
  * the controller, so we can validate authentication/authorisation enforcement.
  *
- * All POST requests include .with(csrf()) to satisfy Spring Security 6's CSRF
- * protection. Without it, every POST returns 403 regardless of authentication.
+ * Most POST requests include .with(csrf()) for compatibility with secured test
+ * slices; the application security config is stateless and disables CSRF.
  *
  * NOTE (Documented Bug FIXED):
  *   The controller previously declared @RequestMapping("/api/v1/images") but the app
@@ -45,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   (the raw controller mapping, without the context-path prefix).
  */
 @WebMvcTest(ImageController.class)
+@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class})
 @DisplayName("ImageController – Security & MVC Tests")
 class ImageControllerSecurityTest {
 
@@ -53,6 +61,15 @@ class ImageControllerSecurityTest {
 
     @MockitoBean
     private ImageService imageService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private static final String UPLOAD_URL = "/images/upload";
 
@@ -81,9 +98,9 @@ class ImageControllerSecurityTest {
         }
 
         @Test
-        @WithMockUser(username = "user@example.com")
-        @DisplayName("Authenticated user (with CSRF) → service is called, 200 OK")
-        void upload_AuthenticatedUser_ServiceIsCalled() throws Exception {
+        @WithMockUser(username = "manager@example.com", roles = "MANAGER")
+        @DisplayName("Manager (with CSRF) → service is called, 200 OK")
+        void upload_Manager_ServiceIsCalled() throws Exception {
             ImageUploadResponse mockResp = ImageUploadResponse.builder()
                     .id(UUID.randomUUID())
                     .fileName("photo.png")
@@ -107,19 +124,34 @@ class ImageControllerSecurityTest {
         }
 
         @Test
-        @WithMockUser
-        @DisplayName("Authenticated user WITHOUT CSRF → 403 Forbidden (CSRF protection enforced)")
-        void upload_AuthenticatedUser_NoCsrf_Returns403() throws Exception {
+        @WithMockUser(roles = "ANNOTATOR")
+        @DisplayName("Annotator (with CSRF) → 403 Forbidden")
+        void upload_Annotator_Returns403() throws Exception {
             MockMultipartFile file = new MockMultipartFile(
                     "files", "photo.png", "image/png", "content".getBytes());
 
-            // No .with(csrf()) – verifies CSRF is actually enforced
             mockMvc.perform(multipart(UPLOAD_URL)
                             .file(file)
+                            .with(csrf())
                             .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isForbidden());
 
             verify(imageService, never()).uploadImages(any());
+        }
+
+        @Test
+        @WithMockUser(roles = "MANAGER")
+        @DisplayName("Manager WITHOUT CSRF → 200 OK (stateless API CSRF disabled)")
+        void upload_Manager_NoCsrf_IsAccepted() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "files", "photo.png", "image/png", "content".getBytes());
+
+            mockMvc.perform(multipart(UPLOAD_URL)
+                            .file(file)
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
+                    .andExpect(status().isOk());
+
+            verify(imageService, times(1)).uploadImages(any());
         }
     }
 
@@ -132,7 +164,7 @@ class ImageControllerSecurityTest {
     class ResponseStructureTests {
 
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("Successful upload → ApiResponse with code=2000 and result list")
         void upload_Success_ResponseStructure() throws Exception {
             UUID id = UUID.randomUUID();
@@ -165,7 +197,7 @@ class ImageControllerSecurityTest {
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("Multiple files upload → result list has multiple items")
         void upload_MultipleFiles_ResponseHasMultipleItems() throws Exception {
             List<ImageUploadResponse> mockResps = List.of(
@@ -199,7 +231,7 @@ class ImageControllerSecurityTest {
     class ErrorPropagationTests {
 
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("Service throws AppException(BAD_REQUEST) → 400 propagated")
         void upload_ServiceThrowsBadRequest_Returns400() throws Exception {
             when(imageService.uploadImages(any()))
@@ -216,7 +248,7 @@ class ImageControllerSecurityTest {
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("Service throws AppException(INVALID_FILE_FORMAT) → 400 propagated")
         void upload_InvalidFileFormat_Returns400() throws Exception {
             when(imageService.uploadImages(any()))
@@ -233,7 +265,7 @@ class ImageControllerSecurityTest {
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("Service throws AppException(FILE_SIZE_EXCEEDS_LIMIT) → 400 propagated")
         void upload_FileSizeExceeds_Returns400() throws Exception {
             when(imageService.uploadImages(any()))
@@ -250,7 +282,7 @@ class ImageControllerSecurityTest {
         }
 
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("Service throws AppException(UPLOAD_FAILED) → 400 propagated [Known Issue: should be 5xx]")
         void upload_UploadFailed_Returns400() throws Exception {
             when(imageService.uploadImages(any()))

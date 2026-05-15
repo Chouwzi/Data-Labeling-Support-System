@@ -153,6 +153,25 @@ class ProjectControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ANNOTATOR")
+    void getProjectById_WithAnnotatorRole_ReturnsOk() throws Exception {
+        mockMvc.perform(get("/projects/{id}", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.id").value(projectId.toString()));
+    }
+
+    @Test
+    @WithMockUser(roles = "ANNOTATOR")
+    void getProjectById_WhenAnnotatorHasNoReadAccess_ReturnsForbidden() throws Exception {
+        Mockito.when(projectService.getProjectById(projectId))
+                .thenThrow(new AppException(ErrorCode.FORBIDDEN));
+
+        mockMvc.perform(get("/projects/{id}", projectId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(ErrorCode.FORBIDDEN.getCode()));
+    }
+
+    @Test
     void getAllProjects_WithoutAuth_ReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/projects"))
                 .andExpect(status().isUnauthorized());

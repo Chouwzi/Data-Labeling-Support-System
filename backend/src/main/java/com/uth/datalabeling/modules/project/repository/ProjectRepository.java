@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -28,4 +30,12 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 
     @EntityGraph(attributePaths = {"labels"})
     Page<Project> findAllByManagerIdAndDeletedAtIsNull(UUID managerId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"labels"})
+    @Query("""
+            SELECT DISTINCT t.project FROM Task t
+            WHERE t.annotator.id = :annotatorId
+              AND t.project.deletedAt IS NULL
+            """)
+    Page<Project> findAssignedProjectsForAnnotator(@Param("annotatorId") UUID annotatorId, Pageable pageable);
 }

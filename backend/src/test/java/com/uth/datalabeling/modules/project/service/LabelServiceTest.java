@@ -15,7 +15,6 @@ import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.mapper.ProjectMapper;
 import com.uth.datalabeling.modules.project.repository.LabelRepository;
-import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,9 +28,6 @@ class LabelServiceTest {
 
         @Mock
         LabelRepository labelRepository;
-
-        @Mock
-        ProjectRepository projectRepository;
 
         @Mock
         ProjectAccessService projectAccessService;
@@ -199,7 +195,7 @@ class LabelServiceTest {
 
         @Test
         void getLabelsByProject_Success() {
-                when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
+                when(projectAccessService.findProjectAndCheckReadAccess(projectId)).thenReturn(project);
                 when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(new Label()));
 
                 List<LabelResponse> responses = labelService.getLabelsByProject(projectId);
@@ -209,8 +205,20 @@ class LabelServiceTest {
         }
 
         @Test
+        void getLabelsByProject_ShouldCheckProjectReadAccessBeforeReturningLabels() {
+                when(projectAccessService.findProjectAndCheckReadAccess(projectId))
+                                .thenThrow(new AppException(ErrorCode.FORBIDDEN));
+
+                assertThrows(AppException.class, () -> labelService.getLabelsByProject(projectId));
+
+                verify(projectAccessService).findProjectAndCheckReadAccess(projectId);
+                verify(labelRepository, never()).findByProjectIdAndDeletedAtIsNull(projectId);
+        }
+
+        @Test
         void getLabelsByProject_ProjectNotFound_ThrowsException() {
-                when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.empty());
+                when(projectAccessService.findProjectAndCheckReadAccess(projectId))
+                                .thenThrow(new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
                 AppException ex = assertThrows(AppException.class,
                                 () -> labelService.getLabelsByProject(projectId));

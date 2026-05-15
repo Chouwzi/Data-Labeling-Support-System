@@ -104,8 +104,24 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<ProjectResponse> getMyAssignedProjects(Pageable pageable) {
+        User currentUser = projectAccessService.getCurrentUser();
+        Page<Project> projectPage = projectRepository.findAssignedProjectsForAnnotator(currentUser.getId(), pageable);
+
+        return PageResponse.<ProjectResponse>builder()
+                .currentPage(projectPage.getNumber())
+                .totalPages(projectPage.getTotalPages())
+                .pageSize(projectPage.getSize())
+                .totalElements(projectPage.getTotalElements())
+                .data(projectPage.getContent().stream()
+                        .map(projectMapper::toProjectResponse)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    @Transactional(readOnly = true)
     public ProjectResponse getProjectById(UUID id) {
-        Project project = projectAccessService.findProjectAndCheckAccess(id);
+        Project project = projectAccessService.findProjectAndCheckReadAccess(id);
         return projectMapper.toProjectResponse(project);
     }
 
