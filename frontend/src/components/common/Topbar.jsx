@@ -8,6 +8,8 @@ export default function Topbar({
   userAvatar = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
   searchPlaceholder = 'Search system configuration...',
   showCenterLinks = false,
+  searchValue = '',
+  onSearch,
   onMenuClick,
   onLogout,
 }) {
@@ -52,6 +54,8 @@ export default function Topbar({
               className="topbar__search-input"
               placeholder={searchPlaceholder}
               aria-label={searchPlaceholder}
+              value={searchValue}
+              onChange={(e) => onSearch?.(e.target.value)}
             />
           </div>
         </div>

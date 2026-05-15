@@ -10,6 +10,7 @@ import Projects from '@/pages/manager/Projects';
 import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
+import AnnotatorTasks from '@/pages/annotator/AnnotatorTasks';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import ReviewWorkspace from '@/pages/reviewer/ReviewWorkspace';
 import SystemConfig from '@/pages/admin/SystemConfig';

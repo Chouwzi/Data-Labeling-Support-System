@@ -135,6 +135,7 @@ export const getLogs = (page = 0, size = 20) =>
 export const getProjects = () => api.get('/projects');
 
 export const getMyProjects = () => api.get('/me/projects');
+export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
@@ -196,5 +197,11 @@ export const updateLabel = (projectId, labelId, data) =>
 
 export const deleteLabel = (projectId, labelId) =>
   api.delete(`/projects/${projectId}/labels/${labelId}`);
+
+// =====================
+// Tasks / Assigned Images
+// =====================
+export const getMyAssignedImages = (params) =>
+  api.get('/me/assigned-images', { params });
 
 export default api;
