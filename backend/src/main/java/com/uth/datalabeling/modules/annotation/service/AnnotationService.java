@@ -2,11 +2,14 @@ package com.uth.datalabeling.modules.annotation.service;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
-import com.uth.datalabeling.modules.annotation.dto.request.AnnotationSubmitRequest;
+import com.uth.datalabeling.modules.annotation.dto.request.AnnotationItemRequest;
+import com.uth.datalabeling.modules.annotation.dto.request.SaveAnnotationsRequest;
 import com.uth.datalabeling.modules.annotation.dto.response.AnnotationResponse;
 import com.uth.datalabeling.modules.annotation.entity.Annotation;
+import com.uth.datalabeling.modules.annotation.entity.AnnotationShapeType;
 import com.uth.datalabeling.modules.annotation.repository.AnnotationRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
+import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.repository.LabelRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.entity.Task;
@@ -17,7 +20,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,114 +30,166 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AnnotationService {
 
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_ANNOTATOR = "ANNOTATOR";
+    private static final String ROLE_MANAGER = "MANAGER";
+    private static final String ROLE_REVIEWER = "REVIEWER";
     private static final String STATUS_ASSIGNED = "ASSIGNED";
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
-    private static final String STATUS_SUBMITTED = "SUBMITTED";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_PENDING_REVIEW = "PENDING_REVIEW";
 
     AnnotationRepository annotationRepository;
     TaskRepository taskRepository;
     LabelRepository labelRepository;
     ProjectAccessService projectAccessService;
 
-    @Transactional
-    public AnnotationResponse submitAnnotation(UUID taskId, AnnotationSubmitRequest request) {
+    @Transactional(readOnly = true)
+    public List<AnnotationResponse> getAnnotations(UUID taskId) {
         User currentUser = projectAccessService.getCurrentUser();
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+        Task task = getTask(taskId);
+        validateReadAccess(task, currentUser);
 
-        validateTaskOwnership(task, currentUser);
-        validateTaskStatus(task);
-        boolean nullImage = Boolean.TRUE.equals(request.getIsNull());
-        List<Map<String, Object>> result = request.getResult() == null ? List.of() : request.getResult();
-        validateAnnotationResult(task, result, nullImage);
+        return annotationRepository.findByTaskIdOrderByCreatedAtAsc(taskId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
 
-        LocalDateTime submittedAt = LocalDateTime.now();
-        Annotation annotation = Annotation.builder()
-                .task(task)
-                .annotator(currentUser)
-                .result(result)
-                .isNull(nullImage)
-                .leadTimeSeconds(request.getLeadTimeSeconds())
-                .status(STATUS_SUBMITTED)
-                .submittedAt(submittedAt)
-                .build();
+    @Transactional
+    public List<AnnotationResponse> saveAnnotations(UUID taskId, SaveAnnotationsRequest request) {
+        User currentUser = projectAccessService.getCurrentUser();
+        Task task = getTask(taskId);
+        validateWriteAccess(task, currentUser);
 
-        Annotation savedAnnotation = annotationRepository.save(annotation);
-        task.setStatus(STATUS_SUBMITTED);
+        List<AnnotationItemRequest> items = request.getAnnotations() == null ? List.of() : request.getAnnotations();
+        List<Annotation> annotations = items.stream()
+                .map(item -> toAnnotation(task, item, currentUser))
+                .toList();
+
+        annotationRepository.deleteByTaskId(taskId);
+        List<Annotation> savedAnnotations = annotations.isEmpty()
+                ? List.of()
+                : annotationRepository.saveAllAndFlush(annotations);
+
+        task.setStatus(Boolean.TRUE.equals(request.getSubmit()) ? STATUS_PENDING_REVIEW : STATUS_IN_PROGRESS);
         taskRepository.save(task);
 
-        return toResponse(savedAnnotation);
+        return savedAnnotations.stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    private void validateTaskOwnership(Task task, User currentUser) {
-        if (task.getAnnotator() == null || !currentUser.getId().equals(task.getAnnotator().getId())) {
+    private Task getTask(UUID taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+    }
+
+    private void validateReadAccess(Task task, User currentUser) {
+        if (isAdmin(currentUser) || isAssignedAnnotator(task, currentUser) || isProjectManager(task, currentUser)
+                || ROLE_REVIEWER.equals(currentUser.getRole())) {
+            return;
+        }
+        throw new AppException(ErrorCode.FORBIDDEN);
+    }
+
+    private void validateWriteAccess(Task task, User currentUser) {
+        if (isAdmin(currentUser)) {
+            return;
+        }
+
+        if (!ROLE_ANNOTATOR.equals(currentUser.getRole()) || !isAssignedAnnotator(task, currentUser)) {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
-    }
 
-    private void validateTaskStatus(Task task) {
         String status = task.getStatus();
-        if (!STATUS_ASSIGNED.equalsIgnoreCase(status) && !STATUS_IN_PROGRESS.equalsIgnoreCase(status)) {
-            throw new AppException(ErrorCode.CONFLICT, "Task is not available for annotation submission");
+        if (!STATUS_PENDING.equalsIgnoreCase(status)
+                && !STATUS_ASSIGNED.equalsIgnoreCase(status)
+                && !STATUS_IN_PROGRESS.equalsIgnoreCase(status)) {
+            throw new AppException(ErrorCode.CONFLICT, "Task is not available for annotation");
         }
     }
 
-    private void validateAnnotationResult(Task task, List<Map<String, Object>> result, boolean nullImage) {
-        if (result == null || result.isEmpty()) {
-            if (nullImage) {
-                return;
-            }
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation result is required");
-        }
-
-        UUID projectId = task.getProject().getId();
-        for (Map<String, Object> item : result) {
-            validateResultItem(item, projectId);
-        }
+    private boolean isAdmin(User user) {
+        return ROLE_ADMIN.equals(user.getRole());
     }
 
-    private void validateResultItem(Map<String, Object> item, UUID projectId) {
-        if (item == null || item.isEmpty()) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation item is required");
+    private boolean isProjectManager(Task task, User user) {
+        return ROLE_MANAGER.equals(user.getRole()) && task.getProject() != null
+                && user.getId().equals(task.getProject().getManagerId());
+    }
+
+    private boolean isAssignedAnnotator(Task task, User user) {
+        return task.getAnnotator() != null && user.getId().equals(task.getAnnotator().getId());
+    }
+
+    private Annotation toAnnotation(Task task, AnnotationItemRequest item, User currentUser) {
+        if (item.getShapeType() != AnnotationShapeType.BOUNDING_BOX) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Unsupported annotation shape type");
         }
 
-        Object type = item.get("type");
-        if (!(type instanceof String typeValue) || typeValue.trim().isEmpty()) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation type is required");
-        }
-
-        Object geometry = item.get("geometry");
-        if (!(geometry instanceof Map<?, ?> geometryValue) || geometryValue.isEmpty()) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation geometry is required");
-        }
-
-        UUID labelId = extractLabelId(item.get("label_id"));
-        labelRepository.findByIdAndProjectIdAndDeletedAtIsNull(labelId, projectId)
+        Label label = labelRepository
+                .findByIdAndProjectIdAndDeletedAtIsNull(item.getLabelId(), task.getProject().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
+
+        Map<String, Object> geometry = normalizeBoundingBox(item.getGeometry());
+
+        return Annotation.builder()
+                .task(task)
+                .label(label)
+                .createdBy(currentUser)
+                .shapeType(item.getShapeType())
+                .geometry(geometry)
+                .isAiGenerated(Boolean.TRUE.equals(item.getIsAiGenerated()))
+                .build();
     }
 
-    private UUID extractLabelId(Object rawLabelId) {
-        if (!(rawLabelId instanceof String labelIdValue) || labelIdValue.trim().isEmpty()) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation label_id is required");
+    private Map<String, Object> normalizeBoundingBox(Map<String, Object> geometry) {
+        BigDecimal x = readRatio(geometry, "x", false);
+        BigDecimal y = readRatio(geometry, "y", false);
+        BigDecimal width = readRatio(geometry, "width", true);
+        BigDecimal height = readRatio(geometry, "height", true);
+
+        if (x.add(width).compareTo(BigDecimal.ONE) > 0 || y.add(height).compareTo(BigDecimal.ONE) > 0) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Bounding box must stay inside the image");
         }
 
-        try {
-            return UUID.fromString(labelIdValue);
-        } catch (IllegalArgumentException exception) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "Annotation label_id is invalid");
+        return Map.of(
+                "x", x.doubleValue(),
+                "y", y.doubleValue(),
+                "width", width.doubleValue(),
+                "height", height.doubleValue()
+        );
+    }
+
+    private BigDecimal readRatio(Map<String, Object> geometry, String field, boolean positiveOnly) {
+        Object rawValue = geometry.get(field);
+        if (!(rawValue instanceof Number number)) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Bounding box " + field + " must be numeric");
         }
+
+        BigDecimal value = new BigDecimal(number.toString());
+        boolean belowMinimum = positiveOnly
+                ? value.compareTo(BigDecimal.ZERO) <= 0
+                : value.compareTo(BigDecimal.ZERO) < 0;
+        if (belowMinimum || value.compareTo(BigDecimal.ONE) > 0) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Bounding box " + field + " must be a valid ratio");
+        }
+        return value;
     }
 
     private AnnotationResponse toResponse(Annotation annotation) {
+        Label label = annotation.getLabel();
         return AnnotationResponse.builder()
                 .id(annotation.getId())
                 .taskId(annotation.getTask().getId())
-                .annotatorId(annotation.getAnnotator().getId())
-                .status(annotation.getStatus())
-                .result(annotation.getResult())
-                .isNull(Boolean.TRUE.equals(annotation.getIsNull()))
-                .leadTimeSeconds(annotation.getLeadTimeSeconds())
-                .submittedAt(annotation.getSubmittedAt())
+                .shapeType(annotation.getShapeType())
+                .labelId(label.getId())
+                .labelName(label.getName())
+                .colorHex(label.getColorHex())
+                .geometry(annotation.getGeometry())
+                .isAiGenerated(Boolean.TRUE.equals(annotation.getIsAiGenerated()))
+                .createdAt(annotation.getCreatedAt())
+                .updatedAt(annotation.getUpdatedAt())
                 .build();
     }
 }
