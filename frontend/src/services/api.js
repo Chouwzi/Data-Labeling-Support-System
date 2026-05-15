@@ -10,13 +10,18 @@ const api = axios.create({
 });
 
 // Gắn token vào mọi request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    const isLoginRequest = config.url?.includes('/auth/login');
+    
+    if (token && !isLoginRequest) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Xử lý lỗi 401 → clear token và redirect login
 api.interceptors.response.use(
