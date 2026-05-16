@@ -74,13 +74,7 @@ export default function AnnotatorWorkspace() {
       if (num >= 1 && num <= 9) {
         const label = taskData.labels[num - 1];
         if (label) {
-          setSelectedLabelId(label.id);
-          // If a box is selected, update its label too
-          if (selectedBoxId) {
-            setAnnotations(prev => prev.map(ann => 
-              ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
-            ));
-          }
+          handleLabelSelect(label.id);
         }
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -175,6 +169,16 @@ export default function AnnotatorWorkspace() {
     }
     setIsDrawing(false);
     setCurrentBox(null);
+  };
+
+  const handleLabelSelect = (labelId) => {
+    setSelectedLabelId(labelId);
+    // If a box is selected, update its label immediately
+    if (selectedBoxId) {
+      setAnnotations(prev => prev.map(ann => 
+        ann.id === selectedBoxId ? { ...ann, labelId: labelId } : ann
+      ));
+    }
   };
 
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
@@ -320,7 +324,7 @@ export default function AnnotatorWorkspace() {
                     <h3 className="section-title">Labels</h3>
                     <div className="label-selector">
                       {taskData.labels.map((label, index) => (
-                        <button key={label.id} className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} onClick={() => setSelectedLabelId(label.id)} style={{ '--label-color': label.color }}>
+                        <button key={label.id} className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} onClick={() => handleLabelSelect(label.id)} style={{ '--label-color': label.color }}>
                           <span className="color-dot" style={{ backgroundColor: label.color }}></span>
                           <span className="label-text">{label.name}</span>
                           <span className="label-hotkey">{index + 1}</span>
