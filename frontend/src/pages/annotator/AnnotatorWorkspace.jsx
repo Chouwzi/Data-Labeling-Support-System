@@ -6,7 +6,9 @@ import Topbar from '@/components/common/Topbar';
 import { 
   getLabelsByProject, 
   getMyAssignedImages, 
-  getProject 
+  getProject,
+  saveTaskAnnotations,
+  completeTask
 } from '@/services/api';
 import { 
   ArrowLeft, 
@@ -34,6 +36,7 @@ export default function AnnotatorWorkspace() {
   const [annotations, setAnnotations] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentBox, setCurrentBox] = useState(null);
+  const [rawAnnotations, setRawAnnotations] = useState([]);
   const [selectedBoxId, setSelectedBoxId] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
@@ -107,16 +110,21 @@ export default function AnnotatorWorkspace() {
         const rawImages = Array.isArray(resultData) ? resultData : [];
         const currentImg = rawImages.find(img => (img.task_id || img.taskId || img.id) === taskId);
 
-        if (currentImg) {
-          setTaskData({
-            id: taskId,
-            imageUrl: fixImageUrl(currentImg.image_url || currentImg.imageUrl),
-            fileName: currentImg.file_name || currentImg.fileName || 'Image',
-            projectName: project.name || 'Project',
-            labels: mappedLabels
-          });
-          if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
-        }
+          if (currentImg) {
+            setTaskData({
+              id: taskId,
+              imageUrl: fixImageUrl(currentImg.image_url || currentImg.imageUrl),
+              fileName: currentImg.file_name || currentImg.fileName || 'Image',
+              projectName: project.name || 'Project',
+              labels: mappedLabels
+            });
+            if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
+            
+            // Store raw annotations to be converted when image loads
+            if (currentImg.annotations && Array.isArray(currentImg.annotations)) {
+              setRawAnnotations(currentImg.annotations);
+            }
+          }
       } catch (err) {
         console.error('Failed to fetch workspace data:', err);
       } finally {
@@ -127,7 +135,22 @@ export default function AnnotatorWorkspace() {
   }, [projectId, taskId]);
 
   const handleImageLoad = (e) => {
-    setImageSize({ width: e.target.naturalWidth, height: e.target.naturalHeight });
+    const { naturalWidth, naturalHeight } = e.target;
+    setImageSize({ width: naturalWidth, height: naturalHeight });
+
+    // Convert raw normalized annotations to pixels
+    if (rawAnnotations.length > 0 && annotations.length === 0) {
+      const pixelAnnotations = rawAnnotations.map(ann => ({
+        id: crypto.randomUUID(),
+        labelId: ann.label_id || ann.labelId,
+        x: ann.x * naturalWidth,
+        y: ann.y * naturalHeight,
+        width: ann.width * naturalWidth,
+        height: ann.height * naturalHeight
+      }));
+      setAnnotations(pixelAnnotations);
+      setRawAnnotations([]); // Clear after conversion
+    }
     setImageLoaded(true);
   };
 
@@ -184,15 +207,47 @@ export default function AnnotatorWorkspace() {
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (annotations.length === 0) {
       alert('Please draw at least one bounding box before completing the task!');
       return;
     }
     
     if (window.confirm(`Are you sure you want to complete this task with ${annotations.length} annotations?`)) {
-      alert('Task submitted successfully!');
-      navigate(`/annotator/projects/${projectId}/tasks`);
+      try {
+        const normalizedAnnotations = annotations.map(ann => ({
+          label_id: ann.labelId,
+          x: ann.x / imageSize.width,
+          y: ann.y / imageSize.height,
+          width: ann.width / imageSize.width,
+          height: ann.height / imageSize.height
+        }));
+
+        await completeTask(taskId, normalizedAnnotations);
+        alert('Task submitted successfully!');
+        navigate(`/annotator/projects/${projectId}/tasks`);
+      } catch (error) {
+        console.error('Error completing task:', error);
+        alert('Failed to submit task. Please try again.');
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const normalizedAnnotations = annotations.map(ann => ({
+        label_id: ann.labelId,
+        x: ann.x / imageSize.width,
+        y: ann.y / imageSize.height,
+        width: ann.width / imageSize.width,
+        height: ann.height / imageSize.height
+      }));
+
+      await saveTaskAnnotations(taskId, normalizedAnnotations);
+      alert('Progress saved successfully!');
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      alert('Failed to save progress.');
     }
   };
 
@@ -247,7 +302,7 @@ export default function AnnotatorWorkspace() {
                   <button className="btn btn--secondary" onClick={() => setAnnotations([])}>
                     <RotateCcw size={16} style={{ marginRight: '8px' }} /> Reset
                   </button>
-                  <button className="btn btn--success" onClick={() => alert('Saved!')}>
+                  <button className="btn btn--success" onClick={handleSave}>
                     <Save size={16} style={{ marginRight: '8px' }} /> Save Progress
                   </button>
                 </div>
