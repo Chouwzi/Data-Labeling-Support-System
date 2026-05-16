@@ -184,6 +184,18 @@ export default function AnnotatorWorkspace() {
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
 
+  const handleComplete = () => {
+    if (annotations.length === 0) {
+      alert('Please draw at least one bounding box before completing the task!');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to complete this task with ${annotations.length} annotations?`)) {
+      alert('Task submitted successfully!');
+      navigate(`/annotator/projects/${projectId}/tasks`);
+    }
+  };
+
   return (
     <div className="dashboard-layout">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
@@ -267,7 +279,7 @@ export default function AnnotatorWorkspace() {
                     <svg 
                       className="annotation-svg" 
                       viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
-                      onClick={() => setSelectedBoxId(null)} // Clear selection when clicking empty area
+                      onClick={() => setSelectedBoxId(null)}
                     >
                       {annotations.map((ann) => (
                         <g 
@@ -332,7 +344,7 @@ export default function AnnotatorWorkspace() {
                       ))}
                     </div>
                   </div>
-                  <div className="sidebar-section">
+                  <div className="sidebar-section sidebar-section--grow">
                     <h3 className="section-title">Annotations ({annotations.length})</h3>
                     <div className="annotations-list">
                       {annotations.length === 0 ? (
@@ -340,15 +352,19 @@ export default function AnnotatorWorkspace() {
                       ) : (
                         annotations.map(ann => (
                           <div key={ann.id} className={`annotation-item ${selectedBoxId === ann.id ? 'selected' : ''}`} onClick={() => setSelectedBoxId(ann.id)}>
-                            <div className="ann-info"><span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span><span className="ann-name">{getLabelName(ann.labelId)}</span></div>
-                            <button className="delete-ann-btn" onClick={(e) => { e.stopPropagation(); setAnnotations(prev => prev.filter(a => a.id !== ann.id)); }}><Trash2 size={14} /></button>
+                            <span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span>
+                            <span className="ann-name">{getLabelName(ann.labelId)}</span>
+                            <span className="ann-dims">{Math.round(ann.width)}x{Math.round(ann.height)}</span>
+                            <button className="ann-delete" onClick={(e) => { e.stopPropagation(); setAnnotations(prev => prev.filter(a => a.id !== ann.id)); }}>
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         ))
                       )}
                     </div>
                   </div>
-                  <div className="workspace-actions">
-                    <button className="btn btn--primary btn--full" onClick={() => alert('Completed!')}>Complete Task</button>
+                  <div className="sidebar-footer">
+                    <button className="btn btn--primary btn--full" onClick={handleComplete}>Complete Task</button>
                   </div>
                 </div>
               </div>
