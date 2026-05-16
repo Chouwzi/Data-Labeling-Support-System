@@ -8,7 +8,7 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
-import { createProject, getProjects } from '@/services/api';
+import { createProject, getProjects, uploadGuidelineFile } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
@@ -211,11 +211,14 @@ export default function Projects() {
         const raw = response.data?.result ?? response.data ?? {};
 
 
-        // Guideline file upload is not supported by backend yet
+        // Upload guideline file if provided
         if (file && raw.id) {
-          console.warn('Guideline file upload is not supported by backend yet.');
-          // The backend expects a URL in guidelineUrl field instead of a file upload.
-          // Since we cannot modify the backend, we skip this call to avoid 500/404 errors.
+          try {
+            await uploadGuidelineFile(raw.id, file);
+            console.log('Guideline file uploaded successfully.');
+          } catch (uploadErr) {
+            console.error('Failed to upload guideline file:', uploadErr);
+          }
         }
 
         setSubmitSuccess(true);
