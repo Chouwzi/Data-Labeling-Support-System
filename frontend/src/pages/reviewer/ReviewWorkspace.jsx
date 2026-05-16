@@ -30,6 +30,7 @@ export default function ReviewWorkspace() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   
   const review = MOCK_REVIEW_DETAIL; // In real app, fetch by id
 
@@ -47,6 +48,18 @@ export default function ReviewWorkspace() {
     console.log('Approved task', id);
     // In real app: await api.updateTaskStatus(id, 'Completed');
     setShowApproveModal(false);
+    navigate('/reviewer'); // Go back to list
+  };
+
+  const handleReject = () => {
+    setShowRejectModal(true);
+  };
+
+  const handleConfirmReject = (rejectionData) => {
+    // Simulate API call to update status to Rejected with metadata
+    console.log('Rejected task', id, rejectionData);
+    // In real app: await api.rejectTask(id, rejectionData);
+    setShowRejectModal(false);
     navigate('/reviewer'); // Go back to list
   };
 
@@ -168,6 +181,10 @@ export default function ReviewWorkspace() {
                   <Check size={18} style={{ marginRight: '8px' }} />
                   Approve
                 </button>
+                <button className="btn btn--danger btn--full" onClick={handleReject}>
+                  <X size={18} style={{ marginRight: '8px' }} />
+                  Reject
+                </button>
               </div>
             </div>
           </div>
@@ -186,6 +203,14 @@ export default function ReviewWorkspace() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <RejectModal 
+          onClose={() => setShowRejectModal(false)} 
+          onConfirm={handleConfirmReject} 
+        />
       )}
     </div>
   );

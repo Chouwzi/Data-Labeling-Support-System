@@ -28,8 +28,15 @@ export default function RejectModal({ onClose, onConfirm }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // No logic needed for this task, just close the modal
-    onClose();
+    if (selectedCategories.length === 0) {
+      setError('Please select at least one error category.');
+      return;
+    }
+    
+    onConfirm({
+      categories: selectedCategories,
+      note: note.trim()
+    });
   };
 
   return (
