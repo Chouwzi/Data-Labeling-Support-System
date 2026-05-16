@@ -133,7 +133,6 @@ export const getLogs = (page = 0, size = 20) =>
 // Projects
 // =====================
 export const getProjects = () => api.get('/projects');
-
 export const getMyProjects = () => api.get('/me/projects');
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
@@ -163,7 +162,7 @@ export const uploadGuidelineFile = (projectId, file) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  return api.post(`/projects/${projectId}/files`, formData, {
+  return api.post(`/api/projects/${projectId}/files`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
