@@ -8,7 +8,7 @@ import {
   getMyAssignedImages, 
   getProject,
   saveTaskAnnotations,
-  completeTask
+  getAnnotations
 } from '@/services/api';
 import { 
   ArrowLeft, 
@@ -92,10 +92,11 @@ export default function AnnotatorWorkspace() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [projectRes, labelsRes, imagesRes] = await Promise.all([
+        const [projectRes, labelsRes, imagesRes, annotationsRes] = await Promise.all([
           getProject(projectId),
           getLabelsByProject(projectId),
-          getMyAssignedImages({ projectId, size: 100 })
+          getMyAssignedImages({ projectId, size: 100 }),
+          getAnnotations(taskId)
         ]);
 
         const project = projectRes.data?.result || {};
@@ -109,22 +110,23 @@ export default function AnnotatorWorkspace() {
         const resultData = imagesRes.data?.result?.data || imagesRes.data?.result || [];
         const rawImages = Array.isArray(resultData) ? resultData : [];
         const currentImg = rawImages.find(img => (img.task_id || img.taskId || img.id) === taskId);
-
-          if (currentImg) {
-            setTaskData({
-              id: taskId,
-              imageUrl: fixImageUrl(currentImg.image_url || currentImg.imageUrl),
-              fileName: currentImg.file_name || currentImg.fileName || 'Image',
-              projectName: project.name || 'Project',
-              labels: mappedLabels
-            });
-            if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
-            
-            // Store raw annotations to be converted when image loads
-            if (currentImg.annotations && Array.isArray(currentImg.annotations)) {
-              setRawAnnotations(currentImg.annotations);
-            }
+        
+        if (currentImg) {
+          setTaskData({
+            id: taskId,
+            imageUrl: fixImageUrl(currentImg.image_url || currentImg.imageUrl),
+            fileName: currentImg.file_name || currentImg.fileName || 'Image',
+            projectName: project.name || 'Project',
+            labels: mappedLabels
+          });
+          if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
+          
+          // Store raw annotations to be converted when image loads
+          const existingAnnotations = annotationsRes.data?.result || [];
+          if (Array.isArray(existingAnnotations)) {
+            setRawAnnotations(existingAnnotations);
           }
+        }
       } catch (err) {
         console.error('Failed to fetch workspace data:', err);
       } finally {
@@ -141,12 +143,12 @@ export default function AnnotatorWorkspace() {
     // Convert raw normalized annotations to pixels
     if (rawAnnotations.length > 0 && annotations.length === 0) {
       const pixelAnnotations = rawAnnotations.map(ann => ({
-        id: crypto.randomUUID(),
+        id: ann.id || crypto.randomUUID(),
         labelId: ann.label_id || ann.labelId,
-        x: ann.x * naturalWidth,
-        y: ann.y * naturalHeight,
-        width: ann.width * naturalWidth,
-        height: ann.height * naturalHeight
+        x: ann.geometry.x * naturalWidth,
+        y: ann.geometry.y * naturalHeight,
+        width: ann.geometry.width * naturalWidth,
+        height: ann.geometry.height * naturalHeight
       }));
       setAnnotations(pixelAnnotations);
       setRawAnnotations([]); // Clear after conversion
@@ -215,15 +217,18 @@ export default function AnnotatorWorkspace() {
     
     if (window.confirm(`Are you sure you want to complete this task with ${annotations.length} annotations?`)) {
       try {
-        const normalizedAnnotations = annotations.map(ann => ({
+        const payload = annotations.map(ann => ({
+          shape_type: 'BOUNDING_BOX',
           label_id: ann.labelId,
-          x: ann.x / imageSize.width,
-          y: ann.y / imageSize.height,
-          width: ann.width / imageSize.width,
-          height: ann.height / imageSize.height
+          geometry: {
+            x: ann.x / imageSize.width,
+            y: ann.y / imageSize.height,
+            width: ann.width / imageSize.width,
+            height: ann.height / imageSize.height
+          }
         }));
 
-        await completeTask(taskId, normalizedAnnotations);
+        await saveTaskAnnotations(taskId, payload, true);
         alert('Task submitted successfully!');
         navigate(`/annotator/projects/${projectId}/tasks`);
       } catch (error) {
@@ -235,15 +240,18 @@ export default function AnnotatorWorkspace() {
 
   const handleSave = async () => {
     try {
-      const normalizedAnnotations = annotations.map(ann => ({
+      const payload = annotations.map(ann => ({
+        shape_type: 'BOUNDING_BOX',
         label_id: ann.labelId,
-        x: ann.x / imageSize.width,
-        y: ann.y / imageSize.height,
-        width: ann.width / imageSize.width,
-        height: ann.height / imageSize.height
+        geometry: {
+          x: ann.x / imageSize.width,
+          y: ann.y / imageSize.height,
+          width: ann.width / imageSize.width,
+          height: ann.height / imageSize.height
+        }
       }));
 
-      await saveTaskAnnotations(taskId, normalizedAnnotations);
+      await saveTaskAnnotations(taskId, payload, false);
       alert('Progress saved successfully!');
     } catch (error) {
       console.error('Error saving progress:', error);

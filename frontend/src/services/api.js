@@ -203,10 +203,10 @@ export const deleteLabel = (projectId, labelId) =>
 export const getMyAssignedImages = (params) =>
   api.get('/me/assigned-images', { params });
 
-export const saveTaskAnnotations = (taskId, annotations) =>
-  api.post(`/tasks/${taskId}/annotations`, { annotations });
+export const getAnnotations = (taskId) =>
+  api.get(`/tasks/${taskId}/annotations`);
 
-export const completeTask = (taskId, annotations) =>
-  api.post(`/tasks/${taskId}/complete`, { annotations });
+export const saveTaskAnnotations = (taskId, annotations, submit = false) =>
+  api.put(`/tasks/${taskId}/annotations`, { annotations, submit });
 
 export default api;
