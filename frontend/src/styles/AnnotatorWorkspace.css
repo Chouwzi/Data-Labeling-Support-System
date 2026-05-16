@@ -108,13 +108,19 @@
 }
 
 .annotation-group:hover .bbox-rect {
-  stroke-width: 3px;
+  pointer-events: all;
+  cursor: pointer;
+  transition: stroke 0.2s ease, fill 0.2s ease, stroke-width 0.2s ease;
 }
 
 .annotation-group.selected .bbox-rect {
   stroke-width: 3px;
   stroke-dasharray: 4;
   animation: dash 0.5s linear infinite;
+}
+
+.bbox-label rect {
+  transition: fill 0.2s ease;
 }
 
 @keyframes dash {
