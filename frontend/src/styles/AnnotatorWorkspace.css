@@ -1,0 +1,343 @@
+.workspace-main {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 70px);
+  padding: 0 !important;
+  background-color: #f8fafc;
+  overflow: hidden;
+}
+
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 10;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e2e8f0;
+  margin: 0 1rem;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.tool-btn.active {
+  background: #eff6ff;
+  color: #3b82f6;
+  border-color: #bfdbfe;
+}
+
+.workspace-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: #e2e8f0;
+}
+
+.canvas-container {
+  position: relative;
+  background: white;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.canvas-container.crosshair {
+  cursor: crosshair;
+}
+
+.workspace-image {
+  display: block;
+  max-width: none;
+}
+
+.annotation-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.annotation-group {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.annotation-group .bbox-rect {
+  transition: stroke-width 0.1s;
+}
+
+.annotation-group:hover .bbox-rect {
+  stroke-width: 3px;
+}
+
+.annotation-group.selected .bbox-rect {
+  stroke-width: 3px;
+  stroke-dasharray: 4;
+  animation: dash 0.5s linear infinite;
+}
+
+@keyframes dash {
+  from { stroke-dashoffset: 8; }
+  to { stroke-dashoffset: 0; }
+}
+
+.workspace-sidebar {
+  width: 300px;
+  background: white;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto; /* Enable scrolling for the whole sidebar */
+}
+
+.sidebar-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 1rem;
+}
+
+.info-card {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.info-value:last-child {
+  margin-bottom: 0;
+}
+
+.label-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label-option {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.label-option:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.label-option.active {
+  background: var(--label-color);
+  border-color: var(--label-color);
+  color: white;
+}
+
+.label-option.active .color-dot {
+  background-color: white !important;
+}
+
+.label-option.active .label-text {
+  color: white;
+}
+
+.label-option.active .label-hotkey {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+}
+
+.label-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  flex: 1;
+}
+
+.label-hotkey {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  background: #f1f5f9;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.annotations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.empty-annotations {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.empty-annotations p {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.annotation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.annotation-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.annotation-item.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ann-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ann-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ann-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.delete-ann-btn {
+  padding: 0.25rem;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-ann-btn:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.workspace-actions {
+  margin-top: auto;
+  padding: 1.25rem;
+  background: white;
+  border-top: 1px solid #f1f5f9;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+/* Custom Scrollbar for Workspace */
+.canvas-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.canvas-wrapper::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+.canvas-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+.canvas-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

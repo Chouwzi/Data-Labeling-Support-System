@@ -248,7 +248,10 @@ export default function AnnotatorTasks() {
                       </div>
 
                       <div className="task-actions">
-                        <button className="action-btn action-btn--primary">
+                        <button 
+                          className="action-btn action-btn--primary"
+                          onClick={() => navigate(`/annotator/projects/${projectId}/workspace/${task.id}`)}
+                        >
                           <span>Label Now</span>
                           <ExternalLink size={14} />
                         </button>
