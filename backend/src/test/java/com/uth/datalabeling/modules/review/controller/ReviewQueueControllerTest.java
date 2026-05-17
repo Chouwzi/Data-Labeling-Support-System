@@ -5,6 +5,7 @@ import com.uth.datalabeling.config.SecurityConfig;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueImageResponse;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueAnnotationResponse;
+import com.uth.datalabeling.modules.review.dto.request.RejectImageRequest;
 import com.uth.datalabeling.modules.review.service.ReviewQueueService;
 import com.uth.datalabeling.security.jwt.JwtAccessDeniedHandler;
 import com.uth.datalabeling.security.jwt.JwtAuthenticationEntryPoint;
@@ -32,8 +33,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 
 @WebMvcTest(ReviewQueueController.class)
 @Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class})
@@ -41,6 +45,8 @@ class ReviewQueueControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean
     private ReviewQueueService reviewQueueService;
@@ -191,5 +197,37 @@ class ReviewQueueControllerTest {
     void getReviewQueueImages_RejectsUnauthenticatedRequest() throws Exception {
         mockMvc.perform(get("/review-queue/images"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "REVIEWER")
+    void rejectImage_Success() throws Exception {
+        UUID taskId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        RejectImageRequest request = RejectImageRequest.builder()
+                .defectCategoryId(categoryId)
+                .comments("Low quality")
+                .build();
+
+        mockMvc.perform(post("/review-queue/images/{taskId}/reject", taskId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.message").value("Image rejected successfully"));
+
+        verify(reviewQueueService).rejectImage(eq(taskId), any(RejectImageRequest.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ANNOTATOR")
+    void rejectImage_RejectsAnnotatorRole() throws Exception {
+        UUID taskId = UUID.randomUUID();
+        RejectImageRequest request = new RejectImageRequest();
+        
+        mockMvc.perform(post("/review-queue/images/{taskId}/reject", taskId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
     }
 }

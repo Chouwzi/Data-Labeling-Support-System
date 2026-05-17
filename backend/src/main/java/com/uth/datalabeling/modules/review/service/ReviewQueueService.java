@@ -7,7 +7,14 @@ import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueAnnotationResponse;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueImageResponse;
+import com.uth.datalabeling.modules.review.dto.request.RejectImageRequest;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
+import com.uth.datalabeling.modules.review.entity.Review;
+import com.uth.datalabeling.modules.review.repository.ReviewRepository;
+import com.uth.datalabeling.modules.defect.entity.DefectCategory;
+import com.uth.datalabeling.modules.defect.repository.DefectCategoryRepository;
+import com.uth.datalabeling.common.exception.AppException;
+import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import lombok.AccessLevel;
@@ -34,6 +41,8 @@ public class ReviewQueueService {
     ProjectAccessService projectAccessService;
     TaskRepository taskRepository;
     AnnotationRepository annotationRepository;
+    ReviewRepository reviewRepository;
+    DefectCategoryRepository defectCategoryRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<ReviewQueueImageResponse> getPendingReviewImages(UUID projectId, Pageable pageable) {
@@ -63,6 +72,37 @@ public class ReviewQueueService {
                                 annotationsByTaskId.getOrDefault(task.getId(), List.of())))
                         .toList())
                 .build();
+    }
+
+    @Transactional
+    public void rejectImage(UUID taskId, RejectImageRequest request) {
+        User reviewer = projectAccessService.getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        if (!STATUS_PENDING_REVIEW.equals(task.getStatus())) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Task is not in PENDING_REVIEW status");
+        }
+
+        projectAccessService.findProjectAndCheckReadAccess(task.getProject().getId());
+
+        DefectCategory defectCategory = null;
+        if (request.getDefectCategoryId() != null) {
+            defectCategory = defectCategoryRepository.findById(request.getDefectCategoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Defect category not found"));
+        }
+
+        Review review = Review.builder()
+                .task(task)
+                .reviewer(reviewer)
+                .defectCategory(defectCategory)
+                .comments(request.getComments())
+                .action("REJECTED")
+                .build();
+        reviewRepository.save(review);
+
+        task.setStatus("REJECTED");
+        taskRepository.save(task);
     }
 
     private Map<UUID, List<Annotation>> loadAnnotationsByTaskId(List<Task> tasks) {
