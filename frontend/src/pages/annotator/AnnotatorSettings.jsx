@@ -221,7 +221,7 @@ export default function AnnotatorSettings() {
               <SettingsIcon size={24} className="settings-header-icon" />
               <div>
                 <h2 className="settings-title">WORKSPACE SETTINGS</h2>
-                <p className="settings-subtitle">Customize your gán nhãn environment and manage your profile preferences</p>
+                <p className="settings-subtitle">Customize your labeling environment and manage your profile preferences</p>
               </div>
             </div>
 
@@ -444,7 +444,7 @@ export default function AnnotatorSettings() {
                 {activeTab === 'hotkeys' && (
                   <div className="settings-pane">
                     <h3 className="pane-title">Keyboard Shortcuts</h3>
-                    <p className="pane-desc">Maximize your labeling throughput by learning and using pixel-perfect gán nhãn hotkeys.</p>
+                    <p className="pane-desc">Maximize your labeling throughput by learning and using pixel-perfect labeling hotkeys.</p>
                     
                     <div className="hotkeys-grid">
                       <div className="hotkey-card">
