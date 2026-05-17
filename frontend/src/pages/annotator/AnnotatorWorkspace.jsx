@@ -71,6 +71,14 @@ export default function AnnotatorWorkspace() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Prevent shortcut interference when typing inside input/select elements
+      if (
+        e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'SELECT'
+      ) {
+        return;
+      }
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
       
@@ -159,7 +167,17 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseDown = (e) => {
-    if (activeTool !== 'draw' || !imageLoaded || isLocked) return;
+    if (activeTool !== 'draw' || !imageLoaded || isLocked) {
+      // Clear selection when clicking empty area or image in select mode or when locked
+      if (
+        e.target === imageRef.current || 
+        e.target.tagName === 'svg' || 
+        e.target.classList.contains('annotation-svg')
+      ) {
+        setSelectedBoxId(null);
+      }
+      return;
+    }
     const { x, y } = getRelativeCoords(e);
     setIsDrawing(true);
     setCurrentBox({ x, y, width: 0, height: 0, labelId: selectedLabelId });
@@ -243,7 +261,10 @@ export default function AnnotatorWorkspace() {
                 <div className="toolbar-group">
                   <button 
                     className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`} 
-                    onClick={() => setActiveTool('draw')}
+                    onClick={() => {
+                      setActiveTool('draw');
+                      setSelectedBoxId(null);
+                    }}
                     title="Draw Box (B)"
                   >
                     <Square size={20} />
@@ -323,6 +344,7 @@ export default function AnnotatorWorkspace() {
                             e.stopPropagation(); 
                             setSelectedBoxId(ann.id); 
                             setSelectedLabelId(ann.labelId); 
+                            setActiveTool('select'); 
                           }}
                         >
                           <rect 
@@ -355,6 +377,7 @@ export default function AnnotatorWorkspace() {
                         />
                       )}
                     </svg>
+                    {/* Floating label editor removed */}
                   </div>
                 </div>
 
@@ -397,21 +420,36 @@ export default function AnnotatorWorkspace() {
                       {annotations.length === 0 ? (
                         <div className="empty-annotations"><Square size={32} opacity={0.2} /><p>No annotations yet</p></div>
                       ) : (
-                        annotations.map(ann => (
-                          <div 
-                            key={ann.id} 
-                            className={`annotation-item ${selectedBoxId === ann.id ? 'selected' : ''}`} 
-                            onClick={() => {
-                              setSelectedBoxId(ann.id);
-                              setSelectedLabelId(ann.labelId);
-                            }}
-                          >
-                            <div className="ann-info"><span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span><span className="ann-name">{getLabelName(ann.labelId)}</span></div>
-                            {!isLocked && (
-                              <button className="delete-ann-btn" onClick={(e) => { e.stopPropagation(); setAnnotations(prev => prev.filter(a => a.id !== ann.id)); }}><Trash2 size={14} /></button>
-                            )}
-                          </div>
-                        ))
+                        annotations.map(ann => {
+                          const isSelected = selectedBoxId === ann.id;
+                          return (
+                            <div 
+                              key={ann.id} 
+                              className={`annotation-item ${isSelected ? 'selected' : ''}`} 
+                              onClick={() => {
+                                setSelectedBoxId(ann.id);
+                                setSelectedLabelId(ann.labelId);
+                              }}
+                            >
+                              <div className="ann-info" onClick={(e) => e.stopPropagation()}>
+                                <span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span>
+                                <span className="ann-name">{getLabelName(ann.labelId)}</span>
+                              </div>
+                              {!isLocked && (
+                                <button 
+                                  className="delete-ann-btn" 
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setAnnotations(prev => prev.filter(a => a.id !== ann.id)); 
+                                    if (selectedBoxId === ann.id) setSelectedBoxId(null);
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
