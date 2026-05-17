@@ -3,21 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import Topbar from '@/components/common/Topbar';
-import { 
-  getLabelsByProject, 
-  getMyAssignedImages, 
+import Modal from '@/components/Modal';
+import Toast from '@/components/Toast';
+import {
+  getLabelsByProject,
+  getMyAssignedImages,
   getProject,
   saveTaskAnnotations,
   getAnnotations
 } from '@/services/api';
-import { 
-  ArrowLeft, 
-  Check, 
-  X, 
-  Trash2, 
-  MousePointer2, 
-  Square, 
-  Save, 
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Trash2,
+  MousePointer2,
+  Square,
+  Save,
   RotateCcw,
   ZoomIn,
   ZoomOut,
@@ -30,7 +32,7 @@ export default function AnnotatorWorkspace() {
   const { projectId, taskId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTool, setActiveTool] = useState('draw');
   const [annotations, setAnnotations] = useState([]);
@@ -42,7 +44,10 @@ export default function AnnotatorWorkspace() {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [toast, setToast] = useState(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [crosshairPos, setCrosshairPos] = useState({ x: 0, y: 0 });
+
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -66,7 +71,7 @@ export default function AnnotatorWorkspace() {
       return `/api/v1/uploads/${relativePath}`;
     }
     const fileName = normalizedUrl.split('/').pop();
-    return `/api/v1/uploads/${fileName}`; 
+    return `/api/v1/uploads/${fileName}`;
   };
 
   useEffect(() => {
@@ -110,7 +115,7 @@ export default function AnnotatorWorkspace() {
         const resultData = imagesRes.data?.result?.data || imagesRes.data?.result || [];
         const rawImages = Array.isArray(resultData) ? resultData : [];
         const currentImg = rawImages.find(img => (img.task_id || img.taskId || img.id) === taskId);
-        
+
         if (currentImg) {
           setTaskData({
             id: taskId,
@@ -120,7 +125,7 @@ export default function AnnotatorWorkspace() {
             labels: mappedLabels
           });
           if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
-          
+
           // Store raw annotations to be converted when image loads
           const existingAnnotations = annotationsRes.data?.result || [];
           if (Array.isArray(existingAnnotations)) {
@@ -173,8 +178,9 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseMove = (e) => {
-    if (!isDrawing || !currentBox) return;
     const { x, y } = getRelativeCoords(e);
+    setCrosshairPos({ x, y });
+    if (!isDrawing || !currentBox) return;
     setCurrentBox(prev => ({ ...prev, width: x - prev.x, height: y - prev.y }));
   };
 
@@ -200,7 +206,7 @@ export default function AnnotatorWorkspace() {
     setSelectedLabelId(labelId);
     // If a box is selected, update its label immediately
     if (selectedBoxId) {
-      setAnnotations(prev => prev.map(ann => 
+      setAnnotations(prev => prev.map(ann =>
         ann.id === selectedBoxId ? { ...ann, labelId: labelId } : ann
       ));
     }
@@ -209,32 +215,45 @@ export default function AnnotatorWorkspace() {
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     if (annotations.length === 0) {
-      alert('Please draw at least one bounding box before completing the task!');
+      setToast({
+        message: 'Please draw at least one bounding box before completing the task!',
+        type: 'warning'
+      });
       return;
     }
-    
-    if (window.confirm(`Are you sure you want to complete this task with ${annotations.length} annotations?`)) {
-      try {
-        const payload = annotations.map(ann => ({
-          shape_type: 'BOUNDING_BOX',
-          label_id: ann.labelId,
-          geometry: {
-            x: ann.x / imageSize.width,
-            y: ann.y / imageSize.height,
-            width: ann.width / imageSize.width,
-            height: ann.height / imageSize.height
-          }
-        }));
+    setConfirmModalOpen(true);
+  };
 
-        await saveTaskAnnotations(taskId, payload, true);
-        alert('Task submitted successfully!');
+  const executeComplete = async () => {
+    setConfirmModalOpen(false);
+    try {
+      const payload = annotations.map(ann => ({
+        shape_type: 'BOUNDING_BOX',
+        label_id: ann.labelId,
+        geometry: {
+          x: ann.x / imageSize.width,
+          y: ann.y / imageSize.height,
+          width: ann.width / imageSize.width,
+          height: ann.height / imageSize.height
+        }
+      }));
+
+      await saveTaskAnnotations(taskId, payload, true);
+      setToast({
+        message: 'Task completed and submitted successfully!',
+        type: 'success'
+      });
+      setTimeout(() => {
         navigate(`/annotator/projects/${projectId}/tasks`);
-      } catch (error) {
-        console.error('Error completing task:', error);
-        alert('Failed to submit task. Please try again.');
-      }
+      }, 1500);
+    } catch (error) {
+      console.error('Error completing task:', error);
+      setToast({
+        message: 'Failed to submit task. Please try again.',
+        type: 'error'
+      });
     }
   };
 
@@ -252,19 +271,89 @@ export default function AnnotatorWorkspace() {
       }));
 
       await saveTaskAnnotations(taskId, payload, false);
-      alert('Progress saved successfully!');
+      setToast({
+        message: 'Progress saved successfully!',
+        type: 'success'
+      });
     } catch (error) {
       console.error('Error saving progress:', error);
-      alert('Failed to save progress.');
+      setToast({
+        message: 'Failed to save progress.',
+        type: 'error'
+      });
     }
   };
+
+  // Helper for opacity hex conversion
+  const getHexOpacity = (opacityVal) => {
+    switch (opacityVal) {
+      case 10: return '1A';
+      case 20: return '33';
+      case 30: return '4D';
+      case 40: return '66';
+      case 50: return '80';
+      default: return '33';
+    }
+  };
+
+  const getActiveHexOpacity = (opacityVal) => {
+    switch (opacityVal) {
+      case 10: return '33';
+      case 20: return '4D';
+      case 30: return '66';
+      case 40: return '80';
+      case 50: return '99';
+      default: return '4D';
+    }
+  };
+
+  // Load workspace preferences
+  const strokeWidthSetting = Number(localStorage.getItem('annotator_stroke_width')) || 2;
+  const boxOpacitySetting = Number(localStorage.getItem('annotator_box_opacity')) || 20;
+  const showCrosshairsSetting = localStorage.getItem('annotator_show_crosshairs') !== 'false';
+
+  const hexOpacity = getHexOpacity(boxOpacitySetting);
+  const activeHexOpacity = getActiveHexOpacity(boxOpacitySetting);
+
+  // Auto-Save Effect
+  useEffect(() => {
+    const autoSaveSetting = localStorage.getItem('annotator_auto_save') === 'true';
+    if (!autoSaveSetting || isLoading || annotations.length === 0 || !imageSize.width) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const payload = annotations.map(ann => ({
+          shape_type: 'BOUNDING_BOX',
+          label_id: ann.labelId,
+          geometry: {
+            x: ann.x / imageSize.width,
+            y: ann.y / imageSize.height,
+            width: ann.width / imageSize.width,
+            height: ann.height / imageSize.height
+          }
+        }));
+        await saveTaskAnnotations(taskId, payload, false);
+        setToast({
+          message: 'Workspace auto-saved!',
+          type: 'success'
+        });
+      } catch (err) {
+        console.warn('Auto-save failed:', err);
+      }
+    }, 10000); // auto-save draft every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [annotations, isLoading, taskId, imageSize]);
+
+  // Read profile Name directly from active user session
+  const activeDisplayName = user?.fullName || 'Annotator';
 
   return (
     <div className="dashboard-layout">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       <div className="dashboard-main">
         <Topbar
-          userName={user?.fullName || 'Annotator'}
+          userName={activeDisplayName}
           userRole="Data Annotator"
           onMenuClick={() => setSidebarOpen(true)}
           onLogout={logout}
@@ -285,8 +374,8 @@ export default function AnnotatorWorkspace() {
                 </div>
                 <div className="toolbar-divider" />
                 <div className="toolbar-group">
-                  <button 
-                    className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`} 
+                  <button
+                    className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`}
                     onClick={() => setActiveTool('draw')}
                     title="Draw Box (B)"
                   >
@@ -318,7 +407,7 @@ export default function AnnotatorWorkspace() {
 
               <div className="workspace-container">
                 <div className="canvas-wrapper">
-                  <div 
+                  <div
                     className={`canvas-container ${activeTool === 'draw' ? 'crosshair' : ''}`}
                     ref={containerRef}
                     onMouseDown={handleMouseDown}
@@ -331,38 +420,38 @@ export default function AnnotatorWorkspace() {
                       transformOrigin: 'top left'
                     }}
                   >
-                    <img 
+                    <img
                       ref={imageRef}
-                      src={taskData.imageUrl} 
-                      alt={taskData.fileName} 
+                      src={taskData.imageUrl}
+                      alt={taskData.fileName}
                       onLoad={handleImageLoad}
                       className="workspace-image"
                       draggable={false}
                     />
-                    <svg 
-                      className="annotation-svg" 
+                    <svg
+                      className="annotation-svg"
                       viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
                       onClick={() => setSelectedBoxId(null)}
                     >
                       {annotations.map((ann) => (
-                        <g 
-                          key={ann.id} 
-                          className={`annotation-group ${selectedBoxId === ann.id ? 'selected' : ''}`} 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setSelectedBoxId(ann.id); 
-                            setActiveTool('select'); 
+                        <g
+                          key={ann.id}
+                          className={`annotation-group ${selectedBoxId === ann.id ? 'selected' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBoxId(ann.id);
+                            setActiveTool('select');
                           }}
                         >
-                          <rect 
-                            x={ann.x} 
-                            y={ann.y} 
-                            width={ann.width} 
-                            height={ann.height} 
-                            fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}40` : `${getLabelColor(ann.labelId)}20`}
-                            stroke={getLabelColor(ann.labelId)} 
-                            strokeWidth={2 / zoomLevel} 
-                            className="bbox-rect" 
+                          <rect
+                            x={ann.x}
+                            y={ann.y}
+                            width={ann.width}
+                            height={ann.height}
+                            fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}${activeHexOpacity}` : `${getLabelColor(ann.labelId)}${hexOpacity}`}
+                            stroke={getLabelColor(ann.labelId)}
+                            strokeWidth={strokeWidthSetting / zoomLevel}
+                            className="bbox-rect"
                             style={{ pointerEvents: 'all', cursor: 'pointer' }}
                           />
                           <g className="bbox-label" style={{ pointerEvents: 'none' }}>
@@ -377,11 +466,35 @@ export default function AnnotatorWorkspace() {
                           y={currentBox.height < 0 ? currentBox.y + currentBox.height : currentBox.y}
                           width={Math.abs(currentBox.width)}
                           height={Math.abs(currentBox.height)}
-                          fill={`${getLabelColor(selectedLabelId)}20`}
+                          fill={`${getLabelColor(selectedLabelId)}${hexOpacity}`}
                           stroke={getLabelColor(selectedLabelId)}
-                          strokeWidth={2 / zoomLevel}
-                          strokeDasharray={`${5/zoomLevel},${5/zoomLevel}`}
+                          strokeWidth={strokeWidthSetting / zoomLevel}
+                          strokeDasharray={`${5 / zoomLevel},${5 / zoomLevel}`}
                         />
+                      )}
+                      {showCrosshairsSetting && activeTool === 'draw' && imageLoaded && (
+                        <g style={{ pointerEvents: 'none' }}>
+                          <line
+                            x1={0}
+                            y1={crosshairPos.y}
+                            x2={imageSize.width}
+                            y2={crosshairPos.y}
+                            stroke="#10b981"
+                            strokeWidth={1 / zoomLevel}
+                            strokeDasharray={`${3 / zoomLevel},${3 / zoomLevel}`}
+                            opacity={0.6}
+                          />
+                          <line
+                            x1={crosshairPos.x}
+                            y1={0}
+                            x2={crosshairPos.x}
+                            y2={imageSize.height}
+                            stroke="#10b981"
+                            strokeWidth={1 / zoomLevel}
+                            strokeDasharray={`${3 / zoomLevel},${3 / zoomLevel}`}
+                            opacity={0.6}
+                          />
+                        </g>
                       )}
                     </svg>
                   </div>
@@ -427,7 +540,13 @@ export default function AnnotatorWorkspace() {
                     </div>
                   </div>
                   <div className="sidebar-footer">
-                    <button className="btn btn--primary btn--full" onClick={handleComplete}>Complete Task</button>
+                    <button
+                      className="btn btn--primary btn--full"
+                      onClick={handleComplete}
+                      disabled={annotations.length === 0}
+                    >
+                      Complete Task
+                    </button>
                   </div>
                 </div>
               </div>
@@ -435,6 +554,42 @@ export default function AnnotatorWorkspace() {
           )}
         </main>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <Modal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        title="Complete Task"
+      >
+        <div style={{ padding: '0.5rem 0' }}>
+          <p style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
+            Are you sure you want to complete this task with <strong>{annotations.length}</strong> annotation{annotations.length !== 1 ? 's' : ''}? Once submitted, this task will be forwarded to the reviewer and cannot be modified further.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <button
+              type="button"
+              className="btn btn--secondary"
+              onClick={() => setConfirmModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={executeComplete}
+            >
+              Submit Task
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

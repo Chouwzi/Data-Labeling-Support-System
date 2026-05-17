@@ -35,6 +35,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback((fullName, email) => {
+    if (fullName) localStorage.setItem('fullName', fullName);
+    if (email) localStorage.setItem('email', email);
+    setUser(prev => prev ? { ...prev, fullName, email } : null);
+  }, []);
+
   const isAuthenticated = Boolean(user?.accessToken);
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'MANAGER';
@@ -50,7 +56,8 @@ export function AuthProvider({ children }) {
     isReviewer,
     isLoading,
     login,
-    logout
+    logout,
+    updateProfile
   };
 
   return (

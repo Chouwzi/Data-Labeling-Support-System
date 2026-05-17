@@ -155,6 +155,9 @@ export default function AnnotatorDashboard() {
     fetchProjects();
   }, [user]);
 
+  // Read profile Name directly from active user session
+  const activeDisplayName = user?.fullName || 'Annotator';
+
   return (
     <div className="dashboard-wrapper">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
@@ -162,7 +165,7 @@ export default function AnnotatorDashboard() {
       <div className="dashboard-main-content">
         <Topbar 
           onMenuClick={toggleSidebar}
-          userName={user?.fullName || 'Annotator'}
+          userName={activeDisplayName}
           userRole="Annotator"
           onLogout={handleLogout}
           showCenterLinks

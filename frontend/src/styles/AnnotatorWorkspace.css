@@ -347,3 +347,14 @@
 .canvas-wrapper::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Premium Disabled Button Style */
+.btn:disabled {
+  background-color: #cbd5e1 !important;
+  color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+  transform: none !important;
+  box-shadow: none !important;
+}
