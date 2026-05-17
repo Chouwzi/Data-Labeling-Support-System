@@ -133,6 +133,8 @@ export default function AnnotatorTasks() {
     };
   };
 
+  const activeDisplayName = localStorage.getItem('annotator_profile_name') || user?.fullName || 'Annotator';
+
   return (
     <div className="manager-layout">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
@@ -140,7 +142,7 @@ export default function AnnotatorTasks() {
       <div className="manager-main">
         <Topbar 
           onMenuClick={toggleSidebar}
-          userName={user?.fullName || 'Annotator'}
+          userName={activeDisplayName}
           userRole="Annotator"
           onLogout={logout}
         />

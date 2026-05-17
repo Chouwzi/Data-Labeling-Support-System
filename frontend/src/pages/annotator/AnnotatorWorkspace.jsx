@@ -46,6 +46,7 @@ export default function AnnotatorWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [crosshairPos, setCrosshairPos] = useState({ x: 0, y: 0 });
   
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -177,8 +178,9 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseMove = (e) => {
-    if (!isDrawing || !currentBox) return;
     const { x, y } = getRelativeCoords(e);
+    setCrosshairPos({ x, y });
+    if (!isDrawing || !currentBox) return;
     setCurrentBox(prev => ({ ...prev, width: x - prev.x, height: y - prev.y }));
   };
 
@@ -282,12 +284,76 @@ export default function AnnotatorWorkspace() {
     }
   };
 
+  // Helper for opacity hex conversion
+  const getHexOpacity = (opacityVal) => {
+    switch (opacityVal) {
+      case 10: return '1A';
+      case 20: return '33';
+      case 30: return '4D';
+      case 40: return '66';
+      case 50: return '80';
+      default: return '33';
+    }
+  };
+
+  const getActiveHexOpacity = (opacityVal) => {
+    switch (opacityVal) {
+      case 10: return '33';
+      case 20: return '4D';
+      case 30: return '66';
+      case 40: return '80';
+      case 50: return '99';
+      default: return '4D';
+    }
+  };
+
+  // Load workspace preferences
+  const strokeWidthSetting = Number(localStorage.getItem('annotator_stroke_width')) || 2;
+  const boxOpacitySetting = Number(localStorage.getItem('annotator_box_opacity')) || 20;
+  const showCrosshairsSetting = localStorage.getItem('annotator_show_crosshairs') !== 'false';
+  
+  const hexOpacity = getHexOpacity(boxOpacitySetting);
+  const activeHexOpacity = getActiveHexOpacity(boxOpacitySetting);
+
+  // Auto-Save Effect
+  useEffect(() => {
+    const autoSaveSetting = localStorage.getItem('annotator_auto_save') === 'true';
+    if (!autoSaveSetting || isLoading || annotations.length === 0 || !imageSize.width) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const payload = annotations.map(ann => ({
+          shape_type: 'BOUNDING_BOX',
+          label_id: ann.labelId,
+          geometry: {
+            x: ann.x / imageSize.width,
+            y: ann.y / imageSize.height,
+            width: ann.width / imageSize.width,
+            height: ann.height / imageSize.height
+          }
+        }));
+        await saveTaskAnnotations(taskId, payload, false);
+        setToast({
+          message: 'Workspace auto-saved!',
+          type: 'success'
+        });
+      } catch (err) {
+        console.warn('Auto-save failed:', err);
+      }
+    }, 10000); // auto-save draft every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [annotations, isLoading, taskId, imageSize]);
+
+  // Read customized Profile Name if saved
+  const activeDisplayName = localStorage.getItem('annotator_profile_name') || user?.fullName || 'Annotator';
+
   return (
     <div className="dashboard-layout">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       <div className="dashboard-main">
         <Topbar
-          userName={user?.fullName || 'Annotator'}
+          userName={activeDisplayName}
           userRole="Data Annotator"
           onMenuClick={() => setSidebarOpen(true)}
           onLogout={logout}
@@ -382,9 +448,9 @@ export default function AnnotatorWorkspace() {
                             y={ann.y} 
                             width={ann.width} 
                             height={ann.height} 
-                            fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}40` : `${getLabelColor(ann.labelId)}20`}
+                            fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}${activeHexOpacity}` : `${getLabelColor(ann.labelId)}${hexOpacity}`}
                             stroke={getLabelColor(ann.labelId)} 
-                            strokeWidth={2 / zoomLevel} 
+                            strokeWidth={strokeWidthSetting / zoomLevel} 
                             className="bbox-rect" 
                             style={{ pointerEvents: 'all', cursor: 'pointer' }}
                           />
@@ -400,11 +466,35 @@ export default function AnnotatorWorkspace() {
                           y={currentBox.height < 0 ? currentBox.y + currentBox.height : currentBox.y}
                           width={Math.abs(currentBox.width)}
                           height={Math.abs(currentBox.height)}
-                          fill={`${getLabelColor(selectedLabelId)}20`}
+                          fill={`${getLabelColor(selectedLabelId)}${hexOpacity}`}
                           stroke={getLabelColor(selectedLabelId)}
-                          strokeWidth={2 / zoomLevel}
+                          strokeWidth={strokeWidthSetting / zoomLevel}
                           strokeDasharray={`${5/zoomLevel},${5/zoomLevel}`}
                         />
+                      )}
+                      {showCrosshairsSetting && activeTool === 'draw' && imageLoaded && (
+                        <g style={{ pointerEvents: 'none' }}>
+                          <line 
+                            x1={0} 
+                            y1={crosshairPos.y} 
+                            x2={imageSize.width} 
+                            y2={crosshairPos.y} 
+                            stroke="#10b981" 
+                            strokeWidth={1 / zoomLevel} 
+                            strokeDasharray={`${3/zoomLevel},${3/zoomLevel}`}
+                            opacity={0.6}
+                          />
+                          <line 
+                            x1={crosshairPos.x} 
+                            y1={0} 
+                            x2={crosshairPos.x} 
+                            y2={imageSize.height} 
+                            stroke="#10b981" 
+                            strokeWidth={1 / zoomLevel} 
+                            strokeDasharray={`${3/zoomLevel},${3/zoomLevel}`}
+                            opacity={0.6}
+                          />
+                        </g>
                       )}
                     </svg>
                   </div>

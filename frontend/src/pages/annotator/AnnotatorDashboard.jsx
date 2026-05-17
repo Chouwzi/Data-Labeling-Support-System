@@ -155,6 +155,8 @@ export default function AnnotatorDashboard() {
     fetchProjects();
   }, [user]);
 
+  const activeDisplayName = localStorage.getItem('annotator_profile_name') || user?.fullName || 'Annotator';
+
   return (
     <div className="dashboard-wrapper">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
@@ -162,7 +164,7 @@ export default function AnnotatorDashboard() {
       <div className="dashboard-main-content">
         <Topbar 
           onMenuClick={toggleSidebar}
-          userName={user?.fullName || 'Annotator'}
+          userName={activeDisplayName}
           userRole="Annotator"
           onLogout={handleLogout}
           showCenterLinks
