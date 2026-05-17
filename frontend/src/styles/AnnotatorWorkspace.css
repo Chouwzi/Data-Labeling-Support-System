@@ -104,7 +104,7 @@
 }
 
 .annotation-group .bbox-rect {
-  transition: stroke-width 0.1s;
+  transition: stroke 0.25s ease, fill 0.25s ease, stroke-width 0.1s ease;
 }
 
 .annotation-group:hover .bbox-rect {
