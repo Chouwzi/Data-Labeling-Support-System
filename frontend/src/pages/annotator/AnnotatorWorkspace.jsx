@@ -427,7 +427,13 @@ export default function AnnotatorWorkspace() {
                     </div>
                   </div>
                   <div className="sidebar-footer">
-                    <button className="btn btn--primary btn--full" onClick={handleComplete}>Complete Task</button>
+                    <button 
+                      className="btn btn--primary btn--full" 
+                      onClick={handleComplete}
+                      disabled={annotations.length === 0}
+                    >
+                      Complete Task
+                    </button>
                   </div>
                 </div>
               </div>
