@@ -131,9 +131,12 @@ class ReviewQueueControllerTest {
 
     @Test
     @WithMockUser(roles = "MANAGER")
-    void getReviewQueueImages_RejectsManagerRole() throws Exception {
+    void getReviewQueueImages_AllowsManagerRole() throws Exception {
+        when(reviewQueueService.getPendingReviewImages(eq(null), any(Pageable.class)))
+                .thenReturn(PageResponse.<ReviewQueueImageResponse>builder().data(List.of()).build());
+
         mockMvc.perform(get("/review-queue/images"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -145,9 +148,12 @@ class ReviewQueueControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void getReviewQueueImages_RejectsAdminRole() throws Exception {
+    void getReviewQueueImages_AllowsAdminRole() throws Exception {
+        when(reviewQueueService.getPendingReviewImages(eq(null), any(Pageable.class)))
+                .thenReturn(PageResponse.<ReviewQueueImageResponse>builder().data(List.of()).build());
+
         mockMvc.perform(get("/review-queue/images"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

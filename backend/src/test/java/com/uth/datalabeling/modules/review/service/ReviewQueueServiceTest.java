@@ -8,6 +8,7 @@ import com.uth.datalabeling.modules.dataset.entity.DataSample;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
+import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueImageResponse;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
@@ -40,6 +41,9 @@ class ReviewQueueServiceTest {
 
     @Mock
     private AnnotationRepository annotationRepository;
+
+    @Mock
+    private ProjectAccessService projectAccessService;
 
     @InjectMocks
     private ReviewQueueService reviewQueueService;
@@ -88,7 +92,8 @@ class ReviewQueueServiceTest {
     @Test
     void getPendingReviewImages_ReturnsOnlyPendingReviewTasksWithAnnotations() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(taskRepository.findReviewQueueImages(projectId, "PENDING_REVIEW", pageable))
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().id(UUID.randomUUID()).role("REVIEWER").build());
+        when(taskRepository.findReviewQueueImages(projectId, null, "PENDING_REVIEW", pageable))
                 .thenReturn(new PageImpl<>(List.of(pendingReviewTask), pageable, 1));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(taskId)))
                 .thenReturn(List.of(annotation));
@@ -119,14 +124,16 @@ class ReviewQueueServiceTest {
                 image.getAnnotations().getFirst().getGeometry());
         assertEquals(false, image.getAnnotations().getFirst().getIsAiGenerated());
 
-        verify(taskRepository).findReviewQueueImages(projectId, "PENDING_REVIEW", pageable);
+        verify(projectAccessService).findProjectAndCheckReadAccess(projectId);
+        verify(taskRepository).findReviewQueueImages(projectId, null, "PENDING_REVIEW", pageable);
         verify(annotationRepository).findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(taskId));
     }
 
     @Test
     void getPendingReviewImages_WithNullProjectFilterRequestsAllPendingReviewTasks() {
         Pageable pageable = PageRequest.of(2, 25);
-        when(taskRepository.findReviewQueueImages(null, "PENDING_REVIEW", pageable))
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().id(UUID.randomUUID()).role("ADMIN").build());
+        when(taskRepository.findReviewQueueImages(null, null, "PENDING_REVIEW", pageable))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
         PageResponse<ReviewQueueImageResponse> response = reviewQueueService.getPendingReviewImages(null, pageable);
@@ -135,7 +142,7 @@ class ReviewQueueServiceTest {
         assertEquals(25, response.getPageSize());
         assertEquals(0, response.getTotalElements());
         assertEquals(List.of(), response.getData());
-        verify(taskRepository).findReviewQueueImages(null, "PENDING_REVIEW", pageable);
+        verify(taskRepository).findReviewQueueImages(null, null, "PENDING_REVIEW", pageable);
         verify(annotationRepository, never()).findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of());
     }
 
@@ -147,7 +154,8 @@ class ReviewQueueServiceTest {
         pendingReviewTask.setUpdatedAt(null);
         pendingReviewTask.setCreatedAt(createdAt);
 
-        when(taskRepository.findReviewQueueImages(projectId, "PENDING_REVIEW", pageable))
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().id(UUID.randomUUID()).role("REVIEWER").build());
+        when(taskRepository.findReviewQueueImages(projectId, null, "PENDING_REVIEW", pageable))
                 .thenReturn(new PageImpl<>(List.of(pendingReviewTask), pageable, 1));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(taskId))).thenReturn(List.of());
 
@@ -165,7 +173,8 @@ class ReviewQueueServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         annotation.setIsAiGenerated(null);
 
-        when(taskRepository.findReviewQueueImages(projectId, "PENDING_REVIEW", pageable))
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().id(UUID.randomUUID()).role("REVIEWER").build());
+        when(taskRepository.findReviewQueueImages(projectId, null, "PENDING_REVIEW", pageable))
                 .thenReturn(new PageImpl<>(List.of(pendingReviewTask), pageable, 1));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(taskId)))
                 .thenReturn(List.of(annotation));

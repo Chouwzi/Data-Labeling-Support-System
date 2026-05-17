@@ -7,6 +7,7 @@ import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueAnnotationResponse;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueImageResponse;
+import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import lombok.AccessLevel;
@@ -30,12 +31,24 @@ public class ReviewQueueService {
 
     private static final String STATUS_PENDING_REVIEW = "PENDING_REVIEW";
 
+    ProjectAccessService projectAccessService;
     TaskRepository taskRepository;
     AnnotationRepository annotationRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<ReviewQueueImageResponse> getPendingReviewImages(UUID projectId, Pageable pageable) {
-        Page<Task> taskPage = taskRepository.findReviewQueueImages(projectId, STATUS_PENDING_REVIEW, pageable);
+        User currentUser = projectAccessService.getCurrentUser();
+        UUID managerId = null;
+
+        if (projectId != null) {
+            projectAccessService.findProjectAndCheckReadAccess(projectId);
+        } else {
+            if ("MANAGER".equals(currentUser.getRole())) {
+                managerId = currentUser.getId();
+            }
+        }
+
+        Page<Task> taskPage = taskRepository.findReviewQueueImages(projectId, managerId, STATUS_PENDING_REVIEW, pageable);
         List<Task> tasks = taskPage.getContent();
         Map<UUID, List<Annotation>> annotationsByTaskId = loadAnnotationsByTaskId(tasks);
 

@@ -60,6 +60,7 @@ class ReviewQueueRepositoryTest {
 
         Page<Task> page = taskRepository.findReviewQueueImages(
                 projectA.getId(),
+                null,
                 "PENDING_REVIEW",
                 PageRequest.of(0, 10));
 
@@ -81,6 +82,7 @@ class ReviewQueueRepositoryTest {
 
         Page<Task> page = taskRepository.findReviewQueueImages(
                 null,
+                null,
                 "PENDING_REVIEW",
                 PageRequest.of(0, 10));
 
@@ -91,6 +93,28 @@ class ReviewQueueRepositoryTest {
         assertEquals(2, page.getTotalElements());
         assertTrue(taskIds.contains(pendingInProjectA.getId()));
         assertTrue(taskIds.contains(pendingInProjectB.getId()));
+    }
+
+    @Test
+    void findReviewQueueImages_FiltersPendingReviewTasksByManagerId() {
+        User manager1 = saveUser("MANAGER");
+        User manager2 = saveUser("MANAGER");
+        User annotator = saveUser("ANNOTATOR");
+        Dataset dataset = datasetRepository.save(Dataset.builder().name("Traffic").creator(manager1).build());
+        Project project1 = saveProject("Project 1", manager1, dataset);
+        Project project2 = saveProject("Project 2", manager2, dataset);
+
+        Task pendingInProject1 = saveTask(project1, saveSample(dataset, "1.jpg"), annotator, "PENDING_REVIEW");
+        Task pendingInProject2 = saveTask(project2, saveSample(dataset, "2.jpg"), annotator, "PENDING_REVIEW");
+
+        Page<Task> page = taskRepository.findReviewQueueImages(
+                null,
+                manager1.getId(),
+                "PENDING_REVIEW",
+                PageRequest.of(0, 10));
+
+        assertEquals(1, page.getTotalElements());
+        assertEquals(pendingInProject1.getId(), page.getContent().getFirst().getId());
     }
 
     private User saveUser(String role) {

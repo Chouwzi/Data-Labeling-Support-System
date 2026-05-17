@@ -25,7 +25,7 @@ public class ReviewQueueController {
     ReviewQueueService reviewQueueService;
 
     @GetMapping
-    @PreAuthorize("hasRole('REVIEWER')")
+    @PreAuthorize("hasAnyRole('REVIEWER', 'ADMIN', 'MANAGER')")
     public ApiResponse<PageResponse<ReviewQueueImageResponse>> getReviewQueueImages(
             @RequestParam(required = false) UUID projectId,
             Pageable pageable) {
