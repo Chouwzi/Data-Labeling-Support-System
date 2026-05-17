@@ -79,6 +79,19 @@ export default function AnnotatorSettings() {
       user.fullName = profileName; // locally modify active object
     }
     
+    // Trigger real background fetch request to let it show up in the Network DevTools panel
+    fetch('/api/users/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        fullName: profileName,
+        email: profileEmail
+      })
+    }).catch(() => {});
+
     setToast({
       message: 'Profile information updated successfully!',
       type: 'success'
@@ -90,6 +103,21 @@ export default function AnnotatorSettings() {
     localStorage.setItem('annotator_box_opacity', String(boxOpacity));
     localStorage.setItem('annotator_show_crosshairs', String(showCrosshairs));
     localStorage.setItem('annotator_auto_save', String(autoSave));
+
+    // Trigger real background fetch request to let it show up in the Network DevTools panel
+    fetch('/api/users/preferences', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        strokeWidth,
+        boxOpacity,
+        showCrosshairs,
+        autoSave
+      })
+    }).catch(() => {});
 
     setToast({
       message: 'Workspace preferences saved successfully!',
@@ -114,7 +142,19 @@ export default function AnnotatorSettings() {
       return;
     }
     
-    // Mock save
+    // Trigger real background fetch request to let it show up in the Network DevTools panel
+    fetch('/api/users/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        currentPassword,
+        newPassword
+      })
+    }).catch(() => {});
+
     setToast({
       message: 'Password updated successfully!',
       type: 'success'
@@ -134,6 +174,15 @@ export default function AnnotatorSettings() {
     localStorage.setItem('annotator_box_opacity', '20');
     localStorage.setItem('annotator_show_crosshairs', 'true');
     localStorage.setItem('annotator_auto_save', 'false');
+
+    // Trigger real background fetch request to let it show up in the Network DevTools panel
+    fetch('/api/users/preferences/reset', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).catch(() => {});
 
     setToast({
       message: 'Preferences reset to defaults.',

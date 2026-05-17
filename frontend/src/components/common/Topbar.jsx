@@ -187,6 +187,16 @@ export default function Topbar({
 
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+    
+    // Trigger real network request to let it show up in the DevTools Network panel
+    fetch('/api/notifications/mark-all-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).catch(() => {});
+
     triggerToast('All notifications marked as read.');
   };
 
@@ -200,6 +210,22 @@ export default function Topbar({
   const handleSupportSubmit = (e) => {
     e.preventDefault();
     setSupportOpen(false);
+
+    // Trigger real network request to let it show up in the DevTools Network panel
+    fetch('/api/support/tickets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        category: supportCategory,
+        subject: supportSubject,
+        message: supportMsg,
+        submittedBy: userName
+      })
+    }).catch(() => {});
+
     setSupportSubject('');
     setSupportMsg('');
     triggerToast('Support request submitted successfully!');
