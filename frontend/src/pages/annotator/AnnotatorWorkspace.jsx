@@ -345,8 +345,8 @@ export default function AnnotatorWorkspace() {
     return () => clearInterval(interval);
   }, [annotations, isLoading, taskId, imageSize]);
 
-  // Read customized Profile Name if saved
-  const activeDisplayName = localStorage.getItem('annotator_profile_name') || user?.fullName || 'Annotator';
+  // Read profile Name directly from active user session
+  const activeDisplayName = user?.fullName || 'Annotator';
 
   return (
     <div className="dashboard-layout">

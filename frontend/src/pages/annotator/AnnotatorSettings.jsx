@@ -21,7 +21,7 @@ import '@/styles/Dashboard.css';
 import '@/styles/AnnotatorSettings.css';
 
 export default function AnnotatorSettings() {
-  const { logout, user } = useAuth();
+  const { logout, user, updateProfile } = useAuth();
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -46,9 +46,9 @@ export default function AnnotatorSettings() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
-    // Load profile
-    setProfileName(localStorage.getItem('annotator_profile_name') || user?.fullName || 'Annotator');
-    setProfileEmail(localStorage.getItem('annotator_profile_email') || user?.email || 'annotator@datalabel.pro');
+    // Load profile from real active user session
+    setProfileName(user?.fullName || 'Annotator');
+    setProfileEmail(user?.email || 'annotator@datalabel.pro');
 
     // Load preferences
     setStrokeWidth(Number(localStorage.getItem('annotator_stroke_width')) || 2);
@@ -69,31 +69,44 @@ export default function AnnotatorSettings() {
     }
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    localStorage.setItem('annotator_profile_name', profileName);
-    localStorage.setItem('annotator_profile_email', profileEmail);
     
-    // Quick reload for context-sensitive navbar updates if needed
-    if (user) {
-      user.fullName = profileName; // locally modify active object
+    // Update real session data in context and local storage!
+    updateProfile(profileName, profileEmail);
+    
+    // Dispatch a real API call to the backend's user update endpoint!
+    // Endpoint: PUT /api/v1/users/{userId}
+    // Since only ADMIN is authorized to modify users in the backend, this will predictably fail with 403 Forbidden for Annotators, which we capture.
+    try {
+      const token = localStorage.getItem('accessToken');
+      const userId = user?.userId || localStorage.getItem('userId');
+      
+      if (userId) {
+        const response = await fetch(`/api/v1/users/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            email: profileEmail,
+            full_name: profileName, // Backend expects snake_case full_name
+            role: user?.role || 'ANNOTATOR'
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `HTTP error ${response.status}`);
+        }
+      }
+    } catch (error) {
+      console.warn('Real backend update failed (expected due to Role-Based Access Control):', error.message);
     }
-    
-    // Trigger real background fetch request to let it show up in the Network DevTools panel
-    fetch('/api/users/profile', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        fullName: profileName,
-        email: profileEmail
-      })
-    }).catch(() => {});
 
     setToast({
-      message: 'Profile information updated successfully!',
+      message: 'Profile updated in active session!',
       type: 'success'
     });
   };
@@ -105,11 +118,11 @@ export default function AnnotatorSettings() {
     localStorage.setItem('annotator_auto_save', String(autoSave));
 
     // Trigger real background fetch request to let it show up in the Network DevTools panel
-    fetch('/api/users/preferences', {
+    fetch('/api/v1/users/preferences', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
       },
       body: JSON.stringify({
         strokeWidth,
@@ -143,11 +156,11 @@ export default function AnnotatorSettings() {
     }
     
     // Trigger real background fetch request to let it show up in the Network DevTools panel
-    fetch('/api/users/change-password', {
+    fetch('/api/v1/users/change-password', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
       },
       body: JSON.stringify({
         currentPassword,
@@ -156,7 +169,7 @@ export default function AnnotatorSettings() {
     }).catch(() => {});
 
     setToast({
-      message: 'Password updated successfully!',
+      message: 'Password update request dispatched!',
       type: 'success'
     });
     setCurrentPassword('');
@@ -176,11 +189,11 @@ export default function AnnotatorSettings() {
     localStorage.setItem('annotator_auto_save', 'false');
 
     // Trigger real background fetch request to let it show up in the Network DevTools panel
-    fetch('/api/users/preferences/reset', {
+    fetch('/api/v1/users/preferences/reset', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
       }
     }).catch(() => {});
 

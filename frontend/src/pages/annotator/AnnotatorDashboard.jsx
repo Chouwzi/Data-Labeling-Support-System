@@ -155,7 +155,8 @@ export default function AnnotatorDashboard() {
     fetchProjects();
   }, [user]);
 
-  const activeDisplayName = localStorage.getItem('annotator_profile_name') || user?.fullName || 'Annotator';
+  // Read profile Name directly from active user session
+  const activeDisplayName = user?.fullName || 'Annotator';
 
   return (
     <div className="dashboard-wrapper">

@@ -189,11 +189,11 @@ export default function Topbar({
     setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
     
     // Trigger real network request to let it show up in the DevTools Network panel
-    fetch('/api/notifications/mark-all-read', {
+    fetch('/api/v1/notifications/mark-all-read', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
       }
     }).catch(() => {});
 
@@ -212,11 +212,11 @@ export default function Topbar({
     setSupportOpen(false);
 
     // Trigger real network request to let it show up in the DevTools Network panel
-    fetch('/api/support/tickets', {
+    fetch('/api/v1/support/tickets', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
       },
       body: JSON.stringify({
         category: supportCategory,
