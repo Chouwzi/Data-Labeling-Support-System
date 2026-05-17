@@ -48,8 +48,11 @@ export default function AnnotatorWorkspace() {
     imageUrl: '',
     fileName: 'Loading...',
     projectName: 'Loading...',
-    labels: []
+    labels: [],
+    status: 'PENDING'
   });
+
+  const isLocked = taskData.status && !['PENDING', 'ASSIGNED', 'IN_PROGRESS'].includes(taskData.status.toUpperCase());
 
   const [selectedLabelId, setSelectedLabelId] = useState(null);
 
@@ -70,6 +73,14 @@ export default function AnnotatorWorkspace() {
     const handleKeyDown = (e) => {
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
+      
+      // If locked, block any annotation modifications (hotkeys, delete)
+      if (isLocked) {
+        if (['1','2','3','4','5','6','7','8','9','delete','backspace'].includes(e.key.toLowerCase())) {
+          return;
+        }
+      }
+
       const num = parseInt(e.key);
       if (num >= 1 && num <= 9) {
         const label = taskData.labels[num - 1];
@@ -89,7 +100,7 @@ export default function AnnotatorWorkspace() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBoxId, taskData.labels]);
+  }, [selectedBoxId, taskData.labels, isLocked]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -119,7 +130,8 @@ export default function AnnotatorWorkspace() {
             imageUrl: fixImageUrl(currentImg.image_url || currentImg.imageUrl),
             fileName: currentImg.file_name || currentImg.fileName || 'Image',
             projectName: project.name || 'Project',
-            labels: mappedLabels
+            labels: mappedLabels,
+            status: currentImg.status || 'PENDING'
           });
           if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
         }
@@ -147,7 +159,7 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseDown = (e) => {
-    if (activeTool !== 'draw' || !imageLoaded) return;
+    if (activeTool !== 'draw' || !imageLoaded || isLocked) return;
     const { x, y } = getRelativeCoords(e);
     setIsDrawing(true);
     setCurrentBox({ x, y, width: 0, height: 0, labelId: selectedLabelId });
@@ -204,6 +216,29 @@ export default function AnnotatorWorkspace() {
                     <ArrowLeft size={16} /> <span>Exit</span>
                   </button>
                 </div>
+                {isLocked && (
+                  <div className="workspace-locked-badge" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#fee2e2',
+                    color: '#ef4444',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    marginLeft: '12px',
+                    border: '1px solid #fca5a5'
+                  }}>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      backgroundColor: '#ef4444',
+                      borderRadius: '50%'
+                    }}></span>
+                    <span>Completed (Read-Only)</span>
+                  </div>
+                )}
                 <div className="toolbar-divider" />
                 <div className="toolbar-group">
                   <button 
@@ -228,10 +263,18 @@ export default function AnnotatorWorkspace() {
                 </div>
                 <div className="toolbar-spacer" />
                 <div className="toolbar-group">
-                  <button className="btn btn--secondary" onClick={() => setAnnotations([])}>
+                  <button 
+                    className="btn btn--secondary" 
+                    onClick={() => setAnnotations([])}
+                    disabled={isLocked}
+                  >
                     <RotateCcw size={16} style={{ marginRight: '8px' }} /> Reset
                   </button>
-                  <button className="btn btn--success" onClick={() => alert('Saved!')}>
+                  <button 
+                    className="btn btn--success" 
+                    onClick={() => alert('Saved!')}
+                    disabled={isLocked}
+                  >
                     <Save size={16} style={{ marginRight: '8px' }} /> Save Progress
                   </button>
                 </div>
@@ -331,6 +374,7 @@ export default function AnnotatorWorkspace() {
                           key={label.id} 
                           className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} 
                           onClick={() => {
+                            if (isLocked) return;
                             setSelectedLabelId(label.id);
                             if (selectedBoxId) {
                               setAnnotations(prev => prev.map(ann => 
@@ -363,7 +407,9 @@ export default function AnnotatorWorkspace() {
                             }}
                           >
                             <div className="ann-info"><span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span><span className="ann-name">{getLabelName(ann.labelId)}</span></div>
-                            <button className="delete-ann-btn" onClick={(e) => { e.stopPropagation(); setAnnotations(prev => prev.filter(a => a.id !== ann.id)); }}><Trash2 size={14} /></button>
+                            {!isLocked && (
+                              <button className="delete-ann-btn" onClick={(e) => { e.stopPropagation(); setAnnotations(prev => prev.filter(a => a.id !== ann.id)); }}><Trash2 size={14} /></button>
+                            )}
                           </div>
                         ))
                       )}
