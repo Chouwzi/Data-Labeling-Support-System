@@ -5,21 +5,21 @@ import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import Topbar from '@/components/common/Topbar';
 import Modal from '@/components/Modal';
 import Toast from '@/components/Toast';
-import { 
-  getLabelsByProject, 
-  getMyAssignedImages, 
+import {
+  getLabelsByProject,
+  getMyAssignedImages,
   getProject,
   saveTaskAnnotations,
   getAnnotations
 } from '@/services/api';
-import { 
-  ArrowLeft, 
-  Check, 
-  X, 
-  Trash2, 
-  MousePointer2, 
-  Square, 
-  Save, 
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Trash2,
+  MousePointer2,
+  Square,
+  Save,
   RotateCcw,
   ZoomIn,
   ZoomOut,
@@ -32,7 +32,7 @@ export default function AnnotatorWorkspace() {
   const { projectId, taskId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTool, setActiveTool] = useState('draw');
   const [annotations, setAnnotations] = useState([]);
@@ -47,7 +47,7 @@ export default function AnnotatorWorkspace() {
   const [toast, setToast] = useState(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [crosshairPos, setCrosshairPos] = useState({ x: 0, y: 0 });
-  
+
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -71,7 +71,7 @@ export default function AnnotatorWorkspace() {
       return `/api/v1/uploads/${relativePath}`;
     }
     const fileName = normalizedUrl.split('/').pop();
-    return `/api/v1/uploads/${fileName}`; 
+    return `/api/v1/uploads/${fileName}`;
   };
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export default function AnnotatorWorkspace() {
         const resultData = imagesRes.data?.result?.data || imagesRes.data?.result || [];
         const rawImages = Array.isArray(resultData) ? resultData : [];
         const currentImg = rawImages.find(img => (img.task_id || img.taskId || img.id) === taskId);
-        
+
         if (currentImg) {
           setTaskData({
             id: taskId,
@@ -125,7 +125,7 @@ export default function AnnotatorWorkspace() {
             labels: mappedLabels
           });
           if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
-          
+
           // Store raw annotations to be converted when image loads
           const existingAnnotations = annotationsRes.data?.result || [];
           if (Array.isArray(existingAnnotations)) {
@@ -206,7 +206,7 @@ export default function AnnotatorWorkspace() {
     setSelectedLabelId(labelId);
     // If a box is selected, update its label immediately
     if (selectedBoxId) {
-      setAnnotations(prev => prev.map(ann => 
+      setAnnotations(prev => prev.map(ann =>
         ann.id === selectedBoxId ? { ...ann, labelId: labelId } : ann
       ));
     }
@@ -311,7 +311,7 @@ export default function AnnotatorWorkspace() {
   const strokeWidthSetting = Number(localStorage.getItem('annotator_stroke_width')) || 2;
   const boxOpacitySetting = Number(localStorage.getItem('annotator_box_opacity')) || 20;
   const showCrosshairsSetting = localStorage.getItem('annotator_show_crosshairs') !== 'false';
-  
+
   const hexOpacity = getHexOpacity(boxOpacitySetting);
   const activeHexOpacity = getActiveHexOpacity(boxOpacitySetting);
 
@@ -374,8 +374,8 @@ export default function AnnotatorWorkspace() {
                 </div>
                 <div className="toolbar-divider" />
                 <div className="toolbar-group">
-                  <button 
-                    className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`} 
+                  <button
+                    className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`}
                     onClick={() => setActiveTool('draw')}
                     title="Draw Box (B)"
                   >
@@ -407,7 +407,7 @@ export default function AnnotatorWorkspace() {
 
               <div className="workspace-container">
                 <div className="canvas-wrapper">
-                  <div 
+                  <div
                     className={`canvas-container ${activeTool === 'draw' ? 'crosshair' : ''}`}
                     ref={containerRef}
                     onMouseDown={handleMouseDown}
@@ -420,38 +420,38 @@ export default function AnnotatorWorkspace() {
                       transformOrigin: 'top left'
                     }}
                   >
-                    <img 
+                    <img
                       ref={imageRef}
-                      src={taskData.imageUrl} 
-                      alt={taskData.fileName} 
+                      src={taskData.imageUrl}
+                      alt={taskData.fileName}
                       onLoad={handleImageLoad}
                       className="workspace-image"
                       draggable={false}
                     />
-                    <svg 
-                      className="annotation-svg" 
+                    <svg
+                      className="annotation-svg"
                       viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
                       onClick={() => setSelectedBoxId(null)}
                     >
                       {annotations.map((ann) => (
-                        <g 
-                          key={ann.id} 
-                          className={`annotation-group ${selectedBoxId === ann.id ? 'selected' : ''}`} 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setSelectedBoxId(ann.id); 
-                            setActiveTool('select'); 
+                        <g
+                          key={ann.id}
+                          className={`annotation-group ${selectedBoxId === ann.id ? 'selected' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBoxId(ann.id);
+                            setActiveTool('select');
                           }}
                         >
-                          <rect 
-                            x={ann.x} 
-                            y={ann.y} 
-                            width={ann.width} 
-                            height={ann.height} 
+                          <rect
+                            x={ann.x}
+                            y={ann.y}
+                            width={ann.width}
+                            height={ann.height}
                             fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}${activeHexOpacity}` : `${getLabelColor(ann.labelId)}${hexOpacity}`}
-                            stroke={getLabelColor(ann.labelId)} 
-                            strokeWidth={strokeWidthSetting / zoomLevel} 
-                            className="bbox-rect" 
+                            stroke={getLabelColor(ann.labelId)}
+                            strokeWidth={strokeWidthSetting / zoomLevel}
+                            className="bbox-rect"
                             style={{ pointerEvents: 'all', cursor: 'pointer' }}
                           />
                           <g className="bbox-label" style={{ pointerEvents: 'none' }}>
@@ -469,29 +469,29 @@ export default function AnnotatorWorkspace() {
                           fill={`${getLabelColor(selectedLabelId)}${hexOpacity}`}
                           stroke={getLabelColor(selectedLabelId)}
                           strokeWidth={strokeWidthSetting / zoomLevel}
-                          strokeDasharray={`${5/zoomLevel},${5/zoomLevel}`}
+                          strokeDasharray={`${5 / zoomLevel},${5 / zoomLevel}`}
                         />
                       )}
                       {showCrosshairsSetting && activeTool === 'draw' && imageLoaded && (
                         <g style={{ pointerEvents: 'none' }}>
-                          <line 
-                            x1={0} 
-                            y1={crosshairPos.y} 
-                            x2={imageSize.width} 
-                            y2={crosshairPos.y} 
-                            stroke="#10b981" 
-                            strokeWidth={1 / zoomLevel} 
-                            strokeDasharray={`${3/zoomLevel},${3/zoomLevel}`}
+                          <line
+                            x1={0}
+                            y1={crosshairPos.y}
+                            x2={imageSize.width}
+                            y2={crosshairPos.y}
+                            stroke="#10b981"
+                            strokeWidth={1 / zoomLevel}
+                            strokeDasharray={`${3 / zoomLevel},${3 / zoomLevel}`}
                             opacity={0.6}
                           />
-                          <line 
-                            x1={crosshairPos.x} 
-                            y1={0} 
-                            x2={crosshairPos.x} 
-                            y2={imageSize.height} 
-                            stroke="#10b981" 
-                            strokeWidth={1 / zoomLevel} 
-                            strokeDasharray={`${3/zoomLevel},${3/zoomLevel}`}
+                          <line
+                            x1={crosshairPos.x}
+                            y1={0}
+                            x2={crosshairPos.x}
+                            y2={imageSize.height}
+                            stroke="#10b981"
+                            strokeWidth={1 / zoomLevel}
+                            strokeDasharray={`${3 / zoomLevel},${3 / zoomLevel}`}
                             opacity={0.6}
                           />
                         </g>
@@ -540,8 +540,8 @@ export default function AnnotatorWorkspace() {
                     </div>
                   </div>
                   <div className="sidebar-footer">
-                    <button 
-                      className="btn btn--primary btn--full" 
+                    <button
+                      className="btn btn--primary btn--full"
                       onClick={handleComplete}
                       disabled={annotations.length === 0}
                     >
@@ -563,9 +563,9 @@ export default function AnnotatorWorkspace() {
         />
       )}
 
-      <Modal 
-        isOpen={confirmModalOpen} 
-        onClose={() => setConfirmModalOpen(false)} 
+      <Modal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
         title="Complete Task"
       >
         <div style={{ padding: '0.5rem 0' }}>
@@ -573,16 +573,16 @@ export default function AnnotatorWorkspace() {
             Are you sure you want to complete this task with <strong>{annotations.length}</strong> annotation{annotations.length !== 1 ? 's' : ''}? Once submitted, this task will be forwarded to the reviewer and cannot be modified further.
           </p>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-            <button 
+            <button
               type="button"
-              className="btn btn--secondary" 
+              className="btn btn--secondary"
               onClick={() => setConfirmModalOpen(false)}
             >
               Cancel
             </button>
-            <button 
+            <button
               type="button"
-              className="btn btn--primary" 
+              className="btn btn--primary"
               onClick={executeComplete}
             >
               Submit Task
