@@ -8,6 +8,7 @@ import CreateGroupModal from '@/components/CreateGroupModal';
 import CreateUserForm from '@/components/CreateUserForm';
 import Modal from '@/components/Modal';
 import RoleModal from '@/components/RoleModal';
+import Toast from '@/components/Toast';
 import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, createUser, updateUserRole, toggleUserStatus } from '@/services/api';
@@ -33,6 +34,7 @@ export default function UsersPage() {
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [roleTargetUser, setRoleTargetUser] = useState(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // Gọi API lấy danh sách users
   useEffect(() => {
@@ -82,10 +84,12 @@ export default function UsersPage() {
     try {
       await updateUserRole(user, newRole);
       setRoleModalOpen(false);
+      setToast({ type: 'success', message: `Đã cập nhật vai trò của ${user.fullName || user.email} thành ${newRole}!` });
       const res = await getUsers();
       setUsers(res.data.result || []);
     } catch (err) {
       console.error('Update role failed:', err);
+      setToast({ type: 'error', message: 'Cập nhật vai trò thất bại!' });
     } finally {
       setRoleLoading(false);
     }
@@ -98,12 +102,17 @@ export default function UsersPage() {
     );
     try {
       await toggleUserStatus(user, newActive);
+      setToast({ 
+        type: 'success', 
+        message: `${newActive ? 'Đã kích hoạt' : 'Đã khóa'} tài khoản của ${user.fullName || user.email}!` 
+      });
       const res = await getUsers();
       setUsers(res.data.result || []);
     } catch (err) {
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, active: !newActive } : u))
       );
+      setToast({ type: 'error', message: 'Cập nhật trạng thái thất bại!' });
       console.error('Toggle status failed:', err);
     }
   };
@@ -239,8 +248,11 @@ export default function UsersPage() {
       >
         <CreateUserForm
           onSubmit={handleCreateUser}
-          onSuccess={() => {
+          onSuccess={async () => {
             setShowCreateUserModal(false);
+            setToast({ type: 'success', message: 'Tạo tài khoản thành công!' });
+            const res = await getUsers();
+            setUsers(res.data.result || []);
           }}
         />
       </Modal>
@@ -252,6 +264,14 @@ export default function UsersPage() {
         onSave={handleSaveRole}
         loading={roleLoading}
       />
+
+      {toast && (
+        <Toast
+          type={toast.type || 'success'}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

@@ -6,10 +6,21 @@ import Toast from '@/components/Toast';
 import AnnotatorSelect from '@/components/AnnotatorSelect';
 import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getProjects, getTasks, getAnnotators, generateTasks, assignTasks } from '@/services/api';
+import { getProjects, getTasks, getAnnotators, generateTasks, assignTasks, exportProjectCoco } from '@/services/api';
 import '@/styles/AnnotatorsImageGrid.css';
 
-/* ── Component ────────────────────────────────────────────────── */
+const fixImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const normalizedUrl = url.replace(/\\/g, '/');
+  const uploadsIndex = normalizedUrl.toLowerCase().indexOf('uploads/');
+  if (uploadsIndex !== -1) {
+    const relativePath = normalizedUrl.substring(uploadsIndex + 8);
+    return `/api/v1/uploads/${relativePath}`;
+  }
+  const fileName = normalizedUrl.split('/').pop();
+  return `/api/v1/uploads/${fileName}`; 
+};
 
 export default function AnnotatorsImageGrid() {
   const { user, logout } = useAuth();
@@ -28,6 +39,8 @@ export default function AnnotatorsImageGrid() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragSelecting, setIsDragSelecting] = useState(false);
+  const [dragMode, setDragMode] = useState(null);
 
   useEffect(() => {
     // Fetch projects and annotators on mount
@@ -74,39 +87,19 @@ export default function AnnotatorsImageGrid() {
         const res = await getTasks(selectedProjectId);
         const tasksData = Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []);
         
-        const mappedTasks = tasksData.map(task => ({
-          id: task.id,
-          imageUrl: task.imageUrl,
-          fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
-          project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
-          resolution: 'N/A', // Not available in TaskResponse
-          status: task.status === 'PENDING' ? 'unassigned' : (task.status === 'COMPLETED' ? 'completed' : 'assigned'),
-          assignee: task.annotatorName || null
+        setImages(tasksData.map(task => {
+          const rawUrl = task.image_url || task.imageUrl;
+          const fixedUrl = fixImageUrl(rawUrl);
+          return {
+            id: task.id,
+            imageUrl: fixedUrl,
+            fileName: rawUrl ? rawUrl.replace(/\\/g, '/').split('/').pop() : 'image.jpg',
+            project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
+            resolution: 'N/A', // Not available in TaskResponse
+            status: task.status === 'PENDING' ? 'unassigned' : (task.status === 'COMPLETED' ? 'completed' : 'assigned'),
+            assignee: task.annotatorName || null
+          };
         }));
-
-        // Mock data for testing Task 112 (Export COCO JSON)
-        const mockCompletedTasks = [
-          {
-            id: 'mock-comp-1',
-            imageUrl: 'https://picsum.photos/400/300?random=10',
-            fileName: 'mock_completed_01.jpg',
-            project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
-            resolution: '512x512',
-            status: 'completed',
-            assignee: 'Maya L.'
-          },
-          {
-            id: 'mock-comp-2',
-            imageUrl: 'https://picsum.photos/400/300?random=11',
-            fileName: 'mock_completed_02.jpg',
-            project: projects.find(p => p.id === selectedProjectId)?.name || 'Project',
-            resolution: '512x512',
-            status: 'completed',
-            assignee: 'James W.'
-          }
-        ];
-
-        setImages([...mappedTasks, ...mockCompletedTasks]);
         
         // Clear selection when project changes
         setSelectedImageIds([]);
@@ -138,15 +131,19 @@ export default function AnnotatorsImageGrid() {
       const res = await getTasks(selectedProjectId);
       const tasksData = Array.isArray(res.data?.result?.data) ? res.data.result.data : (Array.isArray(res.data?.result) ? res.data.result : (Array.isArray(res.data) ? res.data : []));
       
-      setImages(tasksData.map(task => ({
-        id: task.id,
-        imageUrl: task.imageUrl,
-        fileName: task.imageUrl ? task.imageUrl.split('/').pop() : 'image.jpg',
-        project: selectedProject.name,
-        resolution: 'N/A',
-        status: task.status === 'PENDING' ? 'unassigned' : (task.status === 'COMPLETED' ? 'completed' : 'assigned'),
-        assignee: task.annotatorName || null
-      })));
+      setImages(tasksData.map(task => {
+        const rawUrl = task.image_url || task.imageUrl;
+        const fixedUrl = fixImageUrl(rawUrl);
+        return {
+          id: task.id,
+          imageUrl: fixedUrl,
+          fileName: rawUrl ? rawUrl.replace(/\\/g, '/').split('/').pop() : 'image.jpg',
+          project: selectedProject.name,
+          resolution: 'N/A',
+          status: task.status === 'PENDING' ? 'unassigned' : (task.status === 'COMPLETED' ? 'completed' : 'assigned'),
+          assignee: task.annotatorName || null
+        };
+      }));
     } catch (error) {
       console.error('Failed to generate tasks:', error);
       setToast({ message: 'Failed to generate tasks' });
@@ -164,6 +161,63 @@ export default function AnnotatorsImageGrid() {
   };
 
   /* ── Selection ─────────────────────────────────────────────── */
+
+  // Disable user-select globally when drag selecting
+  useEffect(() => {
+    if (isDragSelecting) {
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+    } else {
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    }
+    return () => {
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    };
+  }, [isDragSelecting]);
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsDragSelecting(false);
+      setDragMode(null);
+    };
+    
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, []);
+
+  const handleCardMouseDown = (id, isSelected, e) => {
+    if (activeTab !== 'unassigned') return;
+    if (e.button !== 0) return; // Only left click
+    
+    setIsDragSelecting(true);
+    const nextMode = isSelected ? 'deselect' : 'select';
+    setDragMode(nextMode);
+    
+    setSelectedImageIds(prev => {
+      if (nextMode === 'select') {
+        return prev.includes(id) ? prev : [...prev, id];
+      } else {
+        return prev.filter(item => item !== id);
+      }
+    });
+  };
+
+  const handleCardMouseEnter = (id) => {
+    if (activeTab !== 'unassigned') return;
+    if (!isDragSelecting || !dragMode) return;
+    
+    setSelectedImageIds(prev => {
+      if (dragMode === 'select') {
+        return prev.includes(id) ? prev : [...prev, id];
+      } else {
+        return prev.filter(item => item !== id);
+      }
+    });
+  };
 
   const toggleImage = (imageId) => {
     if (activeTab !== 'unassigned') return;
@@ -217,40 +271,38 @@ export default function AnnotatorsImageGrid() {
 
   const closeToast = useCallback(() => setToast(null), []);
 
-  const handleExportCOCO = () => {
-    const completedImages = images.filter(img => img.status === 'completed');
-    if (completedImages.length === 0) {
-      setToast({ message: 'No completed images to export' });
-      return;
+  const handleExportCOCO = async () => {
+    try {
+      setIsLoading(true);
+      const res = await exportProjectCoco(selectedProjectId);
+      const cocoData = res.data?.result || res.data;
+
+      if (!cocoData) {
+        setToast({ message: 'Failed to retrieve export data' });
+        return;
+      }
+
+      const dataStr = JSON.stringify(cocoData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const exportFileDefaultName = `export_coco_${selectedProjectId}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', url);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      document.body.appendChild(linkElement);
+      linkElement.click();
+      document.body.removeChild(linkElement);
+      URL.revokeObjectURL(url);
+      
+      setToast({ message: `Successfully exported project to COCO JSON` });
+    } catch (error) {
+      console.error('Failed to export COCO JSON:', error);
+      setToast({ message: 'Failed to export COCO JSON. Please try again.' });
+    } finally {
+      setIsLoading(false);
     }
-
-    // Build COCO JSON structure (Mock/Frontend simulation for Task 112)
-    const cocoData = {
-      images: completedImages.map((img, idx) => ({
-        id: idx,
-        file_name: img.fileName,
-        width: 512,
-        height: 512
-      })),
-      annotations: [
-        { id: 1, image_id: 0, category_id: 1, bbox: [100, 100, 50, 50] } // Mock annotation
-      ],
-      categories: [
-        { id: 1, name: "building", supercategory: "object" }
-      ]
-    };
-
-    const dataStr = JSON.stringify(cocoData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `export_coco_${selectedProjectId}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    setToast({ message: `Successfully exported ${completedImages.length} images to COCO JSON` });
   };
 
   /* ── Derived ──────────────────────────────────────────────── */
@@ -381,7 +433,9 @@ export default function AnnotatorsImageGrid() {
                     key={image.id}
                     className={`aig-card ${isSelected ? 'aig-card--selected' : ''}`}
                     role="listitem"
-                    onClick={() => toggleImage(image.id)}
+                    onMouseDown={(e) => handleCardMouseDown(image.id, isSelected, e)}
+                    onMouseEnter={() => handleCardMouseEnter(image.id)}
+                    onDragStart={(e) => e.preventDefault()}
                     aria-selected={isSelected}
                     tabIndex={0}
                     onKeyDown={(e) => {
@@ -393,7 +447,19 @@ export default function AnnotatorsImageGrid() {
                   >
                     {/* Thumbnail */}
                     <div className="aig-card__thumb">
-                      <img src={image.imageUrl} alt={image.fileName} className="aig-card__img" loading="lazy" />
+                      {image.imageUrl ? (
+                        <img 
+                          src={image.imageUrl} 
+                          alt={image.fileName} 
+                          className="aig-card__img" 
+                          loading="lazy" 
+                          onDragStart={(e) => e.preventDefault()}
+                        />
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
+                          <ImageIcon size={24} />
+                        </div>
+                      )}
 
                       {/* Selection overlay */}
                       <div className="aig-card__overlay" aria-hidden="true">

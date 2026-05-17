@@ -123,6 +123,7 @@
 .form-field__password-toggle {
   position: absolute;
   right: 0.625rem;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;

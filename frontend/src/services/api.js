@@ -14,7 +14,7 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     const isLoginRequest = config.url?.includes('/auth/login');
-    
+
     if (token && !isLoginRequest) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -132,12 +132,15 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 // Projects
 // =====================
-export const getProjects = () => api.get('/projects');
-export const getMyProjects = () => api.get('/me/projects');
+export const getProjects = () => api.get('/projects', { params: { size: 1000, sort: 'createdAt,desc' } });
+export const getMyProjects = () => api.get('/me/projects', { params: { size: 1000, sort: 'createdAt,desc' } });
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
+
+export const exportProjectCoco = (projectId) =>
+  api.get(`/projects/${projectId}/export/coco`);
 
 export const generateTasks = (projectId, datasetId) =>
   api.post(`/projects/${projectId}/tasks/generate`, null, { params: { datasetId } });
@@ -162,7 +165,7 @@ export const uploadGuidelineFile = (projectId, file) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  return api.post(`/api/projects/${projectId}/files`, formData, {
+  return api.post(`/projects/${projectId}/files`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
