@@ -203,4 +203,10 @@ export const deleteLabel = (projectId, labelId) =>
 export const getMyAssignedImages = (params) =>
   api.get('/me/assigned-images', { params });
 
+export const getAnnotations = (taskId) =>
+  api.get(`/tasks/${taskId}/annotations`);
+
+export const saveAnnotations = (taskId, data) =>
+  api.put(`/tasks/${taskId}/annotations`, data);
+
 export default api;

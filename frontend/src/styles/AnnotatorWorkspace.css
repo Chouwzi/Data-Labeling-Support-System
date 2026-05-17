@@ -104,7 +104,7 @@
 }
 
 .annotation-group .bbox-rect {
-  transition: stroke-width 0.1s;
+  transition: stroke 0.25s ease, fill 0.25s ease, stroke-width 0.1s ease;
 }
 
 .annotation-group:hover .bbox-rect {
@@ -294,8 +294,51 @@
 
 .ann-name {
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
+}
+
+.ann-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ann-coords-grid {
+  display: flex;
+  gap: 4px;
+  margin-top: 4.5px;
+  flex-wrap: wrap;
+}
+
+.coord-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-family: monospace;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.annotation-item.selected .coord-badge {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+.coord-label {
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.annotation-item.selected .coord-label {
+  color: #0284c7;
 }
 
 .delete-ann-btn {
@@ -340,4 +383,67 @@
 
 .canvas-wrapper::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Toast Notifications - Glassmorphism style */
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-notification.success {
+  border-left: 4px solid #10b981;
+}
+
+.toast-notification.success .toast-icon {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.toast-notification.error {
+  border-left: 4px solid #ef4444;
+}
+
+.toast-notification.error .toast-icon {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.toast-message {
+  white-space: nowrap;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
