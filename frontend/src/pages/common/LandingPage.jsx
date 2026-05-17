@@ -14,8 +14,8 @@ function LandingPage() {
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
       ),
-      title: 'Quản lý dữ liệu',
-      description: 'Tổ chức và phân loại dữ liệu gắn nhãn một cách hiệu quả với giao diện trực quan.'
+      title: 'Data Management',
+      description: 'Organize and categorize labeled data efficiently with an intuitive user interface.'
     },
     {
       icon: (
@@ -25,8 +25,8 @@ function LandingPage() {
           <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       ),
-      title: 'Cộng tác nhóm',
-      description: 'Nhiều người cùng làm việc trên dự án với hệ thống phân quyền linh hoạt.'
+      title: 'Team Collaboration',
+      description: 'Enable simultaneous team access with flexible role-based access control.'
     },
     {
       icon: (
@@ -35,8 +35,8 @@ function LandingPage() {
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       ),
-      title: 'Kiểm soát chất lượng',
-      description: 'Đảm bảo độ chính xác của nhãn với các công cụ review và xác thực.'
+      title: 'Quality Control',
+      description: 'Ensure label accuracy with high-precision review and validation tools.'
     },
     {
       icon: (
@@ -44,8 +44,8 @@ function LandingPage() {
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
         </svg>
       ),
-      title: 'Xuất dữ liệu đa dạng',
-      description: 'Hỗ trợ nhiều định dạng xuất phù hợp với các framework ML phổ biến.'
+      title: 'Multi-Format Export',
+      description: 'Export annotations in popular ML formats including COCO JSON.'
     }
   ];
 
@@ -58,8 +58,8 @@ function LandingPage() {
         </svg>
       ),
       number: '01',
-      title: 'Đăng nhập',
-      description: 'Sử dụng tài khoản được cấp phát để truy cập hệ thống'
+      title: 'Sign In',
+      description: 'Sign in to the system with your assigned account.'
     },
     {
       icon: (
@@ -71,8 +71,8 @@ function LandingPage() {
         </svg>
       ),
       number: '02',
-      title: 'Tạo dự án',
-      description: 'Thiết lập dự án mới và cấu hình các loại nhãn theo nhu cầu'
+      title: 'Create Projects',
+      description: 'Initialize a new project and configure the label taxonomy.'
     },
     {
       icon: (
@@ -82,8 +82,8 @@ function LandingPage() {
         </svg>
       ),
       number: '03',
-      title: 'Bắt đầu gắn nhãn',
-      description: 'Sử dụng công cụ gắn nhãn và xuất dữ liệu đã hoàn thành'
+      title: 'Start Labeling',
+      description: 'Leverage our high-speed labeling suite and export completed datasets.'
     }
   ];
 
@@ -98,7 +98,7 @@ function LandingPage() {
           </div>
           <div className="nav-actions">
             <button className="btn-nav-primary" onClick={() => navigate('/login')}>
-              Đăng nhập
+              Sign In
             </button>
           </div>
         </div>
@@ -110,18 +110,18 @@ function LandingPage() {
         <div className="hero-container">
           <div className="hero-badge">
             <span className="badge-dot" />
-            Nền tảng gắn nhãn dữ liệu nội bộ
+            Internal Data Labeling Platform
           </div>
           <h1 className="hero-title">
-            Nền tảng gắn nhãn dữ liệu
-            <span className="gradient-text"> chính xác cao</span>
+            High-Precision
+            <span className="gradient-text"> Data Labeling Platform</span>
           </h1>
           <p className="hero-description">
             Streamline your annotation workflow. Build high-quality datasets for scalable AI models with enterprise-grade tools and collaboration features.
           </p>
           <div className="hero-actions">
             <button className="btn-primary" onClick={() => navigate('/login')}>
-              Bắt đầu
+              Get Started
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -135,10 +135,10 @@ function LandingPage() {
         <div className="features-bg-decoration" />
         <div className="section-container">
           <div className="section-header">
-            <span className="section-tag">Tính năng</span>
-            <h2 className="section-title">Mọi thứ bạn cần</h2>
+            <span className="section-tag">Features</span>
+            <h2 className="section-title">Everything You Need</h2>
             <p className="section-description">
-              Công cụ mạnh mẽ được thiết kế cho đội ngũ làm việc hiệu quả
+              Powerful tools designed for productive teams
             </p>
           </div>
 
@@ -181,10 +181,10 @@ function LandingPage() {
       <section className="workflow">
         <div className="section-container">
           <div className="workflow-header">
-            <span className="section-tag">Quy trình</span>
-            <h2 className="section-title">3 bước đơn giản</h2>
+            <span className="section-tag">Workflow</span>
+            <h2 className="section-title">3 Simple Steps</h2>
             <p className="section-description">
-              Bắt đầu sử dụng chỉ trong vài phút
+              Get started and begin labeling in minutes
             </p>
           </div>
 

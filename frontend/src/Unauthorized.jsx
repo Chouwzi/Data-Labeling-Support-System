@@ -11,8 +11,8 @@ export default function Unauthorized() {
         <div className="dashboard-logo">
           <BrandLogo size={40} />
           <div className="dashboard-title-group">
-            <h1 className="dashboard-title">Truy cập bị từ chối</h1>
-            <p className="dashboard-subtitle">Bạn không có quyền truy cập trang này</p>
+            <h1 className="dashboard-title">Access Denied</h1>
+            <p className="dashboard-subtitle">You do not have permission to access this page</p>
           </div>
         </div>
         <button className="logout-btn" onClick={() => navigate('/login', { replace: true })}>
@@ -21,7 +21,7 @@ export default function Unauthorized() {
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Đăng nhập khác
+          Sign In
         </button>
       </div>
     </main>

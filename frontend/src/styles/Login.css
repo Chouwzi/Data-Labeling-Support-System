@@ -262,7 +262,10 @@ a {
 .form-input {
   width: 100%;
   height: 52px;
-  padding: 0 16px 0 46px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 46px !important;
+  padding-right: 16px !important;
   background: var(--color-surface-low);
   border: none;
   border-radius: var(--radius-md);
@@ -369,7 +372,7 @@ a {
 /* Password input with toggle */
 .input-wrapper:has(.toggle-password) .form-input,
 .input-wrapper--with-toggle .form-input {
-  padding-right: 3rem;
+  padding-right: 3rem !important;
 }
 
 /* Hide default password reveal on browsers */
