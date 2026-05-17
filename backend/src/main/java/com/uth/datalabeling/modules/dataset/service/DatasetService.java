@@ -100,14 +100,18 @@ public class DatasetService {
         List<DataSampleResponse> sampleResponses = new java.util.ArrayList<>();
 
         for (var uploadRes : uploadResponses) {
+            // Build metadata map - include dimensions for future COCO export
+            java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("fileName", uploadRes.getFileName());
+            metadata.put("sizeBytes", uploadRes.getSizeBytes());
+            metadata.put("format", uploadRes.getFormat());
+            if (uploadRes.getWidth() != null)  metadata.put("width",  uploadRes.getWidth());
+            if (uploadRes.getHeight() != null) metadata.put("height", uploadRes.getHeight());
+
             DataSample sample = DataSample.builder()
                     .dataset(dataset)
                     .imageUrl(uploadRes.getFilePath())
-                    .metadata(java.util.Map.of(
-                        "fileName", uploadRes.getFileName(),
-                        "sizeBytes", uploadRes.getSizeBytes(),
-                        "format", uploadRes.getFormat()
-                    ))
+                    .metadata(metadata)
                     .build();
             sampleResponses.add(datasetMapper.toDataSampleResponse(dataSampleRepository.save(sample)));
         }

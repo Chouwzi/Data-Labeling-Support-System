@@ -59,4 +59,17 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
             @Param("managerId") UUID managerId,
             @Param("status") String status,
             Pageable pageable);
+
+    /** Eagerly fetches sample (and sample.dataset) for all COMPLETED tasks in a project.
+     * Avoids N+1 queries during COCO JSON export. */
+    @Query("""
+            SELECT t FROM Task t
+            JOIN FETCH t.sample s
+            WHERE t.project.id = :projectId
+              AND UPPER(t.status) = UPPER(:status)
+            ORDER BY t.createdAt ASC
+            """)
+    List<Task> findByProjectIdAndStatusWithSample(
+            @Param("projectId") UUID projectId,
+            @Param("status") String status);
 }
