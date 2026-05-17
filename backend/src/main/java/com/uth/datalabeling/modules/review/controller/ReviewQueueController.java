@@ -49,4 +49,14 @@ public class ReviewQueueController {
                 .message("Image rejected successfully")
                 .build();
     }
+
+    @PostMapping("/{taskId}/approve")
+    @PreAuthorize("hasAnyRole('REVIEWER', 'ADMIN', 'MANAGER')")
+    public ApiResponse<Void> approveImage(
+            @PathVariable UUID taskId) {
+        reviewQueueService.approveImage(taskId);
+        return ApiResponse.<Void>builder()
+                .message("Image approved successfully")
+                .build();
+    }
 }

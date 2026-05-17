@@ -16,4 +16,6 @@ public class ImageUploadResponse {
     private String filePath;
     private String format;
     private Long sizeBytes;
+    private Integer width;
+    private Integer height;
 }
