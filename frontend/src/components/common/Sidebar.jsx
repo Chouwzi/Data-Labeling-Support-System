@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
   { id: 'logs', label: 'Activity Logs', icon: Activity, path: '/admin/logs' },
   { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
-  { id: 'projects', label: 'Projects', icon: Folder, path: null },
+  { id: 'projects', label: 'Projects', icon: Folder, path: '/admin/projects' },
   { id: 'datasets', label: 'Datasets', icon: Database, path: null },
   { id: 'settings', label: 'System Config', icon: Settings, path: '/admin/system-config' },
 ];

@@ -71,7 +71,7 @@ export default function AdminDashboard() {
   useEffect(() => {
       const fetchData = async () => {
         try {
-          const { getUsers, getProjects, getLogs } = await import('@/services/api');
+          const { getUsers, getProjects, getLogs, getTasks } = await import('@/services/api');
           const [usersRes, projectsRes, logsRes] = await Promise.all([
             getUsers().catch(() => ({ data: { result: [] } })),
             getProjects().catch(() => ({ data: { result: { content: [] } } })),
@@ -84,6 +84,26 @@ export default function AdminDashboard() {
           const projectsList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
           const activeProjects = Array.isArray(projectsList) ? projectsList.length : 0;
           
+          let totalTasksInProgress = 0;
+          let totalTasks = 0;
+
+          if (Array.isArray(projectsList)) {
+            await Promise.all(
+              projectsList.map(async (project) => {
+                try {
+                  const tasksRes = await getTasks(project.id);
+                  const tasks = Array.isArray(tasksRes.data?.result) ? tasksRes.data.result : (Array.isArray(tasksRes.data) ? tasksRes.data : []);
+                  totalTasks += tasks.length;
+                  totalTasksInProgress += tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
+                } catch (err) {
+                  console.error(`Failed to fetch tasks for project ${project.id}:`, err);
+                }
+              })
+            );
+          }
+
+          const calculatedUsage = Math.max(8, Math.min(95, Math.round(((totalTasks * 1.2) / 1000) * 100)));
+
           const logsList = logsRes.data?.result?.content || [];
           const mappedActivities = logsList.map((log, index) => {
             let icon = 'check_circle';
@@ -118,7 +138,9 @@ export default function AdminDashboard() {
           setDashboardData(prev => ({
             ...prev,
             totalUsers: totalUsers.toString(),
-            activeProjects: activeProjects.toString()
+            activeProjects: activeProjects.toString(),
+            systemUsage: `${calculatedUsage}%`,
+            tasksInProgress: totalTasksInProgress.toLocaleString()
           }));
           
           if (mappedActivities.length > 0) {
@@ -196,7 +218,7 @@ export default function AdminDashboard() {
                   value={dashboardData.systemUsage}
                   subtitle="Storage"
                   variant="wide"
-                  progress={76}
+                  progress={parseInt(dashboardData.systemUsage) || 8}
                 />
                 <KpiCard
                   title="Tasks in Progress"

@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { Edit2, Eye, Clock, Image as ImageIcon, Tag, Users } from 'lucide-react';
 
 export default function ProjectCard({ project, statusColors }) {
   const status = statusColors[project.status] || statusColors.initialized;
   const isNew = Boolean(project.isNew);
+  const navigate = useNavigate();
 
   return (
     <article className="project-card" role="listitem">
@@ -103,7 +105,8 @@ export default function ProjectCard({ project, statusColors }) {
               type="button"
               className="project-card__action-btn"
               aria-label={`Edit ${project.name}`}
-              title="Edit project"
+              title="Edit Taxonomy"
+              onClick={() => navigate(`/manager/taxonomy/${project.id}`)}
             >
               <Edit2 size={14} />
             </button>
@@ -111,7 +114,8 @@ export default function ProjectCard({ project, statusColors }) {
               type="button"
               className="project-card__action-btn project-card__action-btn--primary"
               aria-label={`View ${project.name}`}
-              title="View project"
+              title="Assign Images"
+              onClick={() => navigate('/manager/annotators')}
             >
               <Eye size={14} />
             </button>

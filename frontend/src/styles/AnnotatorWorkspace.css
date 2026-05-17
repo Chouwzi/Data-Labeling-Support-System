@@ -567,3 +567,60 @@
   70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
+
+/* Floating and list select label editors */
+.floating-label-editor {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.08);
+  padding: 2px;
+  border: 1px solid #cbd5e1;
+  transition: all 0.2s ease-in-out;
+}
+
+.floating-label-editor:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.floating-select {
+  border: none;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 4px 20px 4px 8px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 4px;
+}
+
+.floating-select:hover {
+  background: #f1f5f9;
+}
+
+.ann-label-select {
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  max-width: 140px;
+}
+
+.ann-label-select:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.ann-label-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
