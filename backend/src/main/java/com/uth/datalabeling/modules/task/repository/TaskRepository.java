@@ -37,4 +37,23 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
             @Param("projectId") UUID projectId,
             @Param("status") String status,
             Pageable pageable);
+
+    @Query(value = """
+            SELECT t FROM Task t
+            JOIN FETCH t.project
+            JOIN FETCH t.sample
+            LEFT JOIN FETCH t.annotator
+            WHERE (:projectId IS NULL OR t.project.id = :projectId)
+              AND UPPER(t.status) = :status
+            ORDER BY t.updatedAt DESC, t.createdAt DESC
+            """,
+            countQuery = """
+            SELECT COUNT(t) FROM Task t
+            WHERE (:projectId IS NULL OR t.project.id = :projectId)
+              AND UPPER(t.status) = :status
+            """)
+    Page<Task> findReviewQueueImages(
+            @Param("projectId") UUID projectId,
+            @Param("status") String status,
+            Pageable pageable);
 }
