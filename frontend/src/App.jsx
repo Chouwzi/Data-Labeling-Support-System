@@ -13,6 +13,7 @@ import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import AnnotatorTasks from '@/pages/annotator/AnnotatorTasks';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import ReviewWorkspace from '@/pages/reviewer/ReviewWorkspace';
+import AnnotatorWorkspace from '@/pages/annotator/AnnotatorWorkspace';
 import SystemConfig from '@/pages/admin/SystemConfig';
 import UsersPage from '@/pages/admin/UsersPage';
 import ActivityLog from '@/pages/admin/ActivityLog';
@@ -193,6 +194,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['ANNOTATOR']}>
             <AnnotatorTasks />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/annotator/projects/:projectId/workspace/:taskId"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorWorkspace />
           </ProtectedRoute>
         }
       />
