@@ -108,13 +108,19 @@
 }
 
 .annotation-group:hover .bbox-rect {
-  stroke-width: 3px;
+  pointer-events: all;
+  cursor: pointer;
+  transition: stroke 0.2s ease, fill 0.2s ease, stroke-width 0.2s ease;
 }
 
 .annotation-group.selected .bbox-rect {
   stroke-width: 3px;
   stroke-dasharray: 4;
   animation: dash 0.5s linear infinite;
+}
+
+.bbox-label rect {
+  transition: fill 0.2s ease;
 }
 
 @keyframes dash {
@@ -446,4 +452,224 @@
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+/* Disabled State for Action Buttons */
+.btn--primary:disabled {
+  background-color: #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  opacity: 0.8 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Celebration Modal Overlay */
+.celebration-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Celebration Card */
+.celebration-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  width: 420px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: scaleBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Success Checkmark Ring & Sparkles */
+.sparkle-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1.5rem;
+}
+
+.success-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.5);
+  color: white;
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+/* Sparkles animation for extra premium visual punch */
+.sparkle-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.2);
+}
+
+.sparkle-dot.s1 { top: 0; left: 50%; animation: sparkleS1 0.7s ease-out 0.3s forwards; }
+.sparkle-dot.s2 { top: 50%; right: 0; animation: sparkleS2 0.7s ease-out 0.3s forwards; }
+.sparkle-dot.s3 { bottom: 0; left: 50%; animation: sparkleS3 0.7s ease-out 0.3s forwards; }
+.sparkle-dot.s4 { top: 50%; left: 0; animation: sparkleS4 0.7s ease-out 0.3s forwards; }
+
+/* Text Styles */
+.celebration-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
+}
+
+.celebration-subtitle {
+  font-size: 0.925rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+/* Stats Box */
+.celebration-stats {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stat-value.status-done {
+  color: #059669;
+}
+
+/* Celebration CTA Button */
+.celebration-btn {
+  margin-top: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.4);
+  transition: all 0.25s ease;
+  width: 100%;
+  color: white !important;
+}
+
+.celebration-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px -4px rgba(37, 99, 235, 0.5);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleBounce {
+  0% { opacity: 0; transform: scale(0.85) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes sparkleS1 {
+  0% { opacity: 0; transform: translateY(0) scale(0.3); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.2); }
+}
+
+@keyframes sparkleS2 {
+  0% { opacity: 0; transform: translateX(0) scale(0.3); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(30px) scale(1.2); }
+}
+
+@keyframes sparkleS3 {
+  0% { opacity: 0; transform: translateY(0) scale(0.3); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(30px) scale(1.2); }
+}
+
+@keyframes sparkleS4 {
+  0% { opacity: 0; transform: translateX(0) scale(0.3); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-30px) scale(1.2); }
+}
+
+/* Locked Badge in Toolbar */
+.workspace-locked-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #059669;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 12px;
+  animation: pulseLight 2s infinite;
+}
+
+.locked-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10b981;
+  border-radius: 50%;
+}
+
+@keyframes pulseLight {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }

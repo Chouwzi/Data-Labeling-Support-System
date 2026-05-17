@@ -10,7 +10,8 @@ import {
   ExternalLink,
   MoreVertical,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  Info
 } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
 import { getMyAssignedImages } from '@/services/api';
@@ -22,6 +23,7 @@ import '@/styles/ManagerDashboard.css';
 const TASK_STATUSES = [
   { id: 'all', label: 'All Tasks', color: 'var(--color-text-secondary)' },
   { id: 'PENDING', label: 'Pending', color: '#f59e0b', icon: Clock },
+  { id: 'ASSIGNED', label: 'Assigned', color: '#f59e0b', icon: Clock },
   { id: 'IN_PROGRESS', label: 'In Progress', color: '#3b82f6', icon: Clock },
   { id: 'COMPLETED', label: 'Completed', color: '#10b981', icon: CheckCircle2 },
   { id: 'REJECTED', label: 'Rejected', color: '#ef4444', icon: AlertCircle },
@@ -228,23 +230,27 @@ export default function AnnotatorTasks() {
                       <div className="placeholder-img" style={{ display: task.imageUrl ? 'none' : 'flex' }}>
                         <LayoutGrid size={24} opacity={0.2} />
                       </div>
-                      <span className="task-id-badge">{task.id}</span>
+                      <span className="task-status-preview" style={getStatusStyle(task.status)}>
+                        {task.status}
+                      </span>
                     </div>
                     
                     <div className="task-content">
                       <div className="task-main-info">
-                        <h4 className="task-name">{task.name}</h4>
-                        <div 
-                          className="task-status-badge"
-                          style={getStatusStyle(task.status)}
-                        >
-                          {task.status}
+                        <div className="task-name-wrapper">
+                          <span className="task-label">IMAGE NAME</span>
+                          <h4 className="task-name">{task.name.length > 20 ? `${task.name.substring(0, 16)}...` : task.name}</h4>
                         </div>
                       </div>
                       
+                      <div className="task-id-row">
+                        <span className="id-tag">ID</span>
+                        <code className="id-value">{task.id}</code>
+                      </div>
+
                       <div className="task-meta">
-                        <span><Clock size={12} /> {task.lastModified}</span>
-                        <span>{task.size}</span>
+                        <div className="meta-item"><Clock size={12} /> <span>{task.lastModified}</span></div>
+                        <div className="meta-item"><span>{task.size}</span></div>
                       </div>
 
                       <div className="task-actions">
@@ -252,11 +258,11 @@ export default function AnnotatorTasks() {
                           className="action-btn action-btn--primary"
                           onClick={() => navigate(`/annotator/projects/${projectId}/workspace/${task.id}`)}
                         >
-                          <span>Label Now</span>
                           <ExternalLink size={14} />
+                          <span>Label Now</span>
                         </button>
-                        <button className="action-btn action-btn--icon">
-                          <MoreVertical size={16} />
+                        <button className="action-btn action-btn--icon" title="View details">
+                          <Info size={16} />
                         </button>
                       </div>
                     </div>
@@ -292,13 +298,17 @@ export default function AnnotatorTasks() {
         .task-item:hover { transform: translateY(-4px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .task-preview { height: 140px; background: #f8fafc; position: relative; display: flex; align-items: center; justify-content: center; }
         .task-img-preview { width: 100%; height: 100%; object-fit: cover; }
-        .task-id-badge { position: absolute; top: 8px; left: 8px; background: rgba(15, 23, 42, 0.7); color: white; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-family: monospace; }
+        .task-id-badge { position: absolute; top: 8px; left: 8px; background: rgba(15, 23, 42, 0.8); color: white; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-family: monospace; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .task-status-preview { position: absolute; top: 8px; right: 8px; padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; z-index: 10; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); background-color: white !important; }
         .task-content { padding: 1.25rem; }
-        .task-main-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
-        .task-name { margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-        .task-status-badge { padding: 0.15rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid; }
-        .task-meta { display: flex; gap: 1rem; color: #94a3b8; font-size: 0.75rem; margin-bottom: 1.25rem; }
-        .task-meta span { display: flex; align-items: center; gap: 0.25rem; }
+        .task-name-wrapper { display: flex; flex-direction: column; gap: 0.2rem; }
+        .task-label { font-size: 0.65rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.05em; }
+        .task-name { margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .task-id-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0; background: #f8fafc; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #f1f5f9; }
+        .id-tag { font-size: 0.6rem; font-weight: 800; background: #e2e8f0; color: #475569; padding: 0.1rem 0.3rem; border-radius: 3px; }
+        .id-value { font-size: 0.75rem; color: #64748b; font-family: 'JetBrains Mono', 'Fira Code', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .task-meta { display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 0.75rem; margin-bottom: 1rem; border-top: 1px solid #f8fafc; pt: 0.5rem; }
+        .meta-item { display: flex; align-items: center; gap: 0.4rem; }
         .task-actions { display: flex; gap: 0.5rem; }
         .action-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; border-radius: 6px; transition: all 0.2s; cursor: pointer; }
         .action-btn--primary { flex: 1; background: #10b981; color: white; border: none; font-weight: 500; }

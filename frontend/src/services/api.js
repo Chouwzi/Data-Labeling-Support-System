@@ -212,4 +212,7 @@ export const getAnnotations = (taskId) =>
 export const saveAnnotations = (taskId, data) =>
   api.put(`/tasks/${taskId}/annotations`, data);
 
+export const saveTaskAnnotations = (taskId, annotations, submit = false) =>
+  api.put(`/tasks/${taskId}/annotations`, { annotations, submit });
+
 export default api;
