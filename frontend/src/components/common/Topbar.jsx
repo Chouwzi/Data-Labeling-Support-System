@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Search, 
   Bell, 
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 import '@/styles/Topbar.css';
 
-// Embedded standalone Modal for self-contained, crash-free execution anywhere Topbar is rendered
+// Embedded standalone Modal with bulletproof centering & scrollability for short viewports
 function EmbeddedModal({ isOpen, onClose, title, children }) {
   useEffect(() => {
     if (isOpen) {
@@ -41,10 +42,11 @@ function EmbeddedModal({ isOpen, onClose, title, children }) {
       backgroundColor: 'rgba(15, 23, 42, 0.6)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start', // Align to top of viewport to prevent off-screen clipping
       justifyContent: 'center',
-      zIndex: 99999,
-      padding: '1.5rem'
+      zIndex: 999999,
+      padding: '2rem 1.5rem',
+      overflowY: 'auto' // Parent scrollability for short viewports
     }} onClick={onClose}>
       <div style={{
         backgroundColor: 'white',
@@ -54,14 +56,18 @@ function EmbeddedModal({ isOpen, onClose, title, children }) {
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         overflow: 'hidden',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        marginTop: 'auto', // Centered vertically if space permits, aligns to top otherwise
+        marginBottom: 'auto',
+        position: 'relative'
       }} onClick={(e) => e.stopPropagation()}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid #f1f5f9'
+          borderBottom: '1px solid #f1f5f9',
+          flexShrink: 0
         }}>
           <h3 style={{ margin: 0, fontFamily: "'Manrope', sans-serif", fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
             {title}
@@ -87,7 +93,7 @@ function EmbeddedModal({ isOpen, onClose, title, children }) {
             <X size={18} />
           </button>
         </div>
-        <div style={{ padding: '1.5rem', maxHeight: '70vh', overflowY: 'auto', textAlign: 'left' }}>
+        <div style={{ padding: '1.5rem', overflowY: 'visible', textAlign: 'left' }}>
           {children}
         </div>
       </div>
@@ -368,273 +374,279 @@ export default function Topbar({
         </div>
       </div>
 
-      {/* Support Request Form Modal */}
-      <EmbeddedModal 
-        isOpen={supportOpen} 
-        onClose={() => setSupportOpen(false)} 
-        title="Submit Support Request"
-      >
-        <form onSubmit={handleSupportSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-              Category
-            </label>
-            <select 
-              value={supportCategory}
-              onChange={(e) => setSupportCategory(e.target.value)}
-              style={{
-                padding: '0.625rem 0.875rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                outline: 'none'
-              }}
-            >
-              <option value="bug">Report a Bug / Glitch</option>
-              <option value="image">Image Loading Problem</option>
-              <option value="account">Account Access & Security</option>
-              <option value="billing">Other Concerns</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-              Subject
-            </label>
-            <input 
-              type="text" 
-              placeholder="Brief summary of the issue..."
-              value={supportSubject}
-              onChange={(e) => setSupportSubject(e.target.value)}
-              required
-              style={{
-                padding: '0.625rem 0.875rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.875rem',
-                outline: 'none'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-              Message details
-            </label>
-            <textarea 
-              rows={4}
-              placeholder="Provide a detailed description of what happened..."
-              value={supportMsg}
-              onChange={(e) => setSupportMsg(e.target.value)}
-              required
-              style={{
-                padding: '0.625rem 0.875rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.875rem',
-                outline: 'none',
-                resize: 'none',
-                fontFamily: 'inherit'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button 
-              type="button" 
-              onClick={() => setSupportOpen(false)}
-              className="btn btn--secondary"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="btn btn--primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <Send size={14} />
-              <span>Send Ticket</span>
-            </button>
-          </div>
-        </form>
-      </EmbeddedModal>
-
-      {/* Docs / Help Guide Modal */}
-      <EmbeddedModal
-        isOpen={docsOpen}
-        onClose={() => setDocsOpen(false)}
-        title="DataLabel Pro Documentation"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Docs Tab bar */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0' }}>
-            <button
-              type="button"
-              onClick={() => setActiveDocTab('basics')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeDocTab === 'basics' ? '2px solid #059669' : '2px solid transparent',
-                color: activeDocTab === 'basics' ? '#059669' : '#64748b',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-            >
-              System Basics
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveDocTab('bboxes')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeDocTab === 'bboxes' ? '2px solid #059669' : '2px solid transparent',
-                color: activeDocTab === 'bboxes' ? '#059669' : '#64748b',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                cursor: 'pointer'
-              }}
-            >
-              Labeling Rules
-            </button>
-          </div>
-
-          <div style={{ minHeight: '200px', fontSize: '0.875rem', lineHeight: '1.6', color: '#334155' }}>
-            {activeDocTab === 'basics' && (
-              <div>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontWeight: 700 }}>Data Labeling Workflow</h4>
-                <p style={{ margin: '0 0 1rem 0' }}>
-                  The Data-Labeling Support System manages raw imagery pipeline ingestion and classification tasks through three distinct project roles:
-                </p>
-                <ul style={{ paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <li><strong>Manager:</strong> Allocates task payloads, establishes labeling taxonomies, and reviews real-time progress metrics.</li>
-                  <li><strong>Annotator:</strong> Selects classes, outlines targets tightly using the workspace canvas, and saves coordinates.</li>
-                  <li><strong>Reviewer:</strong> Examines final annotations, approving them to queue for COCO export or rejecting with category error notes.</li>
-                </ul>
+      {/* Render Modals and Toasts using React Portals to append directly to document.body, bypassing sticky header backdrop-filter constraints */}
+      {typeof document !== 'undefined' && createPortal(
+        <>
+          {/* Support Request Form Modal */}
+          <EmbeddedModal 
+            isOpen={supportOpen} 
+            onClose={() => setSupportOpen(false)} 
+            title="Submit Support Request"
+          >
+            <form onSubmit={handleSupportSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                  Category
+                </label>
+                <select 
+                  value={supportCategory}
+                  onChange={(e) => setSupportCategory(e.target.value)}
+                  style={{
+                    padding: '0.625rem 0.875rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <option value="bug">Report a Bug / Glitch</option>
+                  <option value="image">Image Loading Problem</option>
+                  <option value="account">Account Access & Security</option>
+                  <option value="billing">Other Concerns</option>
+                </select>
               </div>
-            )}
 
-            {activeDocTab === 'bboxes' && (
-              <div>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontWeight: 700 }}>Bounding Box Specifications</h4>
-                <p style={{ margin: '0 0 0.75rem 0' }}>
-                  Ensure high-quality output datasets by strictly adhering to standard machine learning target guidelines:
-                </p>
-                <ol style={{ paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <li><strong>TIGHT BOUNDS:</strong> Crop precisely on object boundaries. Avoid including extra background margins or padding.</li>
-                  <li><strong>NO CLIPPING:</strong> Ensure the box fully encapsulates all visible parts of the target classification category.</li>
-                  <li><strong>OCCLUSION RULES:</strong> If an object is partially blocked, label the visible section or outline the approximate full boundary depending on project-specific rules.</li>
-                </ol>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                  Subject
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Brief summary of the issue..."
+                  value={supportSubject}
+                  onChange={(e) => setSupportSubject(e.target.value)}
+                  required
+                  style={{
+                    padding: '0.625rem 0.875rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
-            )}
-          </div>
-        </div>
-      </EmbeddedModal>
 
-      {/* Help FAQ Modal */}
-      <EmbeddedModal
-        isOpen={helpOpen}
-        onClose={() => setHelpOpen(false)}
-        title="Help & Frequently Asked Questions"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {[
-            {
-              q: 'How do I draw bounding boxes?',
-              a: 'Switch your active tool to "Draw" (hotkey D) or click the rectangle icon in the toolbar, then click-and-drag over the image to draw rectangular boxes.'
-            },
-            {
-              q: 'How do I edit or delete existing boxes?',
-              a: 'Switch to the "Select" tool (hotkey V) or click the pointer icon, then click on the box border to select it. Drag edges or corners to adjust, or press "Delete" to remove it.'
-            },
-            {
-              q: 'Why is the Complete Task button disabled?',
-              a: 'The task requires at least one valid bounding box annotation to ensure you do not submit empty images to the reviewer.'
-            },
-            {
-              q: 'What formats can I export my labels in?',
-              a: 'Managers can export labeling project results in standardized COCO JSON formatting, completely formatted for direct machine learning training datasets.'
-            }
-          ].map((item, idx) => (
-            <div key={idx} style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
-              <button
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                  Message details
+                </label>
+                <textarea 
+                  rows={4}
+                  placeholder="Provide a detailed description of what happened..."
+                  value={supportMsg}
+                  onChange={(e) => setSupportMsg(e.target.value)}
+                  required
+                  style={{
+                    padding: '0.625rem 0.875rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    resize: 'none',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setSupportOpen(false)}
+                  className="btn btn--secondary"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn--primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Send size={14} />
+                  <span>Send Ticket</span>
+                </button>
+              </div>
+            </form>
+          </EmbeddedModal>
+
+          {/* Docs / Help Guide Modal */}
+          <EmbeddedModal
+            isOpen={docsOpen}
+            onClose={() => setDocsOpen(false)}
+            title="DataLabel Pro Documentation"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveDocTab('basics')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: activeDocTab === 'basics' ? '2px solid #059669' : '2px solid transparent',
+                    color: activeDocTab === 'basics' ? '#059669' : '#64748b',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  System Basics
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDocTab('bboxes')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: activeDocTab === 'bboxes' ? '2px solid #059669' : '2px solid transparent',
+                    color: activeDocTab === 'bboxes' ? '#059669' : '#64748b',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Labeling Rules
+                </button>
+              </div>
+
+              <div style={{ minHeight: '200px', fontSize: '0.875rem', lineHeight: '1.6', color: '#334155' }}>
+                {activeDocTab === 'basics' && (
+                  <div>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontWeight: 700 }}>Data Labeling Workflow</h4>
+                    <p style={{ margin: '0 0 1rem 0' }}>
+                      The Data-Labeling Support System manages raw imagery pipeline ingestion and classification tasks through three distinct project roles:
+                    </p>
+                    <ul style={{ paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <li><strong>Manager:</strong> Allocates task payloads, establishes labeling taxonomies, and reviews real-time progress metrics.</li>
+                      <li><strong>Annotator:</strong> Selects classes, outlines targets tightly using the workspace canvas, and saves coordinates.</li>
+                      <li><strong>Reviewer:</strong> Examines final annotations, approving them to queue for COCO export or rejecting with category error notes.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeDocTab === 'bboxes' && (
+                  <div>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontWeight: 700 }}>Bounding Box Specifications</h4>
+                    <p style={{ margin: '0 0 0.75rem 0' }}>
+                      Ensure high-quality output datasets by strictly adhering to standard machine learning target guidelines:
+                    </p>
+                    <ol style={{ paddingLeft: '1.25rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <li><strong>TIGHT BOUNDS:</strong> Crop precisely on object boundaries. Avoid including extra background margins or padding.</li>
+                      <li><strong>NO CLIPPING:</strong> Ensure the box fully encapsulates all visible parts of the target classification category.</li>
+                      <li><strong>OCCLUSION RULES:</strong> If an object is partially blocked, label the visible section or outline the approximate full boundary depending on project-specific rules.</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+            </div>
+          </EmbeddedModal>
+
+          {/* Help FAQ Modal */}
+          <EmbeddedModal
+            isOpen={helpOpen}
+            onClose={() => setHelpOpen(false)}
+            title="Help & Frequently Asked Questions"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {[
+                {
+                  q: 'How do I draw bounding boxes?',
+                  a: 'Switch your active tool to "Draw" (hotkey D) or click the rectangle icon in the toolbar, then click-and-drag over the image to draw rectangular boxes.'
+                },
+                {
+                  q: 'How do I edit or delete existing boxes?',
+                  a: 'Switch to the "Select" tool (hotkey V) or click the pointer icon, then click on the box border to select it. Drag edges or corners to adjust, or press "Delete" to remove it.'
+                },
+                {
+                  q: 'Why is the Complete Task button disabled?',
+                  a: 'The task requires at least one valid bounding box annotation to ensure you do not submit empty images to the reviewer.'
+                },
+                {
+                  q: 'What formats can I export my labels in?',
+                  a: 'Managers can export labeling project results in standardized COCO JSON formatting, completely formatted for direct machine learning training datasets.'
+                }
+              ].map((item, idx) => (
+                <div key={idx} style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '1rem',
+                      backgroundColor: activeFaq === idx ? 'rgba(5, 150, 105, 0.03)' : '#f8fafc',
+                      border: 'none',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      color: '#0f172a',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span>{item.q}</span>
+                    <ChevronRight 
+                      size={16} 
+                      style={{
+                        transform: activeFaq === idx ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s',
+                        color: '#64748b'
+                      }} 
+                    />
+                  </button>
+                  {activeFaq === idx && (
+                    <div style={{ padding: '1rem', fontSize: '0.8rem', lineHeight: '1.5', color: '#475569', backgroundColor: 'white', borderTop: '1px solid #e2e8f0' }}>
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </EmbeddedModal>
+
+          {/* Floating self-contained success Toast */}
+          {toastMessage && (
+            <div style={{
+              position: 'fixed',
+              bottom: '2rem',
+              right: '2rem',
+              backgroundColor: '#10b981',
+              color: 'white',
+              padding: '0.875rem 1.25rem',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              zIndex: 999999,
+              animation: 'fade-in 0.3s ease-out'
+            }}>
+              <CheckCircle2 size={18} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{toastMessage}</span>
+              <button 
                 type="button"
-                onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                style={{
-                  width: '100%',
+                onClick={() => setToastMessage(null)} 
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'rgba(255, 255, 255, 0.8)', 
+                  cursor: 'pointer', 
+                  padding: 0,
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '1rem',
-                  backgroundColor: activeFaq === idx ? 'rgba(5, 150, 105, 0.03)' : '#f8fafc',
-                  border: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  color: '#0f172a',
-                  transition: 'all 0.2s'
+                  alignItems: 'center'
                 }}
               >
-                <span>{item.q}</span>
-                <ChevronRight 
-                  size={16} 
-                  style={{
-                    transform: activeFaq === idx ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                    color: '#64748b'
-                  }} 
-                />
+                <X size={14} />
               </button>
-              {activeFaq === idx && (
-                <div style={{ padding: '1rem', fontSize: '0.8rem', lineHeight: '1.5', color: '#475569', backgroundColor: 'white', borderTop: '1px solid #e2e8f0' }}>
-                  {item.a}
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-      </EmbeddedModal>
-
-      {/* Floating self-contained success Toast */}
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          backgroundColor: '#10b981',
-          color: 'white',
-          padding: '0.875rem 1.25rem',
-          borderRadius: '0.5rem',
-          boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          zIndex: 99999,
-          animation: 'fade-in 0.3s ease-out'
-        }}>
-          <CheckCircle2 size={18} />
-          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{toastMessage}</span>
-          <button 
-            type="button"
-            onClick={() => setToastMessage(null)} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'rgba(255, 255, 255, 0.8)', 
-              cursor: 'pointer', 
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            <X size={14} />
-          </button>
-        </div>
+          )}
+        </>,
+        document.body
       )}
     </header>
   );
