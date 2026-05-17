@@ -10,6 +10,13 @@ import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.review.dto.response.ReviewQueueImageResponse;
+import com.uth.datalabeling.modules.review.dto.request.RejectImageRequest;
+import com.uth.datalabeling.modules.review.entity.Review;
+import com.uth.datalabeling.modules.review.repository.ReviewRepository;
+import com.uth.datalabeling.modules.defect.entity.DefectCategory;
+import com.uth.datalabeling.modules.defect.repository.DefectCategoryRepository;
+import com.uth.datalabeling.common.exception.AppException;
+import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,12 +34,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewQueueServiceTest {
@@ -42,6 +53,12 @@ class ReviewQueueServiceTest {
 
     @Mock
     private AnnotationRepository annotationRepository;
+
+    @Mock
+    private ReviewRepository reviewRepository;
+
+    @Mock
+    private DefectCategoryRepository defectCategoryRepository;
 
     @Mock
     private ProjectAccessService projectAccessService;
@@ -198,5 +215,55 @@ class ReviewQueueServiceTest {
         PageResponse<ReviewQueueImageResponse> response = reviewQueueService.getPendingReviewImages(projectId, pageable);
 
         assertEquals(false, response.getData().getFirst().getAnnotations().getFirst().getIsAiGenerated());
+    }
+
+    @Test
+    void rejectImage_SuccessWithCommentsAndCategory() {
+        UUID categoryId = UUID.randomUUID();
+        RejectImageRequest request = RejectImageRequest.builder()
+                .comments("Blurry image")
+                .defectCategoryId(categoryId)
+                .build();
+        User reviewer = User.builder().id(UUID.randomUUID()).build();
+
+        when(projectAccessService.getCurrentUser()).thenReturn(reviewer);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(pendingReviewTask));
+        when(defectCategoryRepository.findById(categoryId)).thenReturn(Optional.of(DefectCategory.builder().id(categoryId).build()));
+
+        reviewQueueService.rejectImage(taskId, request);
+
+        assertEquals("REJECTED", pendingReviewTask.getStatus());
+        verify(taskRepository).save(pendingReviewTask);
+
+        ArgumentCaptor<Review> reviewCaptor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).save(reviewCaptor.capture());
+        Review savedReview = reviewCaptor.getValue();
+        assertEquals(pendingReviewTask, savedReview.getTask());
+        assertEquals(reviewer, savedReview.getReviewer());
+        assertEquals("Blurry image", savedReview.getComments());
+        assertEquals("REJECTED", savedReview.getAction());
+        assertEquals(categoryId, savedReview.getDefectCategory().getId());
+    }
+
+    @Test
+    void rejectImage_ThrowsTaskNotFound() {
+        RejectImageRequest request = new RejectImageRequest();
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().build());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+
+        AppException ex = assertThrows(AppException.class, () -> reviewQueueService.rejectImage(taskId, request));
+        assertEquals(ErrorCode.TASK_NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void rejectImage_ThrowsValidationError_WhenTaskNotPendingReview() {
+        RejectImageRequest request = new RejectImageRequest();
+        pendingReviewTask.setStatus("COMPLETED");
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().build());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(pendingReviewTask));
+
+        AppException ex = assertThrows(AppException.class, () -> reviewQueueService.rejectImage(taskId, request));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
+        assertEquals("Task is not in PENDING_REVIEW status", ex.getMessage());
     }
 }
