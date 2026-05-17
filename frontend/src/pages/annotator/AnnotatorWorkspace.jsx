@@ -68,6 +68,14 @@ export default function AnnotatorWorkspace() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Prevent shortcut interference when typing inside input/select elements
+      if (
+        e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'SELECT'
+      ) {
+        return;
+      }
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
       const num = parseInt(e.key);
@@ -147,7 +155,17 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseDown = (e) => {
-    if (activeTool !== 'draw' || !imageLoaded) return;
+    if (activeTool !== 'draw' || !imageLoaded) {
+      // Clear selection when clicking empty area or image in select mode
+      if (
+        e.target === imageRef.current || 
+        e.target.tagName === 'svg' || 
+        e.target.classList.contains('annotation-svg')
+      ) {
+        setSelectedBoxId(null);
+      }
+      return;
+    }
     const { x, y } = getRelativeCoords(e);
     setIsDrawing(true);
     setCurrentBox({ x, y, width: 0, height: 0, labelId: selectedLabelId });
@@ -208,7 +226,10 @@ export default function AnnotatorWorkspace() {
                 <div className="toolbar-group">
                   <button 
                     className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`} 
-                    onClick={() => setActiveTool('draw')}
+                    onClick={() => {
+                      setActiveTool('draw');
+                      setSelectedBoxId(null);
+                    }}
                     title="Draw Box (B)"
                   >
                     <Square size={20} />
@@ -246,10 +267,9 @@ export default function AnnotatorWorkspace() {
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                     style={{
-                      width: imageSize.width > 0 ? `${imageSize.width}px` : '100%',
-                      height: imageSize.height > 0 ? `${imageSize.height}px` : '100%',
-                      transform: `scale(${zoomLevel})`,
-                      transformOrigin: 'top left'
+                      width: imageSize.width > 0 ? `${imageSize.width * zoomLevel}px` : '100%',
+                      height: imageSize.height > 0 ? `${imageSize.height * zoomLevel}px` : '100%',
+                      flexShrink: 0
                     }}
                   >
                     <img 
@@ -259,11 +279,19 @@ export default function AnnotatorWorkspace() {
                       onLoad={handleImageLoad}
                       className="workspace-image"
                       draggable={false}
+                      style={{
+                        width: '100%',
+                        height: '100%'
+                      }}
                     />
                     <svg 
                       className="annotation-svg" 
                       viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
                       onClick={() => setSelectedBoxId(null)} // Clear selection when clicking empty area
+                      style={{
+                        width: '100%',
+                        height: '100%'
+                      }}
                     >
                       {annotations.map((ann) => (
                         <g 
@@ -272,6 +300,7 @@ export default function AnnotatorWorkspace() {
                           onClick={(e) => { 
                             e.stopPropagation(); 
                             setSelectedBoxId(ann.id); 
+                            setSelectedLabelId(ann.labelId); 
                             setActiveTool('select'); 
                           }}
                         >
@@ -305,6 +334,7 @@ export default function AnnotatorWorkspace() {
                         />
                       )}
                     </svg>
+                    {/* Floating label editor removed */}
                   </div>
                 </div>
 
@@ -320,7 +350,19 @@ export default function AnnotatorWorkspace() {
                     <h3 className="section-title">Labels</h3>
                     <div className="label-selector">
                       {taskData.labels.map((label, index) => (
-                        <button key={label.id} className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} onClick={() => setSelectedLabelId(label.id)} style={{ '--label-color': label.color }}>
+                        <button 
+                          key={label.id} 
+                          className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} 
+                          onClick={() => {
+                            setSelectedLabelId(label.id);
+                            if (selectedBoxId) {
+                              setAnnotations(prev => prev.map(ann => 
+                                ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
+                              ));
+                            }
+                          }} 
+                          style={{ '--label-color': label.color }}
+                        >
                           <span className="color-dot" style={{ backgroundColor: label.color }}></span>
                           <span className="label-text">{label.name}</span>
                           <span className="label-hotkey">{index + 1}</span>
@@ -334,18 +376,38 @@ export default function AnnotatorWorkspace() {
                       {annotations.length === 0 ? (
                         <div className="empty-annotations"><Square size={32} opacity={0.2} /><p>No annotations yet</p></div>
                       ) : (
-                        annotations.map(ann => (
-                          <div key={ann.id} className={`annotation-item ${selectedBoxId === ann.id ? 'selected' : ''}`} onClick={() => setSelectedBoxId(ann.id)}>
-                            <div className="ann-info"><span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span><span className="ann-name">{getLabelName(ann.labelId)}</span></div>
-                            <button className="delete-ann-btn" onClick={(e) => { e.stopPropagation(); setAnnotations(prev => prev.filter(a => a.id !== ann.id)); }}><Trash2 size={14} /></button>
-                          </div>
-                        ))
+                        annotations.map(ann => {
+                          const isSelected = selectedBoxId === ann.id;
+                          return (
+                            <div 
+                              key={ann.id} 
+                              className={`annotation-item ${isSelected ? 'selected' : ''}`} 
+                              onClick={() => {
+                                setSelectedBoxId(ann.id);
+                                setSelectedLabelId(ann.labelId);
+                              }}
+                            >
+                              <div className="ann-info" onClick={(e) => e.stopPropagation()}>
+                                <span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span>
+                                <span className="ann-name">{getLabelName(ann.labelId)}</span>
+                              </div>
+                              <button 
+                                className="delete-ann-btn" 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setAnnotations(prev => prev.filter(a => a.id !== ann.id)); 
+                                  if (selectedBoxId === ann.id) setSelectedBoxId(null);
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
-                  <div className="workspace-actions">
-                    <button className="btn btn--primary btn--full" onClick={() => alert('Completed!')}>Complete Task</button>
-                  </div>
+                  {/* Complete Task action button removed */}
                 </div>
               </div>
             </React.Fragment>

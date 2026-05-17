@@ -235,7 +235,7 @@ export default function AnnotatorTasks() {
                       <div className="task-main-info">
                         <h4 className="task-name">{task.name}</h4>
                         <div 
-                          className="status-badge"
+                          className="task-status-badge"
                           style={getStatusStyle(task.status)}
                         >
                           {task.status}
@@ -296,7 +296,7 @@ export default function AnnotatorTasks() {
         .task-content { padding: 1.25rem; }
         .task-main-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
         .task-name { margin: 0; font-size: 1rem; font-weight: 600; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-        .status-badge { padding: 0.15rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid; }
+        .task-status-badge { padding: 0.15rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; border: 1px solid; }
         .task-meta { display: flex; gap: 1rem; color: #94a3b8; font-size: 0.75rem; margin-bottom: 1.25rem; }
         .task-meta span { display: flex; align-items: center; gap: 0.25rem; }
         .task-actions { display: flex; gap: 0.5rem; }
