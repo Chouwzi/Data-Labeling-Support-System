@@ -2,6 +2,7 @@ package com.uth.datalabeling.modules.annotation.repository;
 
 import com.uth.datalabeling.modules.annotation.entity.Annotation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,5 +22,7 @@ public interface AnnotationRepository extends JpaRepository<Annotation, UUID> {
             """)
     List<Annotation> findByTaskIdInOrderByTaskIdAscCreatedAtAsc(@Param("taskIds") List<UUID> taskIds);
 
-    void deleteByTaskId(UUID taskId);
+    @Modifying
+    @Query("DELETE FROM Annotation a WHERE a.task.id = :taskId")
+    void deleteByTaskId(@Param("taskId") UUID taskId);
 }
