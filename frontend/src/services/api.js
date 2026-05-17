@@ -139,6 +139,9 @@ export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
 
+export const exportProjectCoco = (projectId) =>
+  api.get(`/projects/${projectId}/export/coco`);
+
 export const generateTasks = (projectId, datasetId) =>
   api.post(`/projects/${projectId}/tasks/generate`, null, { params: { datasetId } });
 
