@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import Topbar from '@/components/common/Topbar';
+import Modal from '@/components/Modal';
+import Toast from '@/components/Toast';
 import { 
   getLabelsByProject, 
   getMyAssignedImages, 
@@ -42,6 +44,8 @@ export default function AnnotatorWorkspace() {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -209,32 +213,45 @@ export default function AnnotatorWorkspace() {
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     if (annotations.length === 0) {
-      alert('Please draw at least one bounding box before completing the task!');
+      setToast({
+        message: 'Please draw at least one bounding box before completing the task!',
+        type: 'warning'
+      });
       return;
     }
-    
-    if (window.confirm(`Are you sure you want to complete this task with ${annotations.length} annotations?`)) {
-      try {
-        const payload = annotations.map(ann => ({
-          shape_type: 'BOUNDING_BOX',
-          label_id: ann.labelId,
-          geometry: {
-            x: ann.x / imageSize.width,
-            y: ann.y / imageSize.height,
-            width: ann.width / imageSize.width,
-            height: ann.height / imageSize.height
-          }
-        }));
+    setConfirmModalOpen(true);
+  };
 
-        await saveTaskAnnotations(taskId, payload, true);
-        alert('Task submitted successfully!');
+  const executeComplete = async () => {
+    setConfirmModalOpen(false);
+    try {
+      const payload = annotations.map(ann => ({
+        shape_type: 'BOUNDING_BOX',
+        label_id: ann.labelId,
+        geometry: {
+          x: ann.x / imageSize.width,
+          y: ann.y / imageSize.height,
+          width: ann.width / imageSize.width,
+          height: ann.height / imageSize.height
+        }
+      }));
+
+      await saveTaskAnnotations(taskId, payload, true);
+      setToast({
+        message: 'Task completed and submitted successfully!',
+        type: 'success'
+      });
+      setTimeout(() => {
         navigate(`/annotator/projects/${projectId}/tasks`);
-      } catch (error) {
-        console.error('Error completing task:', error);
-        alert('Failed to submit task. Please try again.');
-      }
+      }, 1500);
+    } catch (error) {
+      console.error('Error completing task:', error);
+      setToast({
+        message: 'Failed to submit task. Please try again.',
+        type: 'error'
+      });
     }
   };
 
@@ -252,10 +269,16 @@ export default function AnnotatorWorkspace() {
       }));
 
       await saveTaskAnnotations(taskId, payload, false);
-      alert('Progress saved successfully!');
+      setToast({
+        message: 'Progress saved successfully!',
+        type: 'success'
+      });
     } catch (error) {
       console.error('Error saving progress:', error);
-      alert('Failed to save progress.');
+      setToast({
+        message: 'Failed to save progress.',
+        type: 'error'
+      });
     }
   };
 
@@ -441,6 +464,42 @@ export default function AnnotatorWorkspace() {
           )}
         </main>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={3000}
+        />
+      )}
+
+      <Modal 
+        isOpen={confirmModalOpen} 
+        onClose={() => setConfirmModalOpen(false)} 
+        title="Complete Task"
+      >
+        <div style={{ padding: '0.5rem 0' }}>
+          <p style={{ marginBottom: '1.5rem', color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
+            Are you sure you want to complete this task with <strong>{annotations.length}</strong> annotation{annotations.length !== 1 ? 's' : ''}? Once submitted, this task will be forwarded to the reviewer and cannot be modified further.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <button 
+              type="button"
+              className="btn btn--secondary" 
+              onClick={() => setConfirmModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button"
+              className="btn btn--primary" 
+              onClick={executeComplete}
+            >
+              Submit Task
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
