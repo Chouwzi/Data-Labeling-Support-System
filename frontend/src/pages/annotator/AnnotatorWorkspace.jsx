@@ -187,16 +187,33 @@ export default function AnnotatorWorkspace() {
   const handleMouseUp = () => {
     if (!isDrawing || !currentBox) return;
     if (Math.abs(currentBox.width) > 5 && Math.abs(currentBox.height) > 5) {
-      const newBox = {
-        ...currentBox,
-        id: Date.now(),
-        x: currentBox.width < 0 ? currentBox.x + currentBox.width : currentBox.x,
-        y: currentBox.height < 0 ? currentBox.y + currentBox.height : currentBox.y,
-        width: Math.abs(currentBox.width),
-        height: Math.abs(currentBox.height)
-      };
-      setAnnotations([...annotations, newBox]);
-      setSelectedBoxId(newBox.id);
+      // Get absolute coordinates
+      const x1 = currentBox.width < 0 ? currentBox.x + currentBox.width : currentBox.x;
+      const y1 = currentBox.height < 0 ? currentBox.y + currentBox.height : currentBox.y;
+      const w = Math.abs(currentBox.width);
+      const h = Math.abs(currentBox.height);
+
+      // Clip bounds strictly inside image size
+      const cx1 = Math.max(0, Math.min(x1, imageSize.width));
+      const cy1 = Math.max(0, Math.min(y1, imageSize.height));
+      const cx2 = Math.max(0, Math.min(x1 + w, imageSize.width));
+      const cy2 = Math.max(0, Math.min(y1 + h, imageSize.height));
+
+      const finalW = cx2 - cx1;
+      const finalH = cy2 - cy1;
+
+      if (finalW > 2 && finalH > 2) {
+        const newBox = {
+          id: Date.now(),
+          labelId: currentBox.labelId,
+          x: cx1,
+          y: cy1,
+          width: finalW,
+          height: finalH
+        };
+        setAnnotations([...annotations, newBox]);
+        setSelectedBoxId(newBox.id);
+      }
     }
     setIsDrawing(false);
     setCurrentBox(null);
@@ -226,19 +243,55 @@ export default function AnnotatorWorkspace() {
     setConfirmModalOpen(true);
   };
 
-  const executeComplete = async () => {
-    setConfirmModalOpen(false);
-    try {
-      const payload = annotations.map(ann => ({
+  const prepareAnnotationsPayload = (anns) => {
+    if (!imageSize || !imageSize.width || !imageSize.height) return [];
+    
+    return anns.map(ann => {
+      // Calculate absolute coordinates
+      const x1 = ann.x;
+      const y1 = ann.y;
+      const w = ann.width;
+      const h = ann.height;
+
+      // Clip individual coordinates to image dimensions
+      const cx1 = Math.max(0, Math.min(x1, imageSize.width));
+      const cy1 = Math.max(0, Math.min(y1, imageSize.height));
+      const cx2 = Math.max(0, Math.min(x1 + w, imageSize.width));
+      const cy2 = Math.max(0, Math.min(y1 + h, imageSize.height));
+
+      // Re-derive width and height (guaranteeing positive, non-zero values)
+      const finalW = Math.max(1, cx2 - cx1);
+      const finalH = Math.max(1, cy2 - cy1);
+
+      // Now calculate the ratios safely
+      let rx = cx1 / imageSize.width;
+      let ry = cy1 / imageSize.height;
+      let rw = finalW / imageSize.width;
+      let rh = finalH / imageSize.height;
+
+      // Double-insure strict mathematical limits (0.0 to 1.0)
+      rx = Math.max(0, Math.min(rx, 1));
+      ry = Math.max(0, Math.min(ry, 1));
+      rw = Math.max(0.0001, Math.min(rw, 1 - rx));
+      rh = Math.max(0.0001, Math.min(rh, 1 - ry));
+
+      return {
         shape_type: 'BOUNDING_BOX',
         label_id: ann.labelId,
         geometry: {
-          x: ann.x / imageSize.width,
-          y: ann.y / imageSize.height,
-          width: ann.width / imageSize.width,
-          height: ann.height / imageSize.height
+          x: rx,
+          y: ry,
+          width: rw,
+          height: rh
         }
-      }));
+      };
+    });
+  };
+
+  const executeComplete = async () => {
+    setConfirmModalOpen(false);
+    try {
+      const payload = prepareAnnotationsPayload(annotations);
 
       await saveTaskAnnotations(taskId, payload, true);
       setToast({
@@ -259,16 +312,7 @@ export default function AnnotatorWorkspace() {
 
   const handleSave = async () => {
     try {
-      const payload = annotations.map(ann => ({
-        shape_type: 'BOUNDING_BOX',
-        label_id: ann.labelId,
-        geometry: {
-          x: ann.x / imageSize.width,
-          y: ann.y / imageSize.height,
-          width: ann.width / imageSize.width,
-          height: ann.height / imageSize.height
-        }
-      }));
+      const payload = prepareAnnotationsPayload(annotations);
 
       await saveTaskAnnotations(taskId, payload, false);
       setToast({
@@ -322,16 +366,7 @@ export default function AnnotatorWorkspace() {
 
     const interval = setInterval(async () => {
       try {
-        const payload = annotations.map(ann => ({
-          shape_type: 'BOUNDING_BOX',
-          label_id: ann.labelId,
-          geometry: {
-            x: ann.x / imageSize.width,
-            y: ann.y / imageSize.height,
-            width: ann.width / imageSize.width,
-            height: ann.height / imageSize.height
-          }
-        }));
+        const payload = prepareAnnotationsPayload(annotations);
         await saveTaskAnnotations(taskId, payload, false);
         setToast({
           message: 'Workspace auto-saved!',
