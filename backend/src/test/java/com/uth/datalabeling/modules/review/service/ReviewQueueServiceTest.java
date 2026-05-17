@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewQueueServiceTest {
@@ -144,6 +145,21 @@ class ReviewQueueServiceTest {
         assertEquals(List.of(), response.getData());
         verify(taskRepository).findReviewQueueImages(null, null, "PENDING_REVIEW", pageable);
         verify(annotationRepository, never()).findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of());
+    }
+
+    @Test
+    void getPendingReviewImages_WithNullProjectFilterAndManagerRole_SetsManagerIdFilter() {
+        Pageable pageable = PageRequest.of(0, 10);
+        UUID currentManagerId = UUID.randomUUID();
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().id(currentManagerId).role("MANAGER").build());
+        when(taskRepository.findReviewQueueImages(null, currentManagerId, "PENDING_REVIEW", pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        PageResponse<ReviewQueueImageResponse> response = reviewQueueService.getPendingReviewImages(null, pageable);
+
+        assertEquals(0, response.getTotalElements());
+        verify(taskRepository).findReviewQueueImages(null, currentManagerId, "PENDING_REVIEW", pageable);
+        verify(projectAccessService, never()).findProjectAndCheckReadAccess(any());
     }
 
     @Test
