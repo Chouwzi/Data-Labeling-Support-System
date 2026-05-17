@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Lightbulb, TrendingUp } from 'lucide-react';
 
 const ANNOTATORS = [
@@ -10,16 +11,34 @@ const ANNOTATORS = [
 /**
  * Right column (span 3): Tips + Top Annotators in one white shell (image_1).
  */
-export default function ManagerRightPanel() {
+export default function ManagerRightPanel({ topAnnotators = [], reviewTip = null }) {
+  const navigate = useNavigate();
+  const displayAnnotators = topAnnotators.length > 0 ? topAnnotators : ANNOTATORS;
+
   return (
     <div className="manager-aside-stack">
       <div className="tip-card">
         <p className="tip-card__label">Curator Tip</p>
-        <h4 className="tip-card__title">High-priority review needed</h4>
-        <p className="tip-card__description">
-          Labels in &ldquo;Satellite Alpha&rdquo; need immediate validation to unblock the final batch.
-        </p>
-        <button type="button" className="tip-card__action">
+        {reviewTip ? (
+          <>
+            <h4 className="tip-card__title">High-priority review needed</h4>
+            <p className="tip-card__description">
+              Labels in &ldquo;{reviewTip.projectName}&rdquo; need immediate validation to unblock the final batch.
+            </p>
+          </>
+        ) : (
+          <>
+            <h4 className="tip-card__title">High-priority review needed</h4>
+            <p className="tip-card__description">
+              Labels in &ldquo;Satellite Alpha&rdquo; need immediate validation to unblock the final batch.
+            </p>
+          </>
+        )}
+        <button
+          type="button"
+          className="tip-card__action"
+          onClick={() => navigate('/manager/annotators')}
+        >
           Review Queue
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="9 18 15 12 9 6" />
@@ -38,10 +57,10 @@ export default function ManagerRightPanel() {
           </h4>
         </div>
         <div className="top-annotators-list">
-          {ANNOTATORS.map((annotator) => (
-            <div key={annotator.initials} className="top-annotator-item">
+          {displayAnnotators.map((annotator) => (
+            <div key={annotator.name} className="top-annotator-item">
               <div className="top-annotator-item__left">
-                <div className={`top-annotator-item__avatar ${annotator.colorClass}`}>
+                <div className={`top-annotator-item__avatar ${annotator.colorClass || 'avatar--emerald'}`}>
                   {annotator.initials}
                 </div>
                 <span className="top-annotator-item__name">{annotator.name}</span>

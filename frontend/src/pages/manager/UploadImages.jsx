@@ -8,7 +8,7 @@ import { getProjects, uploadSamples, createDataset, updateProject } from '@/serv
 import Toast from '@/components/Toast';
 import {
   Upload, X, CheckCircle, AlertCircle, Image, Loader2, Lightbulb,
-  Trash2, ChevronRight, Info, Sparkles, Shield
+  Trash2, ChevronRight, Info, Sparkles, Shield, ChevronDown
 } from 'lucide-react';
 import '@/styles/UploadImages.css';
 
@@ -40,6 +40,19 @@ export default function UploadImages() {
   const [projectId, setProjectId] = useState('');
   const [projectsList, setProjectsList] = useState([]);
   const [toast, setToast] = useState(null);
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -269,19 +282,68 @@ export default function UploadImages() {
                     Batch-upload image data to prepare raw materials for processing.
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  <select
+                <div style={{ position: 'relative', minWidth: '250px' }} ref={dropdownRef}>
+                  <button
+                    type="button"
                     className="form-field__input"
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    style={{ minWidth: '250px', margin: 0, padding: '8px 12px' }}
-                    aria-label="Select Project"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    style={{ 
+                      width: '100%', 
+                      margin: 0, 
+                      padding: '8px 12px', 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      backgroundColor: '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
                   >
-                    <option value="">-- Select a project to upload --</option>
-                    {projectsList.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {projectsList.find(p => p.id === projectId)?.name || '-- Select a project to upload --'}
+                    </span>
+                    <ChevronDown size={16} style={{ color: '#64748b', flexShrink: 0, marginLeft: '8px', transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </button>
+                  
+                  {isDropdownOpen && (
+                    <ul 
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        backgroundColor: '#fff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                        maxHeight: '250px',
+                        overflowY: 'auto',
+                        zIndex: 50,
+                        padding: '4px 0',
+                        margin: 0,
+                        listStyle: 'none'
+                      }}
+                    >
+                      {projectsList.map(p => (
+                        <li 
+                          key={p.id}
+                          onClick={() => { setProjectId(p.id); setIsDropdownOpen(false); }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            backgroundColor: projectId === p.id ? '#f1f5f9' : 'transparent',
+                            color: '#0f172a',
+                            fontSize: '0.875rem'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = projectId === p.id ? '#f1f5f9' : 'transparent'}
+                        >
+                          {p.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             </header>

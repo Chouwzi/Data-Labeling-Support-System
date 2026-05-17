@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
+import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
 import KpiCard from '@/components/dashboard/KpiCard';
@@ -50,6 +51,23 @@ function normalizeProject(raw) {
     ACTIVE: 'in_progress',
     ARCHIVED: 'completed',
   };
+  
+  const parseDate = (dateVal) => {
+    if (!dateVal) return 'Just now';
+    try {
+      if (Array.isArray(dateVal)) {
+        const [y, m, d, h = 0, min = 0, s = 0] = dateVal;
+        return new Date(y, m - 1, d, h, min, s).toLocaleDateString('vi-VN');
+      }
+      const d = new Date(dateVal);
+      return isNaN(d) ? 'Just now' : d.toLocaleDateString('vi-VN');
+    } catch {
+      return 'Just now';
+    }
+  };
+
+  const rawDate = raw.created_at || raw.createdAt;
+
   return {
     id: raw.id,
     name: raw.name || raw.projectName || '',
@@ -59,7 +77,8 @@ function normalizeProject(raw) {
     images: raw.totalImages ?? raw.images ?? 0,
     labels: raw.totalLabels ?? raw.labels ?? 0,
     annotators: raw.annotatorCount ?? raw.annotators ?? 0,
-    created: raw.createdAt ? new Date(raw.createdAt).toLocaleDateString('vi-VN') : 'Just now',
+    createdAt: rawDate,
+    created: parseDate(rawDate),
     imageUrl: raw.thumbnailUrl || raw.imageUrl ||
       'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
     members: raw.members || [],
@@ -447,14 +466,16 @@ export default function Projects() {
     </form>
   );
 
-  const userName = user?.fullName || user?.email || 'Manager';
-  const userRole = user?.role === 'MANAGER' ? 'Lead Curator' : (user?.role || 'MANAGER');
+  const isAdmin = user?.role === 'ADMIN';
+  const userName = user?.fullName || user?.email || (isAdmin ? 'Administrator' : 'Manager');
+  const userRole = user?.role === 'ADMIN' ? 'ADMIN' : (user?.role === 'MANAGER' ? 'Lead Curator' : (user?.role || 'MANAGER'));
+  const SidebarComponent = isAdmin ? Sidebar : ManagerSidebar;
 
   return (
-    <div className="manager-layout">
-      <ManagerSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
+    <div className={isAdmin ? "admin-layout" : "manager-layout"}>
+      <SidebarComponent isOpen={sidebarOpen} onNavigate={closeSidebar} />
 
-      <div className="manager-main">
+      <div className={isAdmin ? "admin-main" : "manager-main"}>
         <Topbar
           userName={userName}
           userRole={userRole}

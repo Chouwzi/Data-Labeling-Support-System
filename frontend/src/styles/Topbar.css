@@ -138,6 +138,7 @@
 }
 
 .topbar__actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -320,4 +321,175 @@
   .topbar__user-info {
     display: none;
   }
+}
+
+/* =============================================
+   FLOATING NOTIFICATIONS DROPDOWN
+   ============================================= */
+
+.topbar__notif-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  width: 340px;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  z-index: 210;
+  overflow: hidden;
+  animation: notifIn 0.2s ease;
+}
+
+@keyframes notifIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.topbar__notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.topbar__notif-header h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.topbar__notif-header button {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #006c51;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.topbar__notif-header button:hover {
+  text-decoration: underline;
+}
+
+.topbar__notif-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.topbar__notif-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.topbar__notif-item:last-child {
+  border-bottom: none;
+}
+
+.topbar__notif-item:hover {
+  background-color: #f9fafb;
+}
+
+.topbar__notif-item.unread {
+  background-color: rgba(0, 108, 81, 0.02);
+}
+
+.topbar__notif-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.topbar__notif-icon.success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.topbar__notif-icon.info {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.topbar__notif-icon.warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.topbar__notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.topbar__notif-content p {
+  font-size: 0.8125rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.35;
+  font-family: 'Inter', sans-serif;
+}
+
+.topbar__notif-content span {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: 'Inter', sans-serif;
+}
+
+/* =============================================
+   MOCK MODAL DESIGN COMPLEMENTS
+   ============================================= */
+
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.diagnostic-item {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.diagnostic-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: block;
+}
+
+.diagnostic-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.diagnostic-status {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  display: inline-block;
 }
