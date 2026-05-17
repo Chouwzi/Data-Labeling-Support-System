@@ -1,26 +1,36 @@
 package com.uth.datalabeling.modules.export.service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.uth.datalabeling.modules.annotation.entity.Annotation;
 import com.uth.datalabeling.modules.annotation.repository.AnnotationRepository;
 import com.uth.datalabeling.modules.dataset.entity.DataSample;
-import com.uth.datalabeling.modules.export.dto.*;
+import com.uth.datalabeling.modules.export.dto.CocoAnnotation;
+import com.uth.datalabeling.modules.export.dto.CocoCategory;
+import com.uth.datalabeling.modules.export.dto.CocoExportDto;
+import com.uth.datalabeling.modules.export.dto.CocoImage;
+import com.uth.datalabeling.modules.export.dto.CocoInfo;
 import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.repository.LabelRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Builds a COCO-format export for all COMPLETED tasks in a given project.
@@ -38,7 +48,16 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CocoExportService {
 
-    private static final String STATUS_COMPLETED = "COMPLETED";
+    /**
+     * Các giá trị trạng thái được coi là "Hoàn thành" khi xuất COCO.
+     * - Dùng chữ hoa để so sánh (service chuyển lên UPPER trước khi truy vấn).
+     * - Để thêm ngôn ngữ/variant khác, chỉ cần thêm chuỗi tương ứng vào danh sách này.
+     *
+     * Lưu ý: Hiện tại lọc theo `Task.status`. Nếu bạn muốn kiểm tra trạng thái nằm
+     * trong `DataSample.metadata` (ví dụ metadata.status), cần thêm kiểm tra bổ sung
+     * trước khi include image vào COCO.
+     */
+    private static final List<String> STATUS_COMPLETED = List.of("COMPLETED", "HOÀN THÀNH", "HOAN THANH");
 
     ProjectAccessService projectAccessService;
     TaskRepository taskRepository;
@@ -72,7 +91,7 @@ public class CocoExportService {
 
         // 3. Fetch COMPLETED tasks — eagerly loaded with sample to avoid N+1
         List<Task> completedTasks = taskRepository.findByProjectIdAndStatusWithSample(
-                projectId, STATUS_COMPLETED);
+            projectId, STATUS_COMPLETED.stream().map(String::toUpperCase).toList());
 
         if (completedTasks.isEmpty()) {
             log.info("Project {} has no COMPLETED tasks — exporting empty COCO JSON", projectId);
@@ -95,6 +114,9 @@ public class CocoExportService {
             Integer width  = extractInt(sample.getMetadata(), "width");
             Integer height = extractInt(sample.getMetadata(), "height");
 
+            // Nếu ảnh thiếu width/height trong metadata thì KHÔNG xuất nó.
+            // Lý do: COCO yêu cầu giá trị width/height dương; nếu xuất width=0
+            // thì nhiều thư viện (ví dụ pycocotools) sẽ lỗi khi load JSON.
             if (width == null || height == null || width <= 0 || height <= 0) {
                 log.warn("Skipping sample {} (task {}) — missing image dimensions in metadata",
                         sample.getId(), task.getId());

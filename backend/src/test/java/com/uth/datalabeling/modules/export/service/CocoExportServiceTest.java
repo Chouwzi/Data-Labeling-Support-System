@@ -1,5 +1,21 @@
 package com.uth.datalabeling.modules.export.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.uth.datalabeling.modules.annotation.entity.Annotation;
 import com.uth.datalabeling.modules.annotation.entity.AnnotationShapeType;
 import com.uth.datalabeling.modules.annotation.repository.AnnotationRepository;
@@ -11,23 +27,19 @@ import com.uth.datalabeling.modules.project.repository.LabelRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link CocoExportService}.
  * Validates coordinate conversion, image skip logic, sequential ID mapping,
  * and correct category / annotation linkage.
+ *
+ * NOTE FOR LEARNING:
+ * - Những mock `taskRepository.findByProjectIdAndStatusWithSample(...)` đã được
+ *   cập nhật để nhận `List<String>` (danh sách trạng thái) thay vì một chuỗi.
+ * - Kiểm tra ở mức unit-test giả lập rằng service chỉ lấy task với trạng thái
+ *   "COMPLETED" (xem danh sách trạng thái trong service). Nếu bạn muốn kiểm tra
+ *   thêm trường hợp trạng thái lưu trong `DataSample.metadata`, hãy thêm test
+ *   mới mô phỏng metadata tương ứng và điều chỉnh service.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CocoExportService — unit tests")
@@ -66,7 +78,7 @@ class CocoExportServiceTest {
     void categories_sequentialIds() {
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1, label2));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of());
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of());
 
         CocoExportDto dto = service.buildExport(projectId);
 
@@ -84,7 +96,7 @@ class CocoExportServiceTest {
     void emptyProject_returnsValidCocoWithEmptyLists() {
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of());
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of());
 
         CocoExportDto dto = service.buildExport(projectId);
 
@@ -105,7 +117,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of(task));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
                 .thenReturn(List.of());
 
@@ -133,7 +145,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED"))
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED")))
                 .thenReturn(List.of(taskSkipped, taskOk));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(taskOk.getId())))
                 .thenReturn(List.of(ann));
@@ -158,7 +170,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of());
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED"))
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED")))
                 .thenReturn(List.of(task));
 
         CocoExportDto dto = service.buildExport(projectId);
@@ -179,7 +191,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of(task));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
                 .thenReturn(List.of(ann));
 
@@ -202,7 +214,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of(task));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
                 .thenReturn(List.of(ann));
 
@@ -226,7 +238,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1, label2));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED"))
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED")))
                 .thenReturn(List.of(t1, t2));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(t1.getId(), t2.getId())))
                 .thenReturn(List.of(ann1, ann2));
@@ -252,7 +264,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1, label2));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of(task));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
                 .thenReturn(List.of(ann));
 
@@ -270,7 +282,7 @@ class CocoExportServiceTest {
 
         when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
         when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
-        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, List.of("COMPLETED"))).thenReturn(List.of(task));
         when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
                 .thenReturn(List.of(ann));
 
