@@ -96,6 +96,12 @@ class RejectionWorkflowControllerTest {
                             .content(objectMapper.writeValueAsString(new RejectImageRequest())))
                     .andExpect(status().isUnauthorized());
         }
+
+        @Test
+        void approve_image_unauthenticated_returns_401() throws Exception {
+            mockMvc.perform(post("/review-queue/images/{taskId}/approve", taskId))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -134,6 +140,13 @@ class RejectionWorkflowControllerTest {
             mockMvc.perform(post("/review-queue/images/{taskId}/reject", taskId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new RejectImageRequest())))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @WithMockUser(roles = "ANNOTATOR")
+        void annotator_cannot_approve_image() throws Exception {
+            mockMvc.perform(post("/review-queue/images/{taskId}/approve", taskId))
                     .andExpect(status().isForbidden());
         }
     }
@@ -220,6 +233,18 @@ class RejectionWorkflowControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Image rejected successfully"));
         }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        void admin_can_approve_image() throws Exception {
+            doNothing().when(reviewQueueService).approveImage(taskId);
+
+            mockMvc.perform(post("/review-queue/images/{taskId}/approve", taskId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Image approved successfully"));
+
+            verify(reviewQueueService).approveImage(taskId);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -274,6 +299,16 @@ class RejectionWorkflowControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(req)))
                     .andExpect(status().isOk());
+        }
+
+        @Test
+        @WithMockUser(roles = "MANAGER")
+        void manager_can_approve_image() throws Exception {
+            doNothing().when(reviewQueueService).approveImage(taskId);
+
+            mockMvc.perform(post("/review-queue/images/{taskId}/approve", taskId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Image approved successfully"));
         }
     }
 
@@ -356,6 +391,18 @@ class RejectionWorkflowControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(req)))
                     .andExpect(status().isOk());
+        }
+
+        @Test
+        @WithMockUser(roles = "REVIEWER")
+        void reviewer_can_approve_image() throws Exception {
+            doNothing().when(reviewQueueService).approveImage(taskId);
+
+            mockMvc.perform(post("/review-queue/images/{taskId}/approve", taskId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Image approved successfully"));
+
+            verify(reviewQueueService).approveImage(taskId);
         }
     }
 }

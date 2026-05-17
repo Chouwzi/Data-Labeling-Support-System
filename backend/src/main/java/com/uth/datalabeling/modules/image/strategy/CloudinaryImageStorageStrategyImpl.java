@@ -43,10 +43,10 @@ public class CloudinaryImageStorageStrategyImpl implements ImageStorageStrategy 
             // Construct the standardized result
             Map<String, Object> result = new HashMap<>();
             result.put("filePath", secureUrl);
-            // Since it's cloudinary, the format returned could be just "png".
-            // The file.getContentType() provides standard mime type like "image/png"
             result.put("format", file.getContentType());
             result.put("sizeBytes", sizeBytes);
+            result.put("width", uploadResult.get("width"));
+            result.put("height", uploadResult.get("height"));
 
             // Add raw uploadResult for JSONB storage
             Map<String, Object> rawMetadata = new HashMap<>();

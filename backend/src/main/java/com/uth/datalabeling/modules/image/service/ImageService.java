@@ -63,6 +63,8 @@ public class ImageService {
                     .filePath(fileMetadata.getFilePath())
                     .format(fileMetadata.getFormat())
                     .sizeBytes(fileMetadata.getSizeBytes())
+                    .width(uploadResult.get("width") instanceof Number n ? n.intValue() : null)
+                    .height(uploadResult.get("height") instanceof Number n ? n.intValue() : null)
                     .build());
         }
 

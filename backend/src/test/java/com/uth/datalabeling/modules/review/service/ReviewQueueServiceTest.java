@@ -266,4 +266,46 @@ class ReviewQueueServiceTest {
         assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
         assertEquals("Task is not in PENDING_REVIEW status", ex.getMessage());
     }
+
+    @Test
+    void approveImage_Success() {
+        User reviewer = User.builder().id(UUID.randomUUID()).build();
+
+        when(projectAccessService.getCurrentUser()).thenReturn(reviewer);
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(pendingReviewTask));
+
+        reviewQueueService.approveImage(taskId);
+
+        assertEquals("COMPLETED", pendingReviewTask.getStatus());
+        verify(taskRepository).save(pendingReviewTask);
+
+        ArgumentCaptor<Review> reviewCaptor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).save(reviewCaptor.capture());
+        Review savedReview = reviewCaptor.getValue();
+        assertEquals(pendingReviewTask, savedReview.getTask());
+        assertEquals(reviewer, savedReview.getReviewer());
+        assertEquals("Approved by reviewer", savedReview.getComments());
+        assertEquals("APPROVED", savedReview.getAction());
+        assertNull(savedReview.getDefectCategory());
+    }
+
+    @Test
+    void approveImage_ThrowsTaskNotFound() {
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().build());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+
+        AppException ex = assertThrows(AppException.class, () -> reviewQueueService.approveImage(taskId));
+        assertEquals(ErrorCode.TASK_NOT_FOUND, ex.getErrorCode());
+    }
+
+    @Test
+    void approveImage_ThrowsValidationError_WhenTaskNotPendingReview() {
+        pendingReviewTask.setStatus("COMPLETED");
+        when(projectAccessService.getCurrentUser()).thenReturn(User.builder().build());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(pendingReviewTask));
+
+        AppException ex = assertThrows(AppException.class, () -> reviewQueueService.approveImage(taskId));
+        assertEquals(ErrorCode.VALIDATION_ERROR, ex.getErrorCode());
+        assertEquals("Task is not in PENDING_REVIEW status", ex.getMessage());
+    }
 }

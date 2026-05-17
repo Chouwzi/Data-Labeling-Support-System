@@ -105,6 +105,32 @@ public class ReviewQueueService {
         taskRepository.save(task);
     }
 
+    @Transactional
+    public void approveImage(UUID taskId) {
+        User reviewer = projectAccessService.getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        if (!STATUS_PENDING_REVIEW.equals(task.getStatus())) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Task is not in PENDING_REVIEW status");
+        }
+
+        projectAccessService.findProjectAndCheckReadAccess(task.getProject().getId());
+
+        Review review = Review.builder()
+                .task(task)
+                .reviewer(reviewer)
+                .defectCategory(null)
+                .comments("Approved by reviewer")
+                .action("APPROVED")
+                .build();
+        reviewRepository.save(review);
+
+        task.setStatus("COMPLETED");
+        taskRepository.save(task);
+    }
+
+
     private Map<UUID, List<Annotation>> loadAnnotationsByTaskId(List<Task> tasks) {
         if (tasks.isEmpty()) {
             return Map.of();
