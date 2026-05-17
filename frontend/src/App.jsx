@@ -112,6 +112,14 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/projects"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Projects />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Other role dashboards */}
       <Route

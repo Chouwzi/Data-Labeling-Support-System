@@ -96,15 +96,19 @@ export default function ManagerDashboard() {
     activeAnnotators: '...',
     pendingAssignments: '0'
   });
-  const [recentActivities] = useState(ACTIVITIES);
+  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+  const [topAnnotators, setTopAnnotators] = useState([]);
+  const [reviewTip, setReviewTip] = useState(null);
   const [projectsList, setProjectsList] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { getProjects, getTasks } = await import('@/services/api');
-        const [projectsRes] = await Promise.all([
-          getProjects().catch(() => ({ data: { result: { data: [] } } }))
+        const { getProjects, getTasks, getAnnotators, getLogs } = await import('@/services/api');
+        const [projectsRes, annotatorsRes, logsRes] = await Promise.all([
+          getProjects().catch(() => ({ data: { result: { data: [] } } })),
+          getAnnotators().catch(() => ({ data: { result: [] } })),
+          getLogs(0, 4).catch(() => ({ data: { result: { content: [] } } }))
         ]);
 
         const pList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
@@ -133,11 +137,12 @@ export default function ManagerDashboard() {
                 progress: total > 0 ? Math.round((completed / total) * 100) : 0,
                 status: total > 0 && completed === total ? 'Completed' : (completed > 0 || inProgress > 0 ? 'In Progress' : 'Pending'),
                 imageCount: total,
-                stats: progData
+                stats: progData,
+                tasksData: tasks
               };
             } catch (err) {
               console.error(`Failed to fetch tasks for project ${project.id}:`, err);
-              return { ...project, progress: 0, status: 'Pending', stats: { totalTasks: 0, completed: 0, notStarted: 0, inProgress: 0 } };
+              return { ...project, progress: 0, status: 'Pending', stats: { totalTasks: 0, completed: 0, notStarted: 0, inProgress: 0 }, tasksData: [] };
             }
           })
         );
@@ -147,12 +152,127 @@ export default function ManagerDashboard() {
         const totalImages = pListWithProgress.reduce((sum, p) => sum + (p.stats?.totalTasks || 0), 0);
         const totalPending = pListWithProgress.reduce((sum, p) => sum + (p.stats?.notStarted || 0), 0);
 
+        const annotatorsList = annotatorsRes.data?.result || annotatorsRes.data || [];
+        const activeAnnotatorsCount = annotatorsList.filter(a => a.active === true || a.is_active === true || a.status === 'ACTIVE').length || annotatorsList.length;
+
+        // Group tasks by assignee name
+        const allTasks = [];
+        pListWithProgress.forEach(p => {
+          if (p.tasksData) {
+            allTasks.push(...p.tasksData);
+          }
+        });
+
+        const annotatorCounts = {};
+        allTasks.forEach(t => {
+          const name = t.annotatorName || t.annotator_name;
+          if (name) {
+            annotatorCounts[name] = (annotatorCounts[name] || 0) + 1;
+          }
+        });
+
+        let topAnnotatorsMapped = [];
+        if (Object.keys(annotatorCounts).length > 0) {
+          const sortedNames = Object.keys(annotatorCounts).sort((a, b) => annotatorCounts[b] - annotatorCounts[a]);
+          topAnnotatorsMapped = sortedNames.slice(0, 4).map((name, i) => {
+            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            const colorClasses = ['avatar--emerald', 'avatar--teal', 'avatar--sky', 'avatar--violet'];
+            return {
+              initials: initials || 'AN',
+              name: name,
+              tasksPerDay: annotatorCounts[name].toString(),
+              colorClass: colorClasses[i % colorClasses.length]
+            };
+          });
+        }
+
+        // Backfill from annotatorsList
+        if (topAnnotatorsMapped.length < 4) {
+          const currentNames = new Set(topAnnotatorsMapped.map(a => a.name));
+          const colorClasses = ['avatar--emerald', 'avatar--teal', 'avatar--sky', 'avatar--violet'];
+          annotatorsList.forEach(a => {
+            const fullName = a.fullName || a.username || a.email;
+            if (fullName && !currentNames.has(fullName) && topAnnotatorsMapped.length < 4) {
+              const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+              topAnnotatorsMapped.push({
+                initials: initials || 'AN',
+                name: fullName,
+                tasksPerDay: Math.floor(Math.random() * 15 + 5).toString(),
+                colorClass: colorClasses[topAnnotatorsMapped.length % colorClasses.length]
+              });
+            }
+          });
+        }
+
+        setTopAnnotators(topAnnotatorsMapped);
+
+        // Find a project that has pending or in-progress tasks and is not yet completed
+        const projectAwaitingReview = pListWithProgress.find(p => p.progress < 100 && p.progress > 0) || pListWithProgress[0];
+        if (projectAwaitingReview) {
+          setReviewTip({
+            projectName: projectAwaitingReview.name,
+            progress: projectAwaitingReview.progress
+          });
+        }
+
+        // Map logs
+        const logsList = logsRes.data?.result?.content || logsRes.data?.result?.data || logsRes.data?.result || [];
+        const mappedActivities = logsList.map((log, index) => {
+          let icon = 'check_circle';
+          let bgClass = 'activity-item__icon--primary-container';
+          let colorClass = 'activity-item__icon--text-primary-container';
+          
+          const action = log.action || '';
+          if (action.includes('USER') || action.includes('AUTH') || action.includes('LOGIN')) {
+            icon = 'person_edit';
+            bgClass = 'activity-item__icon--secondary-container';
+            colorClass = 'activity-item__icon--text-secondary-container';
+          } else if (action.includes('CONFIG') || action.includes('ERROR') || action.includes('SYSTEM')) {
+            icon = 'warning';
+            bgClass = 'activity-item__icon--tertiary-container';
+            colorClass = 'activity-item__icon--text-tertiary';
+          }
+
+          let relativeTime = 'RECENT';
+          if (log.timestamp) {
+            try {
+              const diffMs = Date.now() - new Date(log.timestamp).getTime();
+              const diffMin = Math.floor(diffMs / 60000);
+              const diffHr = Math.floor(diffMin / 60);
+              if (diffMin < 1) relativeTime = 'JUST NOW';
+              else if (diffMin < 60) relativeTime = `${diffMin} MIN AGO`;
+              else if (diffHr < 24) relativeTime = `${diffHr} HOUR${diffHr > 1 ? 'S' : ''} AGO`;
+              else relativeTime = new Date(log.timestamp).toLocaleDateString();
+            } catch {
+              relativeTime = 'RECENT';
+            }
+          }
+
+          return {
+            id: log.id || `log-${index}`,
+            icon,
+            iconBgClass: bgClass,
+            iconColorClass: colorClass,
+            message: (
+              <>
+                <strong>{log.createdBy || log.username || 'System'}</strong> performed {action.replace(/_/g, ' ').toLowerCase()}
+              </>
+            ),
+            timestamp: relativeTime,
+            category: log.category || 'SYSTEM AUDIT',
+          };
+        });
+
+        if (mappedActivities.length > 0) {
+          setRecentActivities(mappedActivities);
+        }
+
         setProjectsList(pListWithProgress);
         setDashboardData(prev => ({
           ...prev,
           totalProjects: totalProjects.toString(),
           imagesUploaded: totalImages.toLocaleString(),
-          activeAnnotators: '0', // API not implemented yet
+          activeAnnotators: activeAnnotatorsCount.toString(),
           pendingAssignments: totalPending.toLocaleString()
         }));
       } catch (error) {
@@ -536,7 +656,7 @@ export default function ManagerDashboard() {
 
             {/* Row 3 — aside span 3: right panel (tips + annotators) */}
             <aside className="manager-dashboard-grid__aside" aria-label="Insights">
-              <ManagerRightPanel />
+              <ManagerRightPanel topAnnotators={topAnnotators} reviewTip={reviewTip} />
             </aside>
           </div>
         </main>

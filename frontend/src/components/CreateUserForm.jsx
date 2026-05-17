@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Mail, User, Lock, Shield, CheckCircle, Eye, EyeOff} from 'lucide-react';
+import { UserPlus, Mail, User, Lock, Shield, CheckCircle, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
 import { createUser } from '@/services/api';
 import './CreateUserForm.css';
@@ -88,7 +88,6 @@ export default function CreateUserForm({ onSuccess }) {
     try {
       const response = await createUser(payload);  
 
-      alert("Tạo tài khoản thành công!");
       if (onSuccess) onSuccess(response.data);
       setFormData({ email: '', fullName: '', password: '', role: '' });
       setErrors({});
@@ -186,18 +185,21 @@ export default function CreateUserForm({ onSuccess }) {
         <label className="form-field__label" htmlFor="role">
           <Shield size={18} /> Role
         </label>
-        <select
-          id="role"
-          name="role"
-          className={`form-field__select ${errors.role ? 'form-field__input--error' : ''}`}
-          value={formData.role}
-          onChange={handleChange}
-          disabled={isSubmitting}
-        >
-          {ROLES.map((role) => (
-            <option key={role.value} value={role.value}>{role.label}</option>
-          ))}
-        </select>
+        <div className="form-field__select-wrapper">
+          <select
+            id="role"
+            name="role"
+            className={`form-field__select ${errors.role ? 'form-field__input--error' : ''}`}
+            value={formData.role}
+            onChange={handleChange}
+            disabled={isSubmitting}
+          >
+            {ROLES.map((role) => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="form-field__select-arrow" size={18} />
+        </div>
         {errors.role && <p className="form-field__error">{errors.role}</p>}
       </div>
 
