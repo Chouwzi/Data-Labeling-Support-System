@@ -129,6 +129,8 @@ export default function AnnotatorWorkspace() {
 
   const [rawAnnotations, setRawAnnotations] = useState([]);
 
+  const [rawAnnotations, setRawAnnotations] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -463,14 +465,29 @@ export default function AnnotatorWorkspace() {
                             width={ann.width} 
                             height={ann.height} 
                             fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}40` : `${getLabelColor(ann.labelId)}20`}
-                            stroke={getLabelColor(ann.labelId)} 
+                            stroke={isValidAnnotation(ann) ? getLabelColor(ann.labelId) : '#ef4444'} 
                             strokeWidth={2 / zoomLevel} 
-                            className="bbox-rect" 
+                            strokeDasharray={isValidAnnotation(ann) ? 'none' : `${5 / zoomLevel},${5 / zoomLevel}`}
+                            className={`bbox-rect ${!isValidAnnotation(ann) ? 'bbox-invalid' : ''}`}
                             style={{ pointerEvents: 'all', cursor: 'pointer' }}
                           />
                           <g className="bbox-label" style={{ pointerEvents: 'none' }}>
-                            <rect x={ann.x} y={ann.y - 20 / zoomLevel} width={80 / zoomLevel} height={20 / zoomLevel} fill={getLabelColor(ann.labelId)} />
-                            <text x={ann.x + 4 / zoomLevel} y={ann.y - 5 / zoomLevel} fill="white" fontSize={12 / zoomLevel} fontWeight="bold">{getLabelName(ann.labelId)}</text>
+                            <rect 
+                              x={ann.x} 
+                              y={ann.y - 20 / zoomLevel} 
+                              width={(isValidAnnotation(ann) ? 80 : 130) / zoomLevel} 
+                              height={20 / zoomLevel} 
+                              fill={isValidAnnotation(ann) ? getLabelColor(ann.labelId) : '#ef4444'} 
+                            />
+                            <text 
+                              x={ann.x + 4 / zoomLevel} 
+                              y={ann.y - 5 / zoomLevel} 
+                              fill="white" 
+                              fontSize={11 / zoomLevel} 
+                              fontWeight="bold"
+                            >
+                              {getLabelName(ann.labelId)}{!isValidAnnotation(ann) && ' (Invalid)'}
+                            </text>
                           </g>
                         </g>
                       ))}
@@ -532,10 +549,11 @@ export default function AnnotatorWorkspace() {
                       ) : (
                         annotations.map(ann => {
                           const isSelected = selectedBoxId === ann.id;
+                          const valid = isValidAnnotation(ann);
                           return (
                             <div 
                               key={ann.id} 
-                              className={`annotation-item ${isSelected ? 'selected' : ''}`} 
+                              className={`annotation-item ${isSelected ? 'selected' : ''} ${!valid ? 'invalid-ann' : ''}`} 
                               onClick={() => {
                                 setSelectedBoxId(ann.id);
                                 setSelectedLabelId(ann.labelId);
