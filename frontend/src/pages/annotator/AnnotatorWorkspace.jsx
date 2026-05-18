@@ -6,7 +6,9 @@ import Topbar from '@/components/common/Topbar';
 import { 
   getLabelsByProject, 
   getMyAssignedImages, 
-  getProject 
+  getProject,
+  getAnnotations,
+  saveTaskAnnotations
 } from '@/services/api';
 import { 
   ArrowLeft, 
@@ -39,6 +41,19 @@ export default function AnnotatorWorkspace() {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
+  const [isCelebrated, setIsCelebrated] = useState(false);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
   
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -110,14 +125,17 @@ export default function AnnotatorWorkspace() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedBoxId, taskData.labels, isLocked]);
 
+  const [rawAnnotations, setRawAnnotations] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [projectRes, labelsRes, imagesRes] = await Promise.all([
+        const [projectRes, labelsRes, imagesRes, annotationsRes] = await Promise.all([
           getProject(projectId),
           getLabelsByProject(projectId),
-          getMyAssignedImages({ projectId, size: 100 })
+          getMyAssignedImages({ projectId, size: 100 }),
+          getAnnotations(taskId)
         ]);
 
         const project = projectRes.data?.result || {};
@@ -143,6 +161,9 @@ export default function AnnotatorWorkspace() {
           });
           if (mappedLabels.length > 0) setSelectedLabelId(mappedLabels[0].id);
         }
+
+        const rawAnns = annotationsRes.data?.result || [];
+        setRawAnnotations(rawAnns);
       } catch (err) {
         console.error('Failed to fetch workspace data:', err);
       } finally {
@@ -151,6 +172,23 @@ export default function AnnotatorWorkspace() {
     };
     fetchData();
   }, [projectId, taskId]);
+
+  useEffect(() => {
+    if (imageLoaded && imageSize.width > 0 && rawAnnotations.length > 0 && annotations.length === 0) {
+      const scaled = rawAnnotations.map(ann => {
+        const geom = ann.geometry || {};
+        return {
+          id: ann.id || Date.now() + Math.random(),
+          labelId: ann.label_id || ann.labelId,
+          x: (geom.x || 0) * imageSize.width,
+          y: (geom.y || 0) * imageSize.height,
+          width: (geom.width || 0) * imageSize.width,
+          height: (geom.height || 0) * imageSize.height
+        };
+      });
+      setAnnotations(scaled);
+    }
+  }, [imageLoaded, imageSize, rawAnnotations]);
 
   const handleImageLoad = (e) => {
     setImageSize({ width: e.target.naturalWidth, height: e.target.naturalHeight });
@@ -210,8 +248,95 @@ export default function AnnotatorWorkspace() {
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
 
+  const handleSave = async (submit = false) => {
+    try {
+      if (!imageSize.width || !imageSize.height) {
+        showToast('Image not fully loaded yet.', 'error');
+        return;
+      }
+
+      if (submit && annotations.length === 0) {
+        showToast('Please draw at least one bounding box before completing the task!', 'error');
+        return;
+      }
+      
+      const mappedAnnotations = annotations.map(ann => {
+        const xRatio = Math.max(0, Math.min(1, ann.x / imageSize.width));
+        const yRatio = Math.max(0, Math.min(1, ann.y / imageSize.height));
+        const wRatio = Math.max(0.0001, Math.min(1 - xRatio, ann.width / imageSize.width));
+        const hRatio = Math.max(0.0001, Math.min(1 - yRatio, ann.height / imageSize.height));
+        
+        return {
+          shape_type: 'BOUNDING_BOX',
+          label_id: ann.labelId,
+          geometry: {
+            x: xRatio,
+            y: yRatio,
+            width: wRatio,
+            height: hRatio
+          },
+          is_ai_generated: false
+        };
+      });
+
+      await saveTaskAnnotations(taskId, mappedAnnotations, submit);
+      if (submit) {
+        setIsCelebrated(true);
+      } else {
+        showToast('Progress saved successfully!', 'success');
+      }
+    } catch (err) {
+      console.error('Failed to save annotations:', err);
+      showToast(err.response?.data?.message || 'Failed to save annotations. Please try again.', 'error');
+    }
+  };
   return (
     <div className="dashboard-layout">
+      {toast && (
+        <div className={`toast-notification ${toast.type}`}>
+          <span className="toast-icon">
+            {toast.type === 'success' ? <Check size={14} /> : <X size={14} />}
+          </span>
+          <span className="toast-message">{toast.message}</span>
+        </div>
+      )}
+
+      {isCelebrated && (
+        <div className="celebration-overlay">
+          <div className="celebration-card">
+            <div className="sparkle-ring">
+              <div className="sparkle-dot s1"></div>
+              <div className="sparkle-dot s2"></div>
+              <div className="sparkle-dot s3"></div>
+              <div className="sparkle-dot s4"></div>
+              <div className="success-icon-wrapper">
+                <Check size={36} />
+              </div>
+            </div>
+            <h2 className="celebration-title">Task Completed!</h2>
+            <p className="celebration-subtitle">Image annotations submitted successfully!</p>
+            
+            <div className="celebration-stats">
+              <div className="stat-item">
+                <span className="stat-label">Bounding Boxes</span>
+                <span className="stat-value">{annotations.length}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Status</span>
+                <span className="stat-value status-done">Submitted</span>
+              </div>
+            </div>
+
+            <button 
+              className="btn btn--primary celebration-btn" 
+              onClick={() => navigate(`/annotator/projects/${projectId}/tasks`)}
+            >
+              Back to Tasks List
+            </button>
+          </div>
+        </div>
+      )}
+
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       <div className="dashboard-main">
         <Topbar
@@ -235,25 +360,8 @@ export default function AnnotatorWorkspace() {
                   </button>
                 </div>
                 {isLocked && (
-                  <div className="workspace-locked-badge" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    backgroundColor: '#fee2e2',
-                    color: '#ef4444',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    marginLeft: '12px',
-                    border: '1px solid #fca5a5'
-                  }}>
-                    <span style={{
-                      width: '8px',
-                      height: '8px',
-                      backgroundColor: '#ef4444',
-                      borderRadius: '50%'
-                    }}></span>
+                  <div className="workspace-locked-badge">
+                    <span className="locked-dot"></span>
                     <span>Completed (Read-Only)</span>
                   </div>
                 )}
@@ -293,7 +401,7 @@ export default function AnnotatorWorkspace() {
                   </button>
                   <button 
                     className="btn btn--success" 
-                    onClick={() => alert('Saved!')}
+                    onClick={() => handleSave(false)}
                     disabled={isLocked}
                   >
                     <Save size={16} style={{ marginRight: '8px' }} /> Save Progress
@@ -433,7 +541,15 @@ export default function AnnotatorWorkspace() {
                             >
                               <div className="ann-info" onClick={(e) => e.stopPropagation()}>
                                 <span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span>
-                                <span className="ann-name">{getLabelName(ann.labelId)}</span>
+                                <div className="ann-details">
+                                  <span className="ann-name">{getLabelName(ann.labelId)}</span>
+                                  <div className="ann-coords-grid">
+                                    <span className="coord-badge"><span className="coord-label">X</span>{(ann.x / (imageSize.width || 1)).toFixed(3)}</span>
+                                    <span className="coord-badge"><span className="coord-label">Y</span>{(ann.y / (imageSize.height || 1)).toFixed(3)}</span>
+                                    <span className="coord-badge"><span className="coord-label">W</span>{(ann.width / (imageSize.width || 1)).toFixed(3)}</span>
+                                    <span className="coord-badge"><span className="coord-label">H</span>{(ann.height / (imageSize.height || 1)).toFixed(3)}</span>
+                                  </div>
+                                </div>
                               </div>
                               {!isLocked && (
                                 <button 
@@ -453,7 +569,15 @@ export default function AnnotatorWorkspace() {
                       )}
                     </div>
                   </div>
-                  {/* Complete Task action button removed */}
+                  <div className="workspace-actions">
+                    <button 
+                      className="btn btn--primary btn--full" 
+                      onClick={() => handleSave(true)}
+                      disabled={isLocked || annotations.length === 0}
+                    >
+                      Complete Task
+                    </button>
+                  </div>
                 </div>
               </div>
             </React.Fragment>
