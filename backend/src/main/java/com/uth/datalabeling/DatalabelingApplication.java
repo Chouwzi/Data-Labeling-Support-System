@@ -10,11 +10,11 @@ import io.github.cdimascio.dotenv.Dotenv;
 @SpringBootApplication
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class DatalabelingApplication {
-
 	public static void main(String[] args) {
 		// Load .env
+		String envDir = new java.io.File(".env").exists() ? "./" : "./backend";
 		Dotenv dotenv = Dotenv.configure()
-				.directory("./backend")
+				.directory(envDir)
 				.ignoreIfMissing()
 				.load();
 

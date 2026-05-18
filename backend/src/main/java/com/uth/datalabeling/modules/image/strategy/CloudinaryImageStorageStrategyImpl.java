@@ -13,10 +13,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "storage.strategy.active", havingValue = "cloudinary")
 public class CloudinaryImageStorageStrategyImpl implements ImageStorageStrategy {
 
     private final Cloudinary cloudinary;

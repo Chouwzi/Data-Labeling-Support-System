@@ -8,7 +8,6 @@ import {
   getMyAssignedImages, 
   getProject,
   getAnnotations,
-  saveAnnotations,
   saveTaskAnnotations
 } from '@/services/api';
 import { 
@@ -97,6 +96,14 @@ export default function AnnotatorWorkspace() {
       }
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
+      
+      // If locked, block any annotation modifications (hotkeys, delete)
+      if (isLocked) {
+        if (['1','2','3','4','5','6','7','8','9','delete','backspace'].includes(e.key.toLowerCase())) {
+          return;
+        }
+      }
+
       const num = parseInt(e.key);
       if (num >= 1 && num <= 9) {
         const label = taskData.labels[num - 1];
@@ -116,7 +123,9 @@ export default function AnnotatorWorkspace() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBoxId, taskData.labels]);
+  }, [selectedBoxId, taskData.labels, isLocked]);
+
+  const [rawAnnotations, setRawAnnotations] = useState([]);
 
   const [rawAnnotations, setRawAnnotations] = useState([]);
 
@@ -293,6 +302,7 @@ export default function AnnotatorWorkspace() {
           <span className="toast-message">{toast.message}</span>
         </div>
       )}
+
       {isCelebrated && (
         <div className="celebration-overlay">
           <div className="celebration-card">
@@ -328,6 +338,7 @@ export default function AnnotatorWorkspace() {
           </div>
         </div>
       )}
+
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       <div className="dashboard-main">
         <Topbar
@@ -496,6 +507,7 @@ export default function AnnotatorWorkspace() {
                           key={label.id} 
                           className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} 
                           onClick={() => {
+                            if (isLocked) return;
                             setSelectedLabelId(label.id);
                             if (selectedBoxId) {
                               setAnnotations(prev => prev.map(ann => 
