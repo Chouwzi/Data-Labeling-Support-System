@@ -96,6 +96,14 @@ export default function AnnotatorWorkspace() {
       }
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
+      
+      // If locked, block any annotation modifications (hotkeys, delete)
+      if (isLocked) {
+        if (['1','2','3','4','5','6','7','8','9','delete','backspace'].includes(e.key.toLowerCase())) {
+          return;
+        }
+      }
+
       const num = parseInt(e.key);
       if (num >= 1 && num <= 9) {
         const label = taskData.labels[num - 1];
@@ -115,7 +123,11 @@ export default function AnnotatorWorkspace() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBoxId, taskData.labels]);
+  }, [selectedBoxId, taskData.labels, isLocked]);
+
+  const [rawAnnotations, setRawAnnotations] = useState([]);
+
+  const [rawAnnotations, setRawAnnotations] = useState([]);
 
   const [rawAnnotations, setRawAnnotations] = useState([]);
 
@@ -239,32 +251,6 @@ export default function AnnotatorWorkspace() {
 
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
-
-  const isValidAnnotation = (ann) => {
-    if (!ann || !imageSize.width || !imageSize.height) return false;
-    if (!ann.labelId) return false;
-    
-    // Boundary checks
-    if (ann.x < 0 || ann.y < 0) return false;
-    if (ann.width < 5 || ann.height < 5) return false;
-    
-    const xRatio = ann.x / imageSize.width;
-    const yRatio = ann.y / imageSize.height;
-    const wRatio = ann.width / imageSize.width;
-    const hRatio = ann.height / imageSize.height;
-    
-    // Normalized check
-    if (xRatio < 0 || xRatio > 1) return false;
-    if (yRatio < 0 || yRatio > 1) return false;
-    if (wRatio <= 0 || wRatio > 1) return false;
-    if (hRatio <= 0 || hRatio > 1) return false;
-    if (xRatio + wRatio > 1.001) return false;
-    if (yRatio + hRatio > 1.001) return false;
-    
-    return true;
-  };
-
-  const allAnnotationsValid = annotations.length > 0 && annotations.every(isValidAnnotation);
 
   const handleSave = async (submit = false) => {
     try {
@@ -538,6 +524,7 @@ export default function AnnotatorWorkspace() {
                           key={label.id} 
                           className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} 
                           onClick={() => {
+                            if (isLocked) return;
                             setSelectedLabelId(label.id);
                             if (selectedBoxId) {
                               setAnnotations(prev => prev.map(ann => 
@@ -575,10 +562,7 @@ export default function AnnotatorWorkspace() {
                               <div className="ann-info" onClick={(e) => e.stopPropagation()}>
                                 <span className="ann-color" style={{ backgroundColor: getLabelColor(ann.labelId) }}></span>
                                 <div className="ann-details">
-                                  <span className="ann-name">
-                                    {getLabelName(ann.labelId)}
-                                    {!valid && <span className="invalid-badge">Invalid</span>}
-                                  </span>
+                                  <span className="ann-name">{getLabelName(ann.labelId)}</span>
                                   <div className="ann-coords-grid">
                                     <span className="coord-badge"><span className="coord-label">X</span>{(ann.x / (imageSize.width || 1)).toFixed(3)}</span>
                                     <span className="coord-badge"><span className="coord-label">Y</span>{(ann.y / (imageSize.height || 1)).toFixed(3)}</span>
@@ -609,7 +593,7 @@ export default function AnnotatorWorkspace() {
                     <button 
                       className="btn btn--primary btn--full" 
                       onClick={() => handleSave(true)}
-                      disabled={isLocked || !allAnnotationsValid}
+                      disabled={isLocked || annotations.length === 0}
                     >
                       Complete Task
                     </button>
