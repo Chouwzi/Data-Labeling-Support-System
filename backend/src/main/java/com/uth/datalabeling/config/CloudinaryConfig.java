@@ -12,7 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 @ConditionalOnProperty(name = "storage.strategy.active", havingValue = "cloudinary")
 public class CloudinaryConfig {
 
-    @org.springframework.beans.factory.annotation.Value("${CLOUDINARY_URL:}")
+    @org.springframework.beans.factory.annotation.Value("${cloudinary.url}")
     private String cloudinaryUrl;
 
     @Bean
