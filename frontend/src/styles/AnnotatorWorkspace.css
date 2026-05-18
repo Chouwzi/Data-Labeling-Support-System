@@ -300,8 +300,51 @@
 
 .ann-name {
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
+}
+
+.ann-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ann-coords-grid {
+  display: flex;
+  gap: 4px;
+  margin-top: 4.5px;
+  flex-wrap: wrap;
+}
+
+.coord-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-family: monospace;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.annotation-item.selected .coord-badge {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+.coord-label {
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.annotation-item.selected .coord-label {
+  color: #0284c7;
 }
 
 .delete-ann-btn {

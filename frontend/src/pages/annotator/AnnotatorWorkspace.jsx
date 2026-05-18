@@ -127,6 +127,8 @@ export default function AnnotatorWorkspace() {
 
   const [rawAnnotations, setRawAnnotations] = useState([]);
 
+  const [rawAnnotations, setRawAnnotations] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
