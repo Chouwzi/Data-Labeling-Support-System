@@ -272,29 +272,6 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                               <FolderPlus size={13} style={{ color: '#6b7280' }} />
                               Upload Images
                             </button>
-                            <button
-                              type="button"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                width: '100%',
-                                padding: '0.5rem 0.75rem',
-                                border: 'none',
-                                background: 'transparent',
-                                fontSize: '0.8125rem',
-                                color: '#374151',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                transition: 'background-color 0.15s ease'
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate('/manager/reports')}
-                            >
-                              <AlignLeft size={13} style={{ color: '#6b7280' }} />
-                              Progress Report
-                            </button>
                           </div>
                         )}
                       </div>

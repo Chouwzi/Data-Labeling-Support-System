@@ -388,7 +388,9 @@
   background-color: currentColor;
 }
 
-.status-badge--in-progress .status-badge__dot {
+.status-badge--in-progress .status-badge__dot,
+.status-badge__dot--in_progress,
+.status-badge__dot--in-progress {
   animation: pulse-dot 1.5s ease-in-out infinite;
 }
 

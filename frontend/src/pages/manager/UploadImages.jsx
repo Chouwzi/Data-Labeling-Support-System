@@ -39,6 +39,7 @@ export default function UploadImages() {
 
   const [projectId, setProjectId] = useState('');
   const [projectsList, setProjectsList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -253,6 +254,10 @@ export default function UploadImages() {
   const userName = user?.fullName || user?.email || 'Manager';
   const userRole = user?.role === 'MANAGER' ? 'Lead Curator' : (user?.role || 'MANAGER');
 
+  const filteredProjects = projectsList.filter(p =>
+    !searchQuery.trim() || p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="manager-layout">
       <ManagerSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
@@ -262,6 +267,8 @@ export default function UploadImages() {
           userName={userName}
           userRole={userRole}
           searchPlaceholder="Search projects..."
+          searchValue={searchQuery}
+          onSearch={setSearchQuery}
           showCenterLinks
           onMenuClick={toggleSidebar}
           onLogout={handleLogout}
@@ -325,7 +332,7 @@ export default function UploadImages() {
                         listStyle: 'none'
                       }}
                     >
-                      {projectsList.map(p => (
+                      {filteredProjects.map(p => (
                         <li 
                           key={p.id}
                           onClick={() => { setProjectId(p.id); setIsDropdownOpen(false); }}

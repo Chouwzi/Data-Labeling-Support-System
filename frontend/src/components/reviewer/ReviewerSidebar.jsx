@@ -5,7 +5,6 @@ import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/reviewer' },
-  { id: 'pending', label: 'Pending Review', icon: ClipboardCheck, path: '/reviewer/pending' },
   { id: 'completed', label: 'Completed', icon: CheckSquare, path: '/reviewer/completed' },
 ];
 

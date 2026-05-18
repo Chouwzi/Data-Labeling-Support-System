@@ -667,3 +667,146 @@
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
+
+/* =============================================
+   DYNAMIC GRID OVERLAY AND SLEEK DARK THEME
+   ============================================= */
+
+.grid-overlay-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(to right, rgba(0, 108, 81, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 108, 81, 0.08) 1px, transparent 1px);
+  background-size: 30px 30px;
+  z-index: 1;
+}
+
+/* Dark Mode Theme Overrides */
+.theme-dark .workspace-main {
+  background-color: #0f172a;
+}
+
+.theme-dark .workspace-toolbar {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+  color: #f8fafc;
+}
+
+.theme-dark .workspace-toolbar h2,
+.theme-dark .workspace-toolbar span,
+.theme-dark .workspace-toolbar button {
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-toolbar .tool-btn:hover {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+.theme-dark .workspace-toolbar .tool-btn.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.theme-dark .canvas-wrapper {
+  background-color: #0f172a;
+}
+
+.theme-dark .canvas-container {
+  background-color: #1e293b;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+}
+
+.theme-dark .workspace-sidebar {
+  background-color: #1e293b;
+  border-left-color: #334155;
+  color: #f8fafc;
+}
+
+.theme-dark .workspace-sidebar .section-title {
+  color: #94a3b8;
+}
+
+.theme-dark .workspace-sidebar .info-card {
+  background-color: #0f172a;
+  border-color: #334155;
+}
+
+.theme-dark .workspace-sidebar .info-value {
+  color: #f8fafc;
+}
+
+.theme-dark .workspace-sidebar .label-option {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.theme-dark .workspace-sidebar .label-option:hover {
+  background-color: #334155;
+}
+
+.theme-dark .workspace-sidebar .label-option.active {
+  background-color: var(--label-color);
+  border-color: var(--label-color);
+}
+
+.theme-dark .workspace-sidebar .label-text {
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-sidebar .label-option.active .label-text {
+  color: #ffffff;
+}
+
+.theme-dark .workspace-sidebar .label-hotkey {
+  background-color: #0f172a;
+  color: #64748b;
+}
+
+.theme-dark .workspace-sidebar .annotation-item {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-sidebar .annotation-item:hover {
+  background-color: #334155;
+}
+
+.theme-dark .workspace-sidebar .annotation-item.selected {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+.theme-dark .workspace-sidebar .ann-name {
+  color: #f8fafc;
+}
+
+.theme-dark .workspace-sidebar .coord-badge {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.theme-dark .workspace-sidebar .delete-ann-btn {
+  color: #64748b;
+}
+
+.theme-dark .workspace-sidebar .delete-ann-btn:hover {
+  color: #f87171;
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+.theme-dark .workspace-actions {
+  background-color: #1e293b;
+  border-top-color: #334155;
+}
+
+

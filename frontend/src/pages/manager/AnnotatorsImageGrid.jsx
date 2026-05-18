@@ -28,6 +28,7 @@ export default function AnnotatorsImageGrid() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [projects, setProjects] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   
   console.log('Rendering AnnotatorsImageGrid', { projects, sidebarOpen });
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -307,7 +308,10 @@ export default function AnnotatorsImageGrid() {
 
   /* ── Derived ──────────────────────────────────────────────── */
 
-  const displayedImages = images.filter((img) => img.status === activeTab);
+  const displayedImages = images.filter((img) => 
+    img.status === activeTab &&
+    (!searchQuery.trim() || img.fileName?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
   const selectedCount = selectedImageIds.length;
   const totalCount = displayedImages.length;
   const hasSelection = selectedCount > 0 && activeTab === 'unassigned';
@@ -327,6 +331,8 @@ export default function AnnotatorsImageGrid() {
           userName={userName}
           userRole={userRole}
           searchPlaceholder="Search images..."
+          searchValue={searchQuery}
+          onSearch={setSearchQuery}
           showCenterLinks
           onMenuClick={toggleSidebar}
           onLogout={handleLogout}

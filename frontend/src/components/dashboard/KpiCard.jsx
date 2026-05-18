@@ -75,13 +75,13 @@ export default function KpiCard({
   }
 
   return (
-    <div className={`kpi-card kpi-card--summary ${trend ? 'kpi-card--with-trend' : ''} ${compact ? 'kpi-card--compact' : ''}`}>
+    <div className={`kpi-card kpi-card--summary kpi-card--variant-${variant} ${trend ? 'kpi-card--with-trend' : ''} ${compact ? 'kpi-card--compact' : ''}`}>
       <div className="kpi-card__header">
         <div className="kpi-card__icon">
-          <IconComponent size={20} />
+          <IconComponent size={22} strokeWidth={2.5} />
         </div>
         {trend && (
-          <span className="kpi-card__trend">{trend} this week</span>
+          <span className="kpi-card__trend">{trend}</span>
         )}
       </div>
       <p className="kpi-card__label">{title}</p>

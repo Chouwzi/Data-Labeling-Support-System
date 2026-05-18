@@ -71,6 +71,7 @@ export default function LabelTaxonomy() {
   console.log("Current Project ID:", projectId);
   const [projectsList, setProjectsList] = useState([]);
   const [labels, setLabels] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formName, setFormName] = useState('');
   const [formHex, setFormHex] = useState('#006C51');
   const [nameError, setNameError] = useState('');
@@ -260,6 +261,10 @@ export default function LabelTaxonomy() {
     }
   };
 
+  const filteredLabels = labels.filter((label) =>
+    !searchQuery.trim() || label.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const userName = user?.fullName || user?.email || 'Manager';
   const userRole = user?.role === 'MANAGER' ? 'Lead Curator' : user?.role || 'MANAGER';
 
@@ -271,7 +276,9 @@ export default function LabelTaxonomy() {
         <Topbar
           userName={userName}
           userRole={userRole}
-          searchPlaceholder="Search projects..."
+          searchPlaceholder="Search labels..."
+          searchValue={searchQuery}
+          onSearch={setSearchQuery}
           showCenterLinks
           onMenuClick={toggleSidebar}
           onLogout={handleLogout}
@@ -462,13 +469,13 @@ export default function LabelTaxonomy() {
                       </div>
                       <div className="label-taxonomy-catalog__stats">
                         <div className="label-taxonomy-stat-pill">
-                          <span className="label-taxonomy-stat-pill__num">{labels.length}</span>
+                          <span className="label-taxonomy-stat-pill__num">{filteredLabels.length}</span>
                           <span className="label-taxonomy-stat-pill__text">Labels</span>
                         </div>
                       </div>
                     </div>
 
-                    {labels.length === 0 ? (
+                    {filteredLabels.length === 0 ? (
                       <div className="label-taxonomy-empty">
                         <div className="label-taxonomy-empty__icon" aria-hidden="true">
                           <Tag size={40} strokeWidth={1.25} className="label-taxonomy-empty__svg" />
@@ -481,16 +488,16 @@ export default function LabelTaxonomy() {
                     ) : (
                       <div className="label-taxonomy-table-container">
                         <table className="label-taxonomy-table" role="table">
-                          <thead>
-                            <tr>
-                              <th scope="col" className="label-taxonomy-table__th--label">Label</th>
-                              <th scope="col" className="label-taxonomy-table__th--color">Color</th>
-                              <th scope="col" className="label-taxonomy-table__th--usage">Usage</th>
-                              <th scope="col" className="label-taxonomy-table__th--actions">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {labels.map((label) =>
+                           <thead>
+                             <tr>
+                               <th scope="col" className="label-taxonomy-table__th--label">Label</th>
+                               <th scope="col" className="label-taxonomy-table__th--color">Color</th>
+                               <th scope="col" className="label-taxonomy-table__th--usage">Usage</th>
+                               <th scope="col" className="label-taxonomy-table__th--actions">Actions</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {filteredLabels.map((label) =>
                               editingId === label.id ? (
                                 <tr key={label.id} className="label-taxonomy-table__edit-row">
                                   <td colSpan={4}>
@@ -636,7 +643,7 @@ export default function LabelTaxonomy() {
                       </div>
                     )}
 
-                    {labels.length > 0 && (
+                    {filteredLabels.length > 0 && (
                       <div className="label-taxonomy-catalog__footer">
                         <ChevronRight size={14} aria-hidden="true" />
                         <span>

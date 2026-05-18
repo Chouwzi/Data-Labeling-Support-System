@@ -3,21 +3,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import Topbar from '@/components/common/Topbar';
-import { 
-  getLabelsByProject, 
-  getMyAssignedImages, 
+import {
+  getLabelsByProject,
+  getMyAssignedImages,
   getProject,
   getAnnotations,
   saveTaskAnnotations
 } from '@/services/api';
-import { 
-  ArrowLeft, 
-  Check, 
-  X, 
-  Trash2, 
-  MousePointer2, 
-  Square, 
-  Save, 
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Trash2,
+  MousePointer2,
+  Square,
+  Save,
   RotateCcw,
   ZoomIn,
   ZoomOut,
@@ -30,7 +30,7 @@ export default function AnnotatorWorkspace() {
   const { projectId, taskId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTool, setActiveTool] = useState('draw');
   const [annotations, setAnnotations] = useState([]);
@@ -44,8 +44,47 @@ export default function AnnotatorWorkspace() {
   const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
   const [isCelebrated, setIsCelebrated] = useState(false);
 
+  const [workspaceSettings, setWorkspaceSettings] = useState({
+    strokeWidth: 'medium',
+    borderStyle: 'solid',
+    gridOverlay: false,
+    themeMode: 'light',
+    autoSave: true
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('annotator_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setWorkspaceSettings(prev => ({ ...prev, ...parsed }));
+        if (parsed.activeTool) {
+          setActiveTool(parsed.activeTool);
+        }
+      } catch (e) {
+        console.warn('Could not parse workspace settings', e);
+      }
+    }
+  }, []);
+
+  const getStrokeWidth = () => {
+    const base = workspaceSettings.strokeWidth === 'thin' ? 1 : (workspaceSettings.strokeWidth === 'thick' ? 3.5 : 2);
+    return base / zoomLevel;
+  };
+
+  const getStrokeDasharray = (ann) => {
+    if (!isValidAnnotation(ann)) {
+      return `${5 / zoomLevel},${5 / zoomLevel}`;
+    }
+    return workspaceSettings.borderStyle === 'dashed' ? `${6 / zoomLevel},${4 / zoomLevel}` : 'none';
+  };
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
+  };
+
+  const isValidAnnotation = (ann) => {
+    return ann && ann.width > 2 && ann.height > 2 && ann.labelId;
   };
 
   useEffect(() => {
@@ -54,7 +93,7 @@ export default function AnnotatorWorkspace() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
-  
+
   const containerRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -81,25 +120,25 @@ export default function AnnotatorWorkspace() {
       return `/api/v1/uploads/${relativePath}`;
     }
     const fileName = normalizedUrl.split('/').pop();
-    return `/api/v1/uploads/${fileName}`; 
+    return `/api/v1/uploads/${fileName}`;
   };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Prevent shortcut interference when typing inside input/select elements
       if (
-        e.target.tagName === 'INPUT' || 
-        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
         e.target.tagName === 'SELECT'
       ) {
         return;
       }
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
-      
+
       // If locked, block any annotation modifications (hotkeys, delete)
       if (isLocked) {
-        if (['1','2','3','4','5','6','7','8','9','delete','backspace'].includes(e.key.toLowerCase())) {
+        if (['1', '2', '3', '4', '5', '6', '7', '8', '9', 'delete', 'backspace'].includes(e.key.toLowerCase())) {
           return;
         }
       }
@@ -111,7 +150,7 @@ export default function AnnotatorWorkspace() {
           setSelectedLabelId(label.id);
           // If a box is selected, update its label too
           if (selectedBoxId) {
-            setAnnotations(prev => prev.map(ann => 
+            setAnnotations(prev => prev.map(ann =>
               ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
             ));
           }
@@ -124,10 +163,6 @@ export default function AnnotatorWorkspace() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedBoxId, taskData.labels, isLocked]);
-
-  const [rawAnnotations, setRawAnnotations] = useState([]);
-
-  const [rawAnnotations, setRawAnnotations] = useState([]);
 
   const [rawAnnotations, setRawAnnotations] = useState([]);
 
@@ -212,8 +247,8 @@ export default function AnnotatorWorkspace() {
     if (activeTool !== 'draw' || !imageLoaded || isLocked) {
       // Clear selection when clicking empty area or image in select mode or when locked
       if (
-        e.target === imageRef.current || 
-        e.target.tagName === 'svg' || 
+        e.target === imageRef.current ||
+        e.target.tagName === 'svg' ||
         e.target.classList.contains('annotation-svg')
       ) {
         setSelectedBoxId(null);
@@ -252,10 +287,10 @@ export default function AnnotatorWorkspace() {
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
 
-  const handleSave = async (submit = false) => {
+  const handleSave = async (submit = false, silent = false) => {
     try {
       if (!imageSize.width || !imageSize.height) {
-        showToast('Image not fully loaded yet.', 'error');
+        if (!silent) showToast('Image not fully loaded yet.', 'error');
         return;
       }
 
@@ -263,13 +298,13 @@ export default function AnnotatorWorkspace() {
         showToast('Please draw at least one bounding box before completing the task!', 'error');
         return;
       }
-      
+
       const mappedAnnotations = annotations.map(ann => {
         const xRatio = Math.max(0, Math.min(1, ann.x / imageSize.width));
         const yRatio = Math.max(0, Math.min(1, ann.y / imageSize.height));
         const wRatio = Math.max(0.0001, Math.min(1 - xRatio, ann.width / imageSize.width));
         const hRatio = Math.max(0.0001, Math.min(1 - yRatio, ann.height / imageSize.height));
-        
+
         return {
           shape_type: 'BOUNDING_BOX',
           label_id: ann.labelId,
@@ -286,16 +321,27 @@ export default function AnnotatorWorkspace() {
       await saveTaskAnnotations(taskId, mappedAnnotations, submit);
       if (submit) {
         setIsCelebrated(true);
-      } else {
+      } else if (!silent) {
         showToast('Progress saved successfully!', 'success');
       }
     } catch (err) {
       console.error('Failed to save annotations:', err);
-      showToast(err.response?.data?.message || 'Failed to save annotations. Please try again.', 'error');
+      if (!silent) {
+        showToast(err.response?.data?.message || 'Failed to save annotations. Please try again.', 'error');
+      }
     }
   };
+
+  useEffect(() => {
+    if (workspaceSettings.autoSave && taskId && annotations.length > 0 && !isLocked) {
+      const interval = setInterval(() => {
+        handleSave(false, true); // save silently
+      }, 120000); // every 2 minutes
+      return () => clearInterval(interval);
+    }
+  }, [workspaceSettings.autoSave, annotations, taskId, isLocked]);
   return (
-    <div className="dashboard-layout">
+    <div className={`dashboard-layout ${workspaceSettings.themeMode === 'dark' ? 'theme-dark' : ''}`}>
       {toast && (
         <div className={`toast-notification ${toast.type}`}>
           <span className="toast-icon">
@@ -319,7 +365,7 @@ export default function AnnotatorWorkspace() {
             </div>
             <h2 className="celebration-title">Task Completed!</h2>
             <p className="celebration-subtitle">Image annotations submitted successfully!</p>
-            
+
             <div className="celebration-stats">
               <div className="stat-item">
                 <span className="stat-label">Bounding Boxes</span>
@@ -331,8 +377,8 @@ export default function AnnotatorWorkspace() {
               </div>
             </div>
 
-            <button 
-              className="btn btn--primary celebration-btn" 
+            <button
+              className="btn btn--primary celebration-btn"
               onClick={() => navigate(`/annotator/projects/${projectId}/tasks`)}
             >
               Back to Tasks List
@@ -371,8 +417,8 @@ export default function AnnotatorWorkspace() {
                 )}
                 <div className="toolbar-divider" />
                 <div className="toolbar-group">
-                  <button 
-                    className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`} 
+                  <button
+                    className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`}
                     onClick={() => {
                       setActiveTool('draw');
                       setSelectedBoxId(null);
@@ -396,15 +442,15 @@ export default function AnnotatorWorkspace() {
                 </div>
                 <div className="toolbar-spacer" />
                 <div className="toolbar-group">
-                  <button 
-                    className="btn btn--secondary" 
+                  <button
+                    className="btn btn--secondary"
                     onClick={() => setAnnotations([])}
                     disabled={isLocked}
                   >
                     <RotateCcw size={16} style={{ marginRight: '8px' }} /> Reset
                   </button>
-                  <button 
-                    className="btn btn--success" 
+                  <button
+                    className="btn btn--success"
                     onClick={() => handleSave(false)}
                     disabled={isLocked}
                   >
@@ -415,7 +461,7 @@ export default function AnnotatorWorkspace() {
 
               <div className="workspace-container">
                 <div className="canvas-wrapper">
-                  <div 
+                  <div
                     className={`canvas-container ${activeTool === 'draw' ? 'crosshair' : ''}`}
                     ref={containerRef}
                     onMouseDown={handleMouseDown}
@@ -427,10 +473,10 @@ export default function AnnotatorWorkspace() {
                       flexShrink: 0
                     }}
                   >
-                    <img 
+                    <img
                       ref={imageRef}
-                      src={taskData.imageUrl} 
-                      alt={taskData.fileName} 
+                      src={taskData.imageUrl}
+                      alt={taskData.fileName}
                       onLoad={handleImageLoad}
                       className="workspace-image"
                       draggable={false}
@@ -439,8 +485,8 @@ export default function AnnotatorWorkspace() {
                         height: '100%'
                       }}
                     />
-                    <svg 
-                      className="annotation-svg" 
+                    <svg
+                      className="annotation-svg"
                       viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
                       onClick={() => setSelectedBoxId(null)} // Clear selection when clicking empty area
                       style={{
@@ -449,41 +495,41 @@ export default function AnnotatorWorkspace() {
                       }}
                     >
                       {annotations.map((ann) => (
-                        <g 
-                          key={ann.id} 
-                          className={`annotation-group ${selectedBoxId === ann.id ? 'selected' : ''}`} 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setSelectedBoxId(ann.id); 
-                            setSelectedLabelId(ann.labelId); 
-                            setActiveTool('select'); 
+                        <g
+                          key={ann.id}
+                          className={`annotation-group ${selectedBoxId === ann.id ? 'selected' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBoxId(ann.id);
+                            setSelectedLabelId(ann.labelId);
+                            setActiveTool('select');
                           }}
                         >
-                          <rect 
-                            x={ann.x} 
-                            y={ann.y} 
-                            width={ann.width} 
-                            height={ann.height} 
+                          <rect
+                            x={ann.x}
+                            y={ann.y}
+                            width={ann.width}
+                            height={ann.height}
                             fill={selectedBoxId === ann.id ? `${getLabelColor(ann.labelId)}40` : `${getLabelColor(ann.labelId)}20`}
-                            stroke={isValidAnnotation(ann) ? getLabelColor(ann.labelId) : '#ef4444'} 
-                            strokeWidth={2 / zoomLevel} 
+                            stroke={isValidAnnotation(ann) ? getLabelColor(ann.labelId) : '#ef4444'}
+                            strokeWidth={2 / zoomLevel}
                             strokeDasharray={isValidAnnotation(ann) ? 'none' : `${5 / zoomLevel},${5 / zoomLevel}`}
                             className={`bbox-rect ${!isValidAnnotation(ann) ? 'bbox-invalid' : ''}`}
                             style={{ pointerEvents: 'all', cursor: 'pointer' }}
                           />
                           <g className="bbox-label" style={{ pointerEvents: 'none' }}>
-                            <rect 
-                              x={ann.x} 
-                              y={ann.y - 20 / zoomLevel} 
-                              width={(isValidAnnotation(ann) ? 80 : 130) / zoomLevel} 
-                              height={20 / zoomLevel} 
-                              fill={isValidAnnotation(ann) ? getLabelColor(ann.labelId) : '#ef4444'} 
+                            <rect
+                              x={ann.x}
+                              y={ann.y - 20 / zoomLevel}
+                              width={(isValidAnnotation(ann) ? 80 : 130) / zoomLevel}
+                              height={20 / zoomLevel}
+                              fill={isValidAnnotation(ann) ? getLabelColor(ann.labelId) : '#ef4444'}
                             />
-                            <text 
-                              x={ann.x + 4 / zoomLevel} 
-                              y={ann.y - 5 / zoomLevel} 
-                              fill="white" 
-                              fontSize={11 / zoomLevel} 
+                            <text
+                              x={ann.x + 4 / zoomLevel}
+                              y={ann.y - 5 / zoomLevel}
+                              fill="white"
+                              fontSize={11 / zoomLevel}
                               fontWeight="bold"
                             >
                               {getLabelName(ann.labelId)}{!isValidAnnotation(ann) && ' (Invalid)'}
@@ -500,7 +546,7 @@ export default function AnnotatorWorkspace() {
                           fill={`${getLabelColor(selectedLabelId)}20`}
                           stroke={getLabelColor(selectedLabelId)}
                           strokeWidth={2 / zoomLevel}
-                          strokeDasharray={`${5/zoomLevel},${5/zoomLevel}`}
+                          strokeDasharray={`${5 / zoomLevel},${5 / zoomLevel}`}
                         />
                       )}
                     </svg>
@@ -520,18 +566,18 @@ export default function AnnotatorWorkspace() {
                     <h3 className="section-title">Labels</h3>
                     <div className="label-selector">
                       {taskData.labels.map((label, index) => (
-                        <button 
-                          key={label.id} 
-                          className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`} 
+                        <button
+                          key={label.id}
+                          className={`label-option ${selectedLabelId === label.id ? 'active' : ''}`}
                           onClick={() => {
                             if (isLocked) return;
                             setSelectedLabelId(label.id);
                             if (selectedBoxId) {
-                              setAnnotations(prev => prev.map(ann => 
+                              setAnnotations(prev => prev.map(ann =>
                                 ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
                               ));
                             }
-                          }} 
+                          }}
                           style={{ '--label-color': label.color }}
                         >
                           <span className="color-dot" style={{ backgroundColor: label.color }}></span>
@@ -551,9 +597,9 @@ export default function AnnotatorWorkspace() {
                           const isSelected = selectedBoxId === ann.id;
                           const valid = isValidAnnotation(ann);
                           return (
-                            <div 
-                              key={ann.id} 
-                              className={`annotation-item ${isSelected ? 'selected' : ''} ${!valid ? 'invalid-ann' : ''}`} 
+                            <div
+                              key={ann.id}
+                              className={`annotation-item ${isSelected ? 'selected' : ''} ${!valid ? 'invalid-ann' : ''}`}
                               onClick={() => {
                                 setSelectedBoxId(ann.id);
                                 setSelectedLabelId(ann.labelId);
@@ -572,11 +618,11 @@ export default function AnnotatorWorkspace() {
                                 </div>
                               </div>
                               {!isLocked && (
-                                <button 
-                                  className="delete-ann-btn" 
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    setAnnotations(prev => prev.filter(a => a.id !== ann.id)); 
+                                <button
+                                  className="delete-ann-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAnnotations(prev => prev.filter(a => a.id !== ann.id));
                                     if (selectedBoxId === ann.id) setSelectedBoxId(null);
                                   }}
                                 >
@@ -590,8 +636,8 @@ export default function AnnotatorWorkspace() {
                     </div>
                   </div>
                   <div className="workspace-actions">
-                    <button 
-                      className="btn btn--primary btn--full" 
+                    <button
+                      className="btn btn--primary btn--full"
                       onClick={() => handleSave(true)}
                       disabled={isLocked || annotations.length === 0}
                     >

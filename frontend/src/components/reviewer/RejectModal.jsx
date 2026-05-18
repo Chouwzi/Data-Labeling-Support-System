@@ -1,40 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import '@/styles/ReviewerDashboard.css'; // Use centralized styles
-
-const ERROR_CATEGORIES = [
-  'Wrong Label',
-  'Inaccurate Bounding Box',
-  'Bounding Box Too Large',
-  'Missing Object',
-  'Duplicate Annotation',
-  'Incorrect Polygon',
-  'Low Image Quality',
-];
+import { getDefectCategories } from '@/services/api';
+import '@/styles/ReviewerDashboard.css';
 
 export default function RejectModal({ onClose, onConfirm }) {
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const handleToggleCategory = (category) => {
-    setError('');
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
-  };
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const res = await getDefectCategories();
+        const data = res.data?.result || [];
+        setCategories(data);
+        if (data.length > 0) {
+          setSelectedCategoryId(data[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load defect categories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (selectedCategories.length === 0) {
-      setError('Please select at least one error category.');
+    if (!selectedCategoryId) {
+      setError('Please select an error category.');
+      return;
+    }
+    if (!note.trim()) {
+      setError('Please enter a detailed rejection note.');
       return;
     }
     
     onConfirm({
-      categories: selectedCategories,
+      defectCategoryId: selectedCategoryId,
       note: note.trim()
     });
   };
@@ -52,19 +59,26 @@ export default function RejectModal({ onClose, onConfirm }) {
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-group">
-              <label className="form-label">Error Categories (Select at least 1):</label>
-              <div className="category-grid">
-                {ERROR_CATEGORIES.map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    className={`category-chip ${selectedCategories.includes(category) ? 'category-chip--active' : ''}`}
-                    onClick={() => handleToggleCategory(category)}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
+              <label className="form-label">Error Category (Select 1):</label>
+              {loading ? (
+                <div style={{ padding: '10px 0', color: '#64748b' }}>Loading categories...</div>
+              ) : (
+                <div className="category-grid">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className={`category-chip ${selectedCategoryId === category.id ? 'category-chip--active' : ''}`}
+                      onClick={() => {
+                        setError('');
+                        setSelectedCategoryId(category.id);
+                      }}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="form-group" style={{ marginTop: '20px' }}>
@@ -76,6 +90,7 @@ export default function RejectModal({ onClose, onConfirm }) {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={500}
+                required
               />
               <div className="textarea-footer">
                 <span className="char-counter">{note.length}/500</span>

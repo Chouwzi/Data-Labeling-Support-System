@@ -11,6 +11,7 @@ import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
 import AnnotatorTasks from '@/pages/annotator/AnnotatorTasks';
+import AnnotatorSettings from '@/pages/annotator/AnnotatorSettings';
 import ReviewerDashboard from '@/pages/reviewer/ReviewerDashboard';
 import ReviewWorkspace from '@/pages/reviewer/ReviewWorkspace';
 import AnnotatorWorkspace from '@/pages/annotator/AnnotatorWorkspace';
@@ -198,6 +199,14 @@ function App() {
         }
       />
       <Route
+        path="/annotator/settings"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/annotator/projects/:projectId/tasks"
         element={
           <ProtectedRoute allowedRoles={['ANNOTATOR']}>
@@ -215,6 +224,14 @@ function App() {
       />
       <Route
         path="/reviewer"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/completed"
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>
             <ReviewerDashboard />

@@ -1,11 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Settings, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/annotator' },
-  { id: 'guidelines', label: 'Guidelines', icon: BookOpen, path: '/annotator/guidelines' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/annotator/settings' },
 ];
 
