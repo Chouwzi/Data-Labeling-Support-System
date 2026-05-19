@@ -133,7 +133,7 @@ export const getLogs = (page = 0, size = 20) =>
 // Projects
 // =====================
 export const getProjects = () => api.get('/projects', { params: { size: 1000, sort: 'createdAt,desc' } });
-export const getMyProjects = () => api.get('/me/projects', { params: { size: 1000, sort: 'createdAt,desc' } });
+export const getMyProjects = () => api.get('/me/projects', { params: { size: 1000 } });
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
 export const getTasks = (projectId, status) =>
@@ -211,5 +211,30 @@ export const getAnnotations = (taskId) =>
 
 export const saveTaskAnnotations = (taskId, annotations, submit = false) =>
   api.put(`/tasks/${taskId}/annotations`, { annotations, submit });
+
+// =====================
+// Reviewer API Services
+// =====================
+export const getReviewQueueImages = (projectId, page = 0, size = 100) =>
+  api.get('/review-queue/images', {
+    params: { projectId, page, size }
+  });
+
+export const getCompletedReviewImages = (projectId, page = 0, size = 100) =>
+  api.get('/review-queue/completed', {
+    params: { projectId, page, size }
+  });
+
+export const approveReviewImage = (taskId) =>
+  api.post(`/review-queue/images/${taskId}/approve`);
+
+export const rejectReviewImage = (taskId, defectCategoryId, comments) =>
+  api.post(`/review-queue/images/${taskId}/reject`, {
+    defect_category_id: defectCategoryId,
+    comments: comments
+  });
+
+export const getDefectCategories = () =>
+  api.get('/defect-categories');
 
 export default api;

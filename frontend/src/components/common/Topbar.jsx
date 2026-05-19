@@ -21,6 +21,103 @@ export default function Topbar({
   const [helpOpen, setHelpOpen] = useState(false);
   const [supportForm, setSupportForm] = useState({ name: '', email: '', category: 'bug', desc: '' });
   const [supportSubmitted, setSupportSubmitted] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const { getLogs, getUsers } = await import('@/services/api');
+        const [logsRes, usersRes] = await Promise.all([
+          getLogs(0, 5).catch(() => ({ data: { result: [] } })),
+          getUsers().catch(() => ({ data: { result: [] } }))
+        ]);
+        const logsList = Array.isArray(logsRes.data?.result)
+          ? logsRes.data.result
+          : Array.isArray(logsRes.data)
+          ? logsRes.data
+          : [];
+        const usersList = usersRes.data?.result || [];
+        const userMap = {};
+        usersList.forEach(u => {
+          userMap[u.id] = u.fullName || u.email || 'System User';
+        });
+
+        const mapped = logsList.slice(0, 5).map((log, index) => {
+          let type = 'info';
+          let iconChar = 'i';
+          if (log.action?.includes('CREATE')) {
+            type = 'success';
+            iconChar = '✓';
+          } else if (log.action?.includes('DELETE') || log.action?.includes('ERROR')) {
+            type = 'warning';
+            iconChar = '!';
+          }
+          
+          const uName = userMap[log.userId] || 'System User';
+          
+          const actionTextMap = {
+            CREATE_PROJECT: 'created a new project',
+            VIEW_ALL_PROJECTS: 'viewed all projects',
+            VIEW_PROJECT: 'viewed project details',
+            UPDATE_PROJECT: 'updated a project',
+            DELETE_PROJECT: 'deleted a project',
+            VIEW_AUDIT_LOGS: 'viewed system audit logs',
+            UPDATE_ROLE: 'updated user role',
+            TOGGLE_STATUS: 'toggled user status',
+          };
+          const formattedAction = actionTextMap[log.action] || `performed ${log.action?.toLowerCase().replace(/_/g, ' ')}`;
+
+          const dateVal = log.createdAt;
+          const parseDate = (dVal) => {
+            if (!dVal) return new Date();
+            try {
+              if (Array.isArray(dateVal)) {
+                const [y, m, d, h = 0, min = 0, s = 0] = dateVal;
+                return new Date(y, m - 1, d, h, min, s);
+              }
+              return new Date(dateVal);
+            } catch {
+              return new Date();
+            }
+          };
+          const dateObj = parseDate(dateVal);
+          const formatTimeAgo = (date) => {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return 'Just now';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+          };
+
+          return {
+            id: log.id || `notif-${index}`,
+            type,
+            iconChar,
+            message: `${uName} ${formattedAction}`,
+            time: formatTimeAgo(dateObj),
+            unread: index < 2
+          };
+        });
+        setNotifications(mapped);
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+    
+    if (localStorage.getItem('accessToken')) {
+      fetchNotifs();
+      const interval = setInterval(fetchNotifs, 10000);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+  };
 
   const menuRef = useRef(null);
   const notifRef = useRef(null);
@@ -45,6 +142,7 @@ export default function Topbar({
 
   const handleProfile = () => {
     setMenuOpen(false);
+    setProfileOpen(true);
   };
 
   return (
@@ -101,37 +199,33 @@ export default function Topbar({
                 onClick={() => setNotifOpen(!notifOpen)}
               >
                 <Bell size={20} />
-                <span className="topbar__notification-dot" aria-hidden="true" />
+                {notifications.some(n => n.unread) && (
+                  <span className="topbar__notification-dot" aria-hidden="true" />
+                )}
               </button>
 
               {notifOpen && (
                 <div className="topbar__notif-dropdown" role="menu">
                   <div className="topbar__notif-header">
                     <h3>Notifications</h3>
-                    <button type="button" onClick={() => setNotifOpen(false)}>Mark all as read</button>
+                    <button type="button" onClick={handleMarkAllAsRead}>Mark all as read</button>
                   </div>
                   <div className="topbar__notif-list">
-                    <div className="topbar__notif-item unread">
-                      <div className="topbar__notif-icon success">✓</div>
-                      <div className="topbar__notif-content">
-                        <p>Project <strong>Visual-QA-Alpha</strong> reached 100% completion</p>
-                        <span>10 minutes ago</span>
+                    {notifications.length > 0 ? (
+                      notifications.map((notif) => (
+                        <div key={notif.id} className={`topbar__notif-item ${notif.unread ? 'unread' : ''}`}>
+                          <div className={`topbar__notif-icon ${notif.type}`}>{notif.iconChar}</div>
+                          <div className="topbar__notif-content">
+                            <p>{notif.message}</p>
+                            <span>{notif.time}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="topbar__notif-empty" style={{ padding: '2rem 1rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                        No new notifications
                       </div>
-                    </div>
-                    <div className="topbar__notif-item unread">
-                      <div className="topbar__notif-icon info">i</div>
-                      <div className="topbar__notif-content">
-                        <p><strong>Maya L.</strong> submitted 48 labels for review</p>
-                        <span>35 minutes ago</span>
-                      </div>
-                    </div>
-                    <div className="topbar__notif-item">
-                      <div className="topbar__notif-icon warning">!</div>
-                      <div className="topbar__notif-content">
-                        <p><strong>Medical Imaging V2</strong> paused — awaiting validation</p>
-                        <span>1 hour ago</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -305,6 +399,33 @@ export default function Topbar({
             <p style={{ fontSize: '0.8125rem', color: '#4b5563', margin: 0 }}>
               The system dynamically resizes and retains exact scaling ratios for any image sizes. For optimal accuracy and rendering performance, we suggest keeping dimensions below 4K resolution.
             </p>
+          </div>
+        </div>
+      </Modal>
+      {/* Profile Modal */}
+      <Modal isOpen={profileOpen} onClose={() => setProfileOpen(false)} title="Account Profile">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'Inter, sans-serif', padding: '1rem 0' }}>
+          <img 
+            src={userAvatar} 
+            alt="Profile Avatar" 
+            style={{ width: '80px', height: '80px', borderRadius: '50%', border: '4px solid #e5e7eb', marginBottom: '1rem', objectFit: 'cover' }} 
+          />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.25rem 0' }}>{userName}</h2>
+          <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#006c51', backgroundColor: '#ecfdf5', padding: '0.25rem 0.75rem', borderRadius: '9999px', marginBottom: '1.5rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            {userRole}
+          </span>
+          
+          <div style={{ width: '100%', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '1rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid #e5e7eb', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '500' }}>Account Status</span>
+              <span style={{ fontSize: '0.875rem', color: '#059669', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#059669' }}></div> Active
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '500' }}>Access Level</span>
+              <span style={{ fontSize: '0.875rem', color: '#111827', fontWeight: '500' }}>{userRole} Privileges</span>
+            </div>
           </div>
         </div>
       </Modal>

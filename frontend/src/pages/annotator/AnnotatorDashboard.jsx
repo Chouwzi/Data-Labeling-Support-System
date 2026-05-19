@@ -47,7 +47,15 @@ export default function AnnotatorDashboard() {
       try {
         setIsLoading(true);
         let finalProjects = [];
-        
+        let allAssignedImages = [];
+        try {
+          const assignedImagesRes = await getMyAssignedImages({ page: 0, size: 1000 });
+          allAssignedImages = assignedImagesRes.data?.result?.data || assignedImagesRes.data?.result || [];
+          if (!Array.isArray(allAssignedImages)) allAssignedImages = [];
+        } catch (assignedErr) {
+          console.warn('Could not fetch assigned images for stats calculation', assignedErr);
+        }
+
         try {
           // Attempt 1: Get projects assigned to the current user
           const res = await getMyProjects();
@@ -131,9 +139,21 @@ export default function AnnotatorDashboard() {
               }
             }
 
+            const projectImages = allAssignedImages.filter(img => 
+              (img.project_id || img.projectId) === project.id
+            );
+            const total_images = projectImages.length;
+            const completed_images = projectImages.filter(img => 
+              ['COMPLETED', 'PENDING_REVIEW', 'APPROVED'].includes(img.status?.toUpperCase())
+            ).length;
+            const progress = total_images > 0 ? Math.round((completed_images / total_images) * 100) : 0;
+
             return {
               ...project,
               guidelineUrl: project.guideline_url || project.guidelineUrl,
+              total_images,
+              completed_images,
+              progress,
               labels: labels.map(label => ({
                 ...label,
                 color: label.color_hex || label.color || '#cccccc',

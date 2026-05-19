@@ -9,7 +9,7 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
-import { createProject, getProjects, uploadGuidelineFile } from '@/services/api';
+import { createProject, getProjects, getTasks, uploadGuidelineFile } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
@@ -118,25 +118,58 @@ export default function Projects() {
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoadingProjects(true);
-      try {
-        const res = await getProjects();
-        const data = res.data?.result?.data ?? [];
+  const fetchProjects = useCallback(async () => {
+    setIsLoadingProjects(true);
+    try {
+      const res = await getProjects();
+      const data = res.data?.result?.data ?? [];
 
-        if (Array.isArray(data)) {
-          setProjects(data.map(normalizeProject));
-        }
-      } catch (err) {
-        console.error('Lỗi lấy dự án:', err);
-
-      } finally {
-        setIsLoadingProjects(false);
+      if (Array.isArray(data)) {
+        const normalized = data.map(normalizeProject);
+        const withProgress = await Promise.all(
+          normalized.map(async (proj) => {
+            try {
+              const tasksRes = await getTasks(proj.id);
+              const tasks = Array.isArray(tasksRes.data?.result)
+                ? tasksRes.data.result
+                : Array.isArray(tasksRes.data)
+                ? tasksRes.data
+                : [];
+              const total = tasks.length;
+              const completed = tasks.filter(
+                (t) => t.status === 'DONE' || t.status === 'COMPLETED' || t.status === 'APPROVED'
+              ).length;
+              const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+              
+              let status = proj.status;
+              if (total > 0) {
+                if (completed === total) {
+                  status = 'completed';
+                } else if (tasks.some(t => t.status === 'PENDING_REVIEW' || t.status === 'REVIEW')) {
+                  status = 'review';
+                } else if (completed > 0 || tasks.some(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED' || t.status === 'REJECTED')) {
+                  status = 'in_progress';
+                }
+              }
+              return { ...proj, progress, status, images: total, imageCount: total };
+            } catch (e) {
+              console.error('Failed to fetch tasks for project', proj.id, e);
+              return { ...proj, progress: 0, images: 0, imageCount: 0 };
+            }
+          })
+        );
+        setProjects(withProgress);
       }
-    };
-    fetchProjects();
+    } catch (err) {
+      console.error('Lỗi lấy dự án:', err);
+    } finally {
+      setIsLoadingProjects(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleLogout = () => {
     logout();
@@ -243,30 +276,7 @@ export default function Projects() {
         setSubmitSuccess(true);
 
 
-        const newProject = normalizeProject({
-          ...raw,
-          name: raw.name || projectName.trim(),
-          status: raw.status || 'DRAFT',
-          createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
-        });
-
-
-        try {
-          const res = await getProjects();
-
-          const data = res.data?.result?.data ?? res.data?.content ?? res.data ?? [];
-          if (Array.isArray(data) && data.length > 0) {
-            const normalized = data.map(normalizeProject);
-            const alreadyInList = normalized.some((p) => p.id === newProject.id);
-            setProjects(alreadyInList ? normalized : [newProject, ...normalized]);
-          } else {
-            setProjects((prev) => [newProject, ...prev]);
-          }
-        } catch {
-          setProjects((prev) => [newProject, ...prev]);
-        }
-
-
+        fetchProjects();
         setActiveFilter('initialized');
 
         setTimeout(() => closeCreateModal(), 2000);
@@ -480,6 +490,8 @@ export default function Projects() {
           userName={userName}
           userRole={userRole}
           searchPlaceholder="Search projects..."
+          searchValue={searchQuery}
+          onSearch={setSearchQuery}
           showCenterLinks
           onMenuClick={toggleSidebar}
           onLogout={handleLogout}
@@ -517,30 +529,19 @@ export default function Projects() {
             {/* ── Summary Cards ── */}
             <section className="projects-summary-row" aria-label="Project statistics">
               <div className="projects-kpi-wrap">
-                <KpiCard
-                  title="Active Projects"
-                  value={stats.active}
-                  icon="folder_managed"
-                  trend="+3"
-                  variant="summary"
-                />
+                <KpiCard title="All Projects" value={stats.total} icon="folder_managed" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
-                <KpiCard
-                  title="Completed This Month"
-                  value={stats.completed}
-                  icon="assignment_turned_in"
-                  trend="+1"
-                  variant="summary"
-                />
+                <KpiCard title="Active Projects" value={stats.active} icon="folder_managed" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
-                <KpiCard
-                  title="Labels Pending Review"
-                  value="2,847"
-                  icon="group"
-                  variant="summary"
-                />
+                <KpiCard title="Completed Projects" value={stats.completed} icon="assignment_turned_in" variant="summary" />
+              </div>
+              <div className="projects-kpi_wrap">
+                <KpiCard title="Pending Projects" value={stats.pending} icon="clock" variant="summary" />
+              </div>
+              <div className="projects-kpi-wrap">
+                <KpiCard title="In Review" value={stats.inReview} icon="group" variant="summary" />
               </div>
             </section>
 
@@ -574,28 +575,6 @@ export default function Projects() {
 
               {/* Search + View Toggle */}
               <div className="projects-toolbar">
-                <div className="projects-search">
-                  <Search size={16} className="projects-search__icon" />
-                  <input
-                    type="text"
-                    className="projects-search__input"
-                    placeholder="Search by name or category..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search projects"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      className="projects-search__clear"
-                      onClick={() => setSearchQuery('')}
-                      aria-label="Clear search"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-
                 <div className="view-toggle" role="group" aria-label="View mode">
                   <button
                     type="button"

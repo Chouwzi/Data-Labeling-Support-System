@@ -24,7 +24,6 @@ export default function SystemConfigPanel({
 }) {
   const [maxImageSize, setMaxImageSize] = useState(initialMaxImageSize);
   const [aiEnabled, setAiEnabled] = useState(initialAiEnabled);
-  const [mfaEnabled, setMfaEnabled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -74,10 +73,6 @@ export default function SystemConfigPanel({
     },
     [maxImageSize, recomputeDirty]
   );
-
-  const handleMfaToggle = useCallback((checked) => {
-    setMfaEnabled(checked);
-  }, []);
 
   const handleSave = useCallback(async () => {
     const size = maxImageSize === '' ? 0 : Number(maxImageSize);
@@ -168,20 +163,7 @@ export default function SystemConfigPanel({
           />
         </div>
 
-        <div className="config-toggle config-toggle--muted">
-          <div className="config-toggle__content">
-            <p className="config-toggle__label" id="mfa-toggle-label">
-              Multi-Factor Auth
-            </p>
-            <p className="config-toggle__description">Enforce for all annotators</p>
-          </div>
-          <ToggleSwitch
-            checked={mfaEnabled}
-            onChange={handleMfaToggle}
-            disabled={isSaving}
-            labelledBy="mfa-toggle-label"
-          />
-        </div>
+
 
         <button
           type="button"

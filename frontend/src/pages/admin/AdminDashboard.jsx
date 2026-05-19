@@ -104,21 +104,70 @@ export default function AdminDashboard() {
 
           const calculatedUsage = Math.max(8, Math.min(95, Math.round(((totalTasks * 1.2) / 1000) * 100)));
 
-          const logsList = logsRes.data?.result?.content || [];
-          const mappedActivities = logsList.map((log, index) => {
+          const userMap = {};
+          usersList.forEach(u => {
+            userMap[u.id] = u.fullName || u.email || 'System User';
+          });
+
+          const logsList = Array.isArray(logsRes.data?.result)
+            ? logsRes.data.result
+            : Array.isArray(logsRes.data)
+            ? logsRes.data
+            : [];
+            
+          const mappedActivities = logsList.slice(0, 3).map((log, index) => {
             let icon = 'check_circle';
             let bgClass = 'activity-item__icon--primary-container';
             let colorClass = 'activity-item__icon--text-primary-container';
             
-            if (log.action?.includes('USER')) {
+            if (log.action?.includes('USER') || log.action?.includes('ROLE')) {
               icon = 'person_edit';
               bgClass = 'activity-item__icon--secondary-container';
               colorClass = 'activity-item__icon--text-secondary-container';
-            } else if (log.action?.includes('CONFIG') || log.action?.includes('ERROR')) {
+            } else if (log.action?.includes('CONFIG') || log.action?.includes('ERROR') || log.action?.includes('DELETE')) {
               icon = 'warning';
               bgClass = 'activity-item__icon--tertiary-container';
               colorClass = 'activity-item__icon--text-tertiary';
             }
+
+            const userName = userMap[log.userId] || 'System User';
+            const actionTextMap = {
+              CREATE_PROJECT: 'created a new project',
+              VIEW_ALL_PROJECTS: 'viewed all projects',
+              VIEW_PROJECT: 'viewed project details',
+              UPDATE_PROJECT: 'updated a project',
+              DELETE_PROJECT: 'deleted a project',
+              VIEW_AUDIT_LOGS: 'viewed system audit logs',
+              UPDATE_ROLE: 'updated user role',
+              TOGGLE_STATUS: 'toggled user status',
+            };
+            const actionFormatted = actionTextMap[log.action] || `performed ${log.action?.toLowerCase().replace(/_/g, ' ')}`;
+
+            const dateVal = log.createdAt;
+            const parseDate = (dVal) => {
+              if (!dVal) return new Date();
+              try {
+                if (Array.isArray(dVal)) {
+                  const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+                  return new Date(y, m - 1, d, h, min, s);
+                }
+                return new Date(dVal);
+              } catch {
+                return new Date();
+              }
+            };
+            const dateObj = parseDate(dateVal);
+            
+            const formatTimeAgo = (date) => {
+              const seconds = Math.floor((new Date() - date) / 1000);
+              if (seconds < 60) return 'JUST NOW';
+              const minutes = Math.floor(seconds / 60);
+              if (minutes < 60) return `${minutes} MINUTES AGO`;
+              const hours = Math.floor(minutes / 60);
+              if (hours < 24) return `${hours} HOURS AGO`;
+              const days = Math.floor(hours / 24);
+              return `${days} DAYS AGO`;
+            };
 
             return {
               id: log.id || `log-${index}`,
@@ -127,11 +176,11 @@ export default function AdminDashboard() {
               iconColorClass: colorClass,
               message: (
                 <>
-                  <strong>{log.createdBy}</strong> performed {log.action}
+                  <strong>{userName}</strong> {actionFormatted}
                 </>
               ),
-              timestamp: new Date(log.timestamp).toLocaleString(),
-              category: 'SYSTEM LOG',
+              timestamp: formatTimeAgo(dateObj),
+              category: log.entityType || 'SYSTEM LOG',
             };
           });
 

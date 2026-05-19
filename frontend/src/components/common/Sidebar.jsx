@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { LayoutDashboard, Folder, Database, Users, Settings, Activity } from 'lucide-react';
+import { LayoutDashboard, Folder, Users, Settings, Activity } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 import '@/styles/Sidebar.css';
 
@@ -8,7 +8,6 @@ const NAV_ITEMS = [
   { id: 'logs', label: 'Activity Logs', icon: Activity, path: '/admin/logs' },
   { id: 'users', label: 'User Management', icon: Users, path: '/admin/users' },
   { id: 'projects', label: 'Projects', icon: Folder, path: '/admin/projects' },
-  { id: 'datasets', label: 'Datasets', icon: Database, path: null },
   { id: 'settings', label: 'System Config', icon: Settings, path: '/admin/system-config' },
 ];
 

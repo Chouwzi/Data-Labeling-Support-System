@@ -143,6 +143,9 @@ export default function AnnotatorTasks() {
           userName={user?.fullName || 'Annotator'}
           userRole="Annotator"
           onLogout={logout}
+          searchValue={searchTerm}
+          onSearch={setSearchTerm}
+          searchPlaceholder="Search by image name or ID..."
         />
 
         <main className="manager-content">
@@ -159,17 +162,7 @@ export default function AnnotatorTasks() {
             </div>
 
             <div className="tasks-filter-bar">
-              <div className="search-box">
-                <Search size={18} className="search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="Search by image name or ID..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="filter-actions">
+              <div className="filter-actions" style={{ width: '100%', justifyContent: 'space-between' }}>
                 <div className="status-filters">
                   {TASK_STATUSES.map(status => (
                     <button

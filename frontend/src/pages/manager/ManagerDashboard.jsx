@@ -96,19 +96,18 @@ export default function ManagerDashboard() {
     activeAnnotators: '...',
     pendingAssignments: '0'
   });
-  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
   const [topAnnotators, setTopAnnotators] = useState([]);
   const [reviewTip, setReviewTip] = useState(null);
   const [projectsList, setProjectsList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { getProjects, getTasks, getAnnotators, getLogs } = await import('@/services/api');
-        const [projectsRes, annotatorsRes, logsRes] = await Promise.all([
+        const { getProjects, getTasks, getAnnotators } = await import('@/services/api');
+        const [projectsRes, annotatorsRes] = await Promise.all([
           getProjects().catch(() => ({ data: { result: { data: [] } } })),
-          getAnnotators().catch(() => ({ data: { result: [] } })),
-          getLogs(0, 4).catch(() => ({ data: { result: { content: [] } } }))
+          getAnnotators().catch(() => ({ data: { result: [] } }))
         ]);
 
         const pList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
@@ -121,15 +120,15 @@ export default function ManagerDashboard() {
               const tasks = Array.isArray(tasksRes.data?.result) ? tasksRes.data.result : (Array.isArray(tasksRes.data) ? tasksRes.data : []);
               
               const total = tasks.length;
-              const completed = tasks.filter(t => t.status === 'DONE').length;
+              const completed = tasks.filter(t => t.status === 'DONE' || t.status === 'COMPLETED').length;
               const pending = tasks.filter(t => t.status === 'PENDING').length;
-              const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
+              const inProgress = total - completed - pending;
               
               const progData = {
                 totalTasks: total,
                 completed: completed,
                 notStarted: pending,
-                inProgress: inProgress
+                inProgress: inProgress > 0 ? inProgress : 0
               };
               
               return {
@@ -215,57 +214,7 @@ export default function ManagerDashboard() {
           });
         }
 
-        // Map logs
-        const logsList = logsRes.data?.result?.content || logsRes.data?.result?.data || logsRes.data?.result || [];
-        const mappedActivities = logsList.map((log, index) => {
-          let icon = 'check_circle';
-          let bgClass = 'activity-item__icon--primary-container';
-          let colorClass = 'activity-item__icon--text-primary-container';
-          
-          const action = log.action || '';
-          if (action.includes('USER') || action.includes('AUTH') || action.includes('LOGIN')) {
-            icon = 'person_edit';
-            bgClass = 'activity-item__icon--secondary-container';
-            colorClass = 'activity-item__icon--text-secondary-container';
-          } else if (action.includes('CONFIG') || action.includes('ERROR') || action.includes('SYSTEM')) {
-            icon = 'warning';
-            bgClass = 'activity-item__icon--tertiary-container';
-            colorClass = 'activity-item__icon--text-tertiary';
-          }
 
-          let relativeTime = 'RECENT';
-          if (log.timestamp) {
-            try {
-              const diffMs = Date.now() - new Date(log.timestamp).getTime();
-              const diffMin = Math.floor(diffMs / 60000);
-              const diffHr = Math.floor(diffMin / 60);
-              if (diffMin < 1) relativeTime = 'JUST NOW';
-              else if (diffMin < 60) relativeTime = `${diffMin} MIN AGO`;
-              else if (diffHr < 24) relativeTime = `${diffHr} HOUR${diffHr > 1 ? 'S' : ''} AGO`;
-              else relativeTime = new Date(log.timestamp).toLocaleDateString();
-            } catch {
-              relativeTime = 'RECENT';
-            }
-          }
-
-          return {
-            id: log.id || `log-${index}`,
-            icon,
-            iconBgClass: bgClass,
-            iconColorClass: colorClass,
-            message: (
-              <>
-                <strong>{log.createdBy || log.username || 'System'}</strong> performed {action.replace(/_/g, ' ').toLowerCase()}
-              </>
-            ),
-            timestamp: relativeTime,
-            category: log.category || 'SYSTEM AUDIT',
-          };
-        });
-
-        if (mappedActivities.length > 0) {
-          setRecentActivities(mappedActivities);
-        }
 
         setProjectsList(pListWithProgress);
         setDashboardData(prev => ({
@@ -556,6 +505,8 @@ export default function ManagerDashboard() {
           userName={userName}
           userRole={userRole}
           searchPlaceholder="Search projects..."
+          searchValue={searchQuery}
+          onSearch={setSearchQuery}
           showCenterLinks
           onMenuClick={toggleSidebar}
           onLogout={handleLogout}
@@ -598,59 +549,39 @@ export default function ManagerDashboard() {
                 value={dashboardData.totalProjects}
                 icon="folder_managed"
                 trend="Real-time"
+                variant="primary"
               />
               <KpiCard
                 title="Images Uploaded"
                 value={dashboardData.imagesUploaded}
                 icon="storage"
                 trend="Real-time"
+                variant="info"
               />
               <KpiCard
                 title="Active Annotators"
                 value={dashboardData.activeAnnotators}
                 icon="group"
+                variant="success"
               />
               <KpiCard
                 title="Pending Assignments"
                 value={dashboardData.pendingAssignments}
                 icon="assignment_turned_in"
+                variant="warning"
               />
             </section>
 
-            {/* Row 3 — main span 9: stacked white card (table + activity) */}
+            {/* Row 3 — main span 9: stacked white card (table only) */}
             <div className="manager-dashboard-grid__main">
               <div className="manager-stack-card">
-                <ProjectTable projects={projectsList} totalProjects={projectsList.length} embedded />
-                <section
-                  className="activity-section activity-section--in-stack"
-                  aria-labelledby="recent-activity-heading"
-                >
-                  <div className="activity-section__header">
-                    <h2 className="activity-section__title" id="recent-activity-heading">
-                      Recent Activity
-                    </h2>
-                    <button
-                      type="button"
-                      className="activity-section__view-all"
-                      onClick={() => navigate('/admin/logs')}
-                    >
-                      VIEW ALL
-                    </button>
-                  </div>
-                  <div className="activity-section__list">
-                    {recentActivities.map((activity) => (
-                      <ActivityItem
-                        key={activity.id}
-                        icon={activity.icon}
-                        iconBgClass={activity.iconBgClass}
-                        iconColorClass={activity.iconColorClass}
-                        message={activity.message}
-                        timestamp={activity.timestamp}
-                        category={activity.category}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <ProjectTable
+                  projects={projectsList.filter(p => 
+                    !searchQuery.trim() || p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )}
+                  totalProjects={projectsList.length}
+                  embedded
+                />
               </div>
             </div>
 
