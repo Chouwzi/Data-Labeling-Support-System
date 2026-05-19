@@ -15,61 +15,65 @@ import java.util.UUID;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
 
-    boolean existsByProjectIdAndAnnotatorId(UUID projectId, UUID annotatorId);
+        boolean existsByProjectIdAndAnnotatorId(UUID projectId, UUID annotatorId);
 
-    List<Task> findByProjectId(UUID projectId);
+        List<Task> findByProjectId(UUID projectId);
 
-    List<Task> findByProjectIdAndStatusIgnoreCase(UUID projectId, String status);
+        List<Task> findBySampleId(UUID sampleId);
 
-    @Query("SELECT new com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO(t.status, COUNT(t)) " +
-           "FROM Task t WHERE t.project.id = :projectId GROUP BY t.status")
-    List<TaskStatusCountDTO> countTasksByStatus(@Param("projectId") UUID projectId);
+        List<Task> findByProjectIdAndStatusIgnoreCase(UUID projectId, String status);
 
-    @Query("""
-            SELECT t FROM Task t
-            WHERE t.annotator.id = :annotatorId
-              AND (:projectId IS NULL OR t.project.id = :projectId)
-              AND (:status IS NULL OR UPPER(t.status) = :status)
-            ORDER BY t.assignedAt DESC, t.createdAt DESC
-            """)
-    Page<Task> findAssignedImagesForAnnotator(
-            @Param("annotatorId") UUID annotatorId,
-            @Param("projectId") UUID projectId,
-            @Param("status") String status,
-            Pageable pageable);
+        @Query("SELECT new com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO(t.status, COUNT(t)) " +
+                        "FROM Task t WHERE t.project.id = :projectId GROUP BY t.status")
+        List<TaskStatusCountDTO> countTasksByStatus(@Param("projectId") UUID projectId);
 
-    @Query(value = """
-            SELECT t FROM Task t
-            JOIN FETCH t.project
-            JOIN FETCH t.sample
-            LEFT JOIN FETCH t.annotator
-            WHERE (:projectId IS NULL OR t.project.id = :projectId)
-              AND (:managerId IS NULL OR t.project.managerId = :managerId)
-              AND UPPER(t.status) = :status
-            ORDER BY t.updatedAt DESC, t.createdAt DESC
-            """,
-            countQuery = """
-            SELECT COUNT(t) FROM Task t
-            WHERE (:projectId IS NULL OR t.project.id = :projectId)
-              AND (:managerId IS NULL OR t.project.managerId = :managerId)
-              AND UPPER(t.status) = :status
-            """)
-    Page<Task> findReviewQueueImages(
-            @Param("projectId") UUID projectId,
-            @Param("managerId") UUID managerId,
-            @Param("status") String status,
-            Pageable pageable);
+        @Query("""
+                        SELECT t FROM Task t
+                        WHERE t.annotator.id = :annotatorId
+                          AND (:projectId IS NULL OR t.project.id = :projectId)
+                          AND (:status IS NULL OR UPPER(t.status) = :status)
+                        ORDER BY t.assignedAt DESC, t.createdAt DESC
+                        """)
+        Page<Task> findAssignedImagesForAnnotator(
+                        @Param("annotatorId") UUID annotatorId,
+                        @Param("projectId") UUID projectId,
+                        @Param("status") String status,
+                        Pageable pageable);
 
-    /** Eagerly fetches sample (and sample.dataset) for all COMPLETED tasks in a project.
-     * Avoids N+1 queries during COCO JSON export. */
-    @Query("""
-            SELECT t FROM Task t
-            JOIN FETCH t.sample s
-            WHERE t.project.id = :projectId
-              AND UPPER(t.status) = UPPER(:status)
-            ORDER BY t.createdAt ASC
-            """)
-    List<Task> findByProjectIdAndStatusWithSample(
-            @Param("projectId") UUID projectId,
-            @Param("status") String status);
+        @Query(value = """
+                        SELECT t FROM Task t
+                        JOIN FETCH t.project
+                        JOIN FETCH t.sample
+                        LEFT JOIN FETCH t.annotator
+                        WHERE (:projectId IS NULL OR t.project.id = :projectId)
+                          AND (:managerId IS NULL OR t.project.managerId = :managerId)
+                          AND UPPER(t.status) = :status
+                        ORDER BY t.updatedAt DESC, t.createdAt DESC
+                        """, countQuery = """
+                        SELECT COUNT(t) FROM Task t
+                        WHERE (:projectId IS NULL OR t.project.id = :projectId)
+                          AND (:managerId IS NULL OR t.project.managerId = :managerId)
+                          AND UPPER(t.status) = :status
+                        """)
+        Page<Task> findReviewQueueImages(
+                        @Param("projectId") UUID projectId,
+                        @Param("managerId") UUID managerId,
+                        @Param("status") String status,
+                        Pageable pageable);
+
+        /**
+         * Eagerly fetches sample (and sample.dataset) for all COMPLETED tasks in a
+         * project.
+         * Avoids N+1 queries during COCO JSON export.
+         */
+        @Query("""
+                        SELECT t FROM Task t
+                        JOIN FETCH t.sample s
+                        WHERE t.project.id = :projectId
+                          AND UPPER(t.status) = UPPER(:status)
+                        ORDER BY t.createdAt ASC
+                        """)
+        List<Task> findByProjectIdAndStatusWithSample(
+                        @Param("projectId") UUID projectId,
+                        @Param("status") String status);
 }

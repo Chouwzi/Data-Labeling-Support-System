@@ -7,6 +7,8 @@ import ManagerDashboard from '@/pages/manager/ManagerDashboard';
 import ProgressReport from '@/pages/manager/ProgressReport';
 import AnnotatorsImageGrid from '@/pages/manager/AnnotatorsImageGrid';
 import Projects from '@/pages/manager/Projects';
+import ProjectDetail from '@/pages/manager/ProjectDetail';
+import Datasets from '@/pages/manager/Datasets';
 import UploadImages from '@/pages/manager/UploadImages';
 import LabelTaxonomy from '@/pages/manager/LabelTaxonomy';
 import AnnotatorDashboard from '@/pages/annotator/AnnotatorDashboard';
@@ -122,6 +124,30 @@ function App() {
         }
       />
       <Route
+        path="/admin/projects/:projectId"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <ProjectDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/datasets"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Datasets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/datasets/:datasetId"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Datasets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/taxonomy"
         element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
@@ -169,6 +195,30 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
             <Projects />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/projects/:projectId"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <ProjectDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/datasets"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <Datasets />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager/datasets/:datasetId"
+        element={
+          <ProtectedRoute allowedRoles={['MANAGER']}>
+            <Datasets />
           </ProtectedRoute>
         }
       />

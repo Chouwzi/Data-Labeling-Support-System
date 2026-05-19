@@ -34,6 +34,51 @@
   gap: 1.25rem;
 }
 
+.config-dirty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  padding: 0.875rem;
+  border: 1px solid rgba(217, 119, 6, 0.24);
+  border-radius: 0.625rem;
+  background: #fffbeb;
+}
+
+.config-dirty-state div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.config-dirty-state strong {
+  color: #92400e;
+  font-size: 0.8125rem;
+}
+
+.config-dirty-state span {
+  color: #78350f;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+}
+
+.config-dirty-state button {
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #92400e;
+  cursor: pointer;
+  padding: 0.55rem 0.75rem;
+  font: 800 0.75rem/1 'Manrope', sans-serif;
+  white-space: nowrap;
+}
+
+.config-dirty-state button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .config-field {
   display: flex;
   flex-direction: column;
@@ -317,6 +362,11 @@
 @media (max-width: 640px) {
   .config-panel {
     padding: 1.25rem;
+  }
+
+  .config-dirty-state {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .config-toast {

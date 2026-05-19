@@ -7,6 +7,14 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ActivityItem from '@/components/dashboard/ActivityItem';
 import SystemConfigPanel from '@/components/system/SystemConfigPanel';
 import BrandLogo from '@/components/common/BrandLogo';
+import {
+  AlertTriangle,
+  ArrowRight,
+  ClipboardList,
+  FolderOpen,
+  Settings,
+  UserPlus,
+} from 'lucide-react';
 import '@/styles/AdminDashboard.css';
 
 const ACTIVITIES = [
@@ -59,11 +67,15 @@ export default function AdminDashboard() {
   
   const [dashboardData, setDashboardData] = useState({
     totalUsers: '...',
+    activeUsers: '...',
+    lockedUsers: '...',
     activeProjects: '...',
+    projectsNeedingSetup: '...',
     systemUsage: '76%',
     tasksInProgress: '8,912',
   });
   const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+  const [attentionItems, setAttentionItems] = useState([]);
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -80,6 +92,8 @@ export default function AdminDashboard() {
           
           const usersList = usersRes.data?.result || [];
           const totalUsers = usersList.length;
+          const activeUsers = usersList.filter((u) => u.active !== false).length;
+          const lockedUsers = Math.max(0, totalUsers - activeUsers);
 
           const projectsList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
           const activeProjects = Array.isArray(projectsList) ? projectsList.length : 0;
@@ -101,6 +115,16 @@ export default function AdminDashboard() {
               })
             );
           }
+
+          const projectsNeedingSetup = Array.isArray(projectsList)
+            ? projectsList.filter((project) => {
+                const labelsCount = Array.isArray(project.labels)
+                  ? project.labels.length
+                  : Number(project.labels || project.labelCount || 0);
+                const imageCount = Number(project.imageCount || project.images || project.sampleCount || 0);
+                return labelsCount === 0 || (!project.datasetId && imageCount === 0);
+              }).length
+            : 0;
 
           const calculatedUsage = Math.max(8, Math.min(95, Math.round(((totalTasks * 1.2) / 1000) * 100)));
 
@@ -187,10 +211,47 @@ export default function AdminDashboard() {
           setDashboardData(prev => ({
             ...prev,
             totalUsers: totalUsers.toString(),
+            activeUsers: activeUsers.toString(),
+            lockedUsers: lockedUsers.toString(),
             activeProjects: activeProjects.toString(),
+            projectsNeedingSetup: projectsNeedingSetup.toString(),
             systemUsage: `${calculatedUsage}%`,
             tasksInProgress: totalTasksInProgress.toLocaleString()
           }));
+
+          const nextAttentionItems = [
+            {
+              id: 'setup',
+              tone: projectsNeedingSetup > 0 ? 'warning' : 'success',
+              title: projectsNeedingSetup > 0 ? `${projectsNeedingSetup} projects need setup` : 'Project setup is clear',
+              description: projectsNeedingSetup > 0
+                ? 'Add labels or upload datasets before task generation.'
+                : 'Projects have the required labeling setup.',
+              action: 'Review projects',
+              path: '/admin/projects',
+            },
+            {
+              id: 'tasks',
+              tone: totalTasksInProgress > 0 ? 'info' : 'success',
+              title: `${totalTasksInProgress.toLocaleString()} active labeling tasks`,
+              description: totalTasksInProgress > 0
+                ? 'Monitor assignment progress and reviewer handoff.'
+                : 'No active task bottleneck detected.',
+              action: 'Open projects',
+              path: '/admin/projects',
+            },
+            {
+              id: 'audit',
+              tone: mappedActivities.some((activity) => activity.icon === 'warning') ? 'warning' : 'info',
+              title: mappedActivities.length > 0 ? 'Audit trail updated recently' : 'No recent audit events',
+              description: mappedActivities.length > 0
+                ? 'Review recent user and system configuration changes.'
+                : 'System activity is quiet right now.',
+              action: 'View audit logs',
+              path: '/admin/logs',
+            },
+          ];
+          setAttentionItems(nextAttentionItems);
           
           if (mappedActivities.length > 0) {
             setRecentActivities(mappedActivities);
@@ -242,10 +303,28 @@ export default function AdminDashboard() {
               <BrandLogo size={32} />
               <span className="admin-page-header__brand-name">DataLabel Pro</span>
             </div>
-            <h1 className="admin-page-title">Admin Dashboard</h1>
-            <p className="admin-page-subtitle">
-              Monitor system status and control configuration for the Data Labeling Support System ecosystem.
-            </p>
+            <div className="admin-page-header__row">
+              <div>
+                <h1 className="admin-page-title">Admin Operations</h1>
+                <p className="admin-page-subtitle">
+                  Monitor system health, resolve setup gaps, and jump into the highest-impact admin work.
+                </p>
+              </div>
+              <div className="admin-quick-actions" aria-label="Admin quick actions">
+                <button type="button" className="admin-action-btn admin-action-btn--primary" onClick={() => navigate('/admin/users')}>
+                  <UserPlus size={16} />
+                  Create User
+                </button>
+                <button type="button" className="admin-action-btn" onClick={() => navigate('/admin/projects')}>
+                  <FolderOpen size={16} />
+                  Open Projects
+                </button>
+                <button type="button" className="admin-action-btn" onClick={() => navigate('/admin/logs')}>
+                  <ClipboardList size={16} />
+                  View Audit Logs
+                </button>
+              </div>
+            </div>
           </header>
 
           <div className="admin-grid">
@@ -255,12 +334,13 @@ export default function AdminDashboard() {
                   title="Total Users"
                   value={dashboardData.totalUsers}
                   icon="group"
-                  trend="Real-time"
+                  trend={`${dashboardData.activeUsers} active`}
                 />
                 <KpiCard
                   title="Active Projects"
                   value={dashboardData.activeProjects}
                   icon="folder_managed"
+                  trend={`${dashboardData.projectsNeedingSetup} need setup`}
                 />
                 <KpiCard
                   title="System Usage"
@@ -276,6 +356,48 @@ export default function AdminDashboard() {
                   dotColors={['#10b981', '#34d399', '#6ee7b7']}
                 />
               </div>
+
+              <section className="attention-section" aria-labelledby="attention-queue-heading">
+                <div className="activity-section__header">
+                  <div>
+                    <h2 className="activity-section__title" id="attention-queue-heading">
+                      Attention Queue
+                    </h2>
+                    <p className="attention-section__subtitle">Work that may block labeling throughput or system confidence.</p>
+                  </div>
+                </div>
+                <div className="attention-list">
+                  {(attentionItems.length > 0 ? attentionItems : [
+                    {
+                      id: 'loading',
+                      tone: 'info',
+                      title: 'Checking admin operations',
+                      description: 'Loading projects, users, tasks, and audit activity.',
+                      action: 'Refresh',
+                      path: '/admin',
+                    },
+                  ]).map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={`attention-item attention-item--${item.tone}`}
+                      onClick={() => navigate(item.path)}
+                    >
+                      <span className="attention-item__icon">
+                        {item.tone === 'warning' ? <AlertTriangle size={18} /> : <ArrowRight size={18} />}
+                      </span>
+                      <span className="attention-item__content">
+                        <strong>{item.title}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                      <span className="attention-item__action">
+                        {item.action}
+                        <ArrowRight size={14} />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
 
               <section
                 className="activity-section"
@@ -311,7 +433,24 @@ export default function AdminDashboard() {
             </section>
 
             <aside className="admin-right-col">
-              <SystemConfigPanel onSave={handleSaveConfig} />
+              <section className="admin-control-panel" aria-label="Admin control panel">
+                <div className="admin-control-panel__header">
+                  <Settings size={20} />
+                  <div>
+                    <h2>Control Panel</h2>
+                    <p>Shortcuts and guarded global settings.</p>
+                  </div>
+                </div>
+                <div className="admin-control-links">
+                  <button type="button" onClick={() => navigate('/admin/users')}>User Management <ArrowRight size={14} /></button>
+                  <button type="button" onClick={() => navigate('/admin/projects')}>Projects <ArrowRight size={14} /></button>
+                  <button type="button" onClick={() => navigate('/admin/system-config')}>System Config <ArrowRight size={14} /></button>
+                  <button type="button" onClick={() => navigate('/admin/logs')}>Activity Logs <ArrowRight size={14} /></button>
+                </div>
+                <div className="admin-config-compact">
+                  <SystemConfigPanel onSave={handleSaveConfig} />
+                </div>
+              </section>
             </aside>
           </div>
         </main>

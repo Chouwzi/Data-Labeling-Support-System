@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, UserPlus, FolderPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus, FolderPlus, Edit2, Lock, Unlock } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
-import UserCard from '@/components/UserCard';
 import Filters from '@/components/Filters';
 import CreateGroupModal from '@/components/CreateGroupModal';
 import CreateUserForm from '@/components/CreateUserForm';
@@ -26,6 +25,7 @@ export default function UsersPage() {
   const [groups, setGroups] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
@@ -66,12 +66,6 @@ export default function UsersPage() {
     } catch (err) {
       throw new Error(err.response?.data?.message || 'Tạo user thất bại');
     }
-  };
-
-  const handleUpdateUser = (userId, updates) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, ...updates } : u))
-    );
   };
 
   const handleEditRole = (user) => {
@@ -136,16 +130,29 @@ export default function UsersPage() {
   }));
 
   const filteredUsers = normalizedUsers.filter((u) => {
+    const isActive = u.active === true || u.active === 'active';
     const matchesSearch =
       !searchQuery ||
       u.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRole = !roleFilter || u.role === roleFilter;
+    const matchesStatus = !statusFilter || (statusFilter === 'active' ? isActive : !isActive);
     const matchesGroup = !groupFilter || String(u.groupId) === groupFilter;
 
-    return matchesSearch && matchesRole && matchesGroup;
+    return matchesSearch && matchesRole && matchesStatus && matchesGroup;
   });
+
+  const userSummary = normalizedUsers.reduce(
+    (acc, current) => {
+      acc.total += 1;
+      if (current.active === true || current.active === 'active') acc.active += 1;
+      else acc.disabled += 1;
+      acc.roles[current.role] = (acc.roles[current.role] || 0) + 1;
+      return acc;
+    },
+    { total: 0, active: 0, disabled: 0, roles: {} }
+  );
 
   return (
     <div className="admin-layout">
@@ -186,6 +193,19 @@ export default function UsersPage() {
               groups={groups}
             />
 
+            <label className="users-status-filter">
+              <span>Status</span>
+              <select
+                aria-label="Status filter"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </label>
+
             <div className="users-toolbar__actions">
               <button
                 type="button"
@@ -206,6 +226,28 @@ export default function UsersPage() {
             </div>
           </div>
 
+          <div className="users-summary" aria-label="User summary">
+            <button type="button" className={!roleFilter && !statusFilter ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => { setRoleFilter(''); setStatusFilter(''); }}>
+              All <strong>{userSummary.total}</strong>
+            </button>
+            <button type="button" className={statusFilter === 'active' ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => setStatusFilter('active')}>
+              Active <strong>{userSummary.active}</strong>
+            </button>
+            <button type="button" className={statusFilter === 'disabled' ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => setStatusFilter('disabled')}>
+              Disabled <strong>{userSummary.disabled}</strong>
+            </button>
+            {['ADMIN', 'MANAGER', 'REVIEWER', 'ANNOTATOR'].map((role) => (
+              <button
+                type="button"
+                key={role}
+                className={roleFilter === role ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'}
+                onClick={() => setRoleFilter(role)}
+              >
+                {role.toLowerCase()} <strong>{userSummary.roles[role] || 0}</strong>
+              </button>
+            ))}
+          </div>
+
           {usersLoading ? (
             <div className="users-empty">
               <p>Đang tải danh sách users...</p>
@@ -215,17 +257,63 @@ export default function UsersPage() {
               <p style={{ color: 'red' }}>{usersError}</p>
             </div>
           ) : filteredUsers.length > 0 ? (
-            <div className="users-grid">
-              {filteredUsers.map((u) => (
-                <UserCard
-                  key={u.id}
-                  user={u}
-                  groups={groups}
-                  onUpdateUser={handleUpdateUser}
-                  onEditRole={handleEditRole}
-                  onToggleStatus={handleToggleStatus}
-                />
-              ))}
+            <div className="users-table-shell">
+              <table className="users-table" aria-label="Users">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Group</th>
+                    <th className="users-table__actions-header">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((u) => {
+                    const isActive = u.active === true || u.active === 'active';
+                    const group = groups.find((g) => g.id === u.groupId);
+                    return (
+                      <tr key={u.id}>
+                        <td>
+                          <div className="users-table__identity">
+                            <span>{(u.fullName || u.email || 'U').slice(0, 1).toUpperCase()}</span>
+                            <div>
+                              <strong>{u.fullName || 'Unnamed user'}</strong>
+                              <small>{u.id?.toString().slice(0, 8) || 'No id'}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="users-table__email">{u.email}</td>
+                        <td><span className={`users-role users-role--${u.role?.toLowerCase()}`}>{u.role}</span></td>
+                        <td>
+                          <span className={`users-status ${isActive ? 'users-status--active' : 'users-status--disabled'}`}>
+                            <i aria-hidden="true" />
+                            {isActive ? 'Active' : 'Disabled'}
+                          </span>
+                        </td>
+                        <td className="users-table__muted">{group?.name || 'No group'}</td>
+                        <td>
+                          <div className="users-row-actions">
+                            <button type="button" onClick={() => handleEditRole(u)}>
+                              <Edit2 size={14} />
+                              Role
+                            </button>
+                            <button
+                              type="button"
+                              className={isActive ? 'users-row-actions__danger' : 'users-row-actions__success'}
+                              onClick={() => handleToggleStatus(u)}
+                            >
+                              {isActive ? <Lock size={14} /> : <Unlock size={14} />}
+                              {isActive ? 'Lock' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="users-empty">

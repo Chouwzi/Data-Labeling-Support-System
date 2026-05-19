@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Eye, MoreHorizontal, Clock, FolderPlus, AlignLeft } from 'lucide-react';
+import { Database, Edit2, Eye, MoreHorizontal, Clock, FolderPlus, Trash2 } from 'lucide-react';
 
-export default function ProjectTable({ projects = [], statusColors = {}, totalProjects = 42 }) {
+export default function ProjectTable({ projects = [], statusColors = {}, totalProjects = 42, onEdit, onDelete }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeMenuProjectId, setActiveMenuProjectId] = useState(null);
   const itemsPerPage = 4;
@@ -21,6 +21,10 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
   const handleMoreClick = (projectId, e) => {
     e.stopPropagation();
     setActiveMenuProjectId(activeMenuProjectId === projectId ? null : projectId);
+  };
+
+  const openProject = (projectId, tab) => {
+    navigate(`${prefix}/projects/${projectId}${tab ? `?tab=${tab}` : ''}`);
   };
 
   useEffect(() => {
@@ -60,11 +64,23 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
               const status = statusColors[project.status] || {
                 bg: '#dcfce7',
                 text: '#15803d',
-                label: project.status,
+                label: project.status || 'Initialized',
               };
+              const progress = Number(project.progress || 0);
 
               return (
-                <tr key={project.id} className="project-table__row">
+                <tr
+                  key={project.id}
+                  className="project-table__row"
+                  tabIndex={0}
+                  onClick={() => openProject(project.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openProject(project.id);
+                    }
+                  }}
+                >
                   {/* Project Name + Thumbnail */}
                   <td className="project-table__td--project">
                     <div className="project-table__name">
@@ -110,10 +126,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
 
                   {/* Status Badge */}
                   <td>
-                    <span
-                      className="status-badge status-badge--pill"
-                      style={{ backgroundColor: status.bg, color: status.text }}
-                    >
+                    <span className="status-badge status-badge--pill project-table__status" style={{ backgroundColor: status.bg, color: status.text }}>
                       <span
                         className={`status-badge__dot status-badge__dot--${project.status}`}
                         aria-hidden="true"
@@ -126,18 +139,19 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                   <td>
                     <div className="project-progress">
                       <div className="project-progress__header">
-                        <span className="project-progress__label">{project.progress || 0}%</span>
+                        <span className="project-progress__label">{progress}%</span>
+                        <span className="project-progress__meta">{project.taskCount || 0} tasks</span>
                       </div>
                       <div
                         className="project-progress__bar"
                         role="progressbar"
-                        aria-valuenow={project.progress || 0}
+                        aria-valuenow={progress}
                         aria-valuemin={0}
                         aria-valuemax={100}
                       >
                         <div
                           className={`project-progress__fill project-progress__fill--${project.status?.toLowerCase() || 'draft'}`}
-                          style={{ width: `${project.progress || 0}%` }}
+                          style={{ width: `${progress}%` }}
                         />
                       </div>
                     </div>
@@ -159,13 +173,16 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
 
                   {/* Actions */}
                   <td className="project-table__td--actions">
-                    <div className="project-table__actions" style={{ position: 'relative', display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <div className="project-table__actions">
                       <button
                         type="button"
                         className="project-table__action-btn project-table__action-btn--edit"
                         aria-label={`Edit ${project.name}`}
-                        title="Edit Taxonomy"
-                        onClick={() => navigate(`${prefix}/taxonomy/${project.id}`)}
+                        title="Edit Project"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit?.(project);
+                        }}
                       >
                         <Edit2 size={14} />
                       </button>
@@ -174,11 +191,14 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                         className="project-table__action-btn project-table__action-btn--view"
                         aria-label={`View ${project.name}`}
                         title="Assign Images"
-                        onClick={() => navigate(`${prefix}/annotators`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openProject(project.id, 'tasks');
+                        }}
                       >
                         <Eye size={14} />
                       </button>
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <div className="project-table__menu-wrap">
                         <button
                           type="button"
                           className="project-table__action-btn project-table__action-btn--more"
@@ -190,90 +210,57 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                         </button>
                         
                         {activeMenuProjectId === project.id && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            right: 0,
-                            marginTop: '0.375rem',
-                            width: '180px',
-                            background: '#ffffff',
-                            borderRadius: '0.5rem',
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                            zIndex: 220,
-                            overflow: 'hidden',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            padding: '0.25rem 0'
-                          }}>
+                          <div className="project-table__menu">
                             <button
                               type="button"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                width: '100%',
-                                padding: '0.5rem 0.75rem',
-                                border: 'none',
-                                background: 'transparent',
-                                fontSize: '0.8125rem',
-                                color: '#374151',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                transition: 'background-color 0.15s ease'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openProject(project.id, 'labels');
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate(`${prefix}/taxonomy/${project.id}`)}
                             >
-                              <Edit2 size={13} style={{ color: '#6b7280' }} />
+                              <Edit2 size={13} />
                               Taxonomy Labels
                             </button>
                             <button
                               type="button"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                width: '100%',
-                                padding: '0.5rem 0.75rem',
-                                border: 'none',
-                                background: 'transparent',
-                                fontSize: '0.8125rem',
-                                color: '#374151',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                transition: 'background-color 0.15s ease'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openProject(project.id, 'tasks');
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate(`${prefix}/annotators`)}
                             >
-                              <Eye size={13} style={{ color: '#6b7280' }} />
+                              <Eye size={13} />
                               Assign Images
                             </button>
                             <button
                               type="button"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                width: '100%',
-                                padding: '0.5rem 0.75rem',
-                                border: 'none',
-                                background: 'transparent',
-                                fontSize: '0.8125rem',
-                                color: '#374151',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                transition: 'background-color 0.15s ease'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openProject(project.id, 'dataset');
                               }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate(`${prefix}/upload-images`)}
                             >
-                              <FolderPlus size={13} style={{ color: '#6b7280' }} />
+                              <FolderPlus size={13} />
                               Upload Images
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openProject(project.id, 'dataset');
+                              }}
+                            >
+                              <Database size={13} />
+                              Dataset
+                            </button>
+                            <button
+                              type="button"
+                              className="project-table__menu-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete?.(project);
+                              }}
+                            >
+                              <Trash2 size={13} />
+                              Delete Project
                             </button>
                           </div>
                         )}

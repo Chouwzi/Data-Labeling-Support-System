@@ -136,6 +136,8 @@ export const getProjects = () => api.get('/projects', { params: { size: 1000, so
 export const getMyProjects = () => api.get('/me/projects', { params: { size: 1000 } });
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
+export const deleteProject = (projectId) => api.delete(`/projects/${projectId}`);
+
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
 
@@ -155,8 +157,21 @@ export const createProject = ({ name, description }) =>
     labels: [],
   });
 
-export const createDataset = (name) =>
-  api.post('/datasets', { name });
+export const getDatasets = () => api.get('/datasets');
+
+export const getDataset = (datasetId) => api.get(`/datasets/${datasetId}`);
+
+export const getDatasetSamples = (datasetId) => api.get(`/datasets/${datasetId}/samples`);
+
+export const createDataset = (data) =>
+  api.post('/datasets', typeof data === 'string' ? { name: data } : data);
+
+export const updateDataset = (datasetId, data) =>
+  api.put(`/datasets/${datasetId}`, data);
+
+export const deleteDataset = (datasetId) => api.delete(`/datasets/${datasetId}`);
+
+export const deleteDatasetSample = (datasetId, sampleId) => api.delete(`/datasets/${datasetId}/samples/${sampleId}`);
 
 export const updateProject = (projectId, data) =>
   api.put(`/projects/${projectId}`, data);

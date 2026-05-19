@@ -9,15 +9,18 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
-import { createProject, getProjects, getTasks, uploadGuidelineFile } from '@/services/api';
+import Toast from '@/components/Toast';
+import { createProject, deleteProject, getDatasetSamples, getProjects, getTasks, updateProject, uploadGuidelineFile } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
 } from 'lucide-react';
+import { apiErrorMessage } from '@/utils/uploadPolicy';
 import '@/styles/ManagerDashboard.css';
 
 const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
+  { id: 'needs_setup', label: 'Needs Setup' },
   { id: 'initialized', label: 'Initialized' },
   { id: 'in_progress', label: 'In Progress' },
   { id: 'review', label: 'Review' },
@@ -75,7 +78,8 @@ function normalizeProject(raw) {
     status: statusMap[raw.status] || 'initialized',
     progress: raw.progress ?? 0,
     images: raw.totalImages ?? raw.images ?? 0,
-    labels: raw.totalLabels ?? raw.labels ?? 0,
+    labels: Array.isArray(raw.labels) ? raw.labels.length : (raw.totalLabels ?? raw.labels ?? 0),
+    datasetId: raw.datasetId || raw.dataset_id || null,
     annotators: raw.annotatorCount ?? raw.annotators ?? 0,
     createdAt: rawDate,
     created: parseDate(rawDate),
@@ -111,6 +115,9 @@ export default function Projects() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const fileInputRef = useRef(null);
 
 
@@ -135,6 +142,11 @@ export default function Projects() {
                 : Array.isArray(tasksRes.data)
                 ? tasksRes.data
                 : [];
+              let sampleCount = 0;
+              if (proj.datasetId) {
+                const samplesRes = await getDatasetSamples(proj.datasetId);
+                sampleCount = normalizeArray(samplesRes.data?.result ?? samplesRes.data).length;
+              }
               const total = tasks.length;
               const completed = tasks.filter(
                 (t) => t.status === 'DONE' || t.status === 'COMPLETED' || t.status === 'APPROVED'
@@ -151,10 +163,12 @@ export default function Projects() {
                   status = 'in_progress';
                 }
               }
-              return { ...proj, progress, status, images: total, imageCount: total };
+              const imageCount = sampleCount || Number(proj.images || 0);
+              const needsSetup = Number(proj.labels || 0) === 0 || imageCount === 0;
+              return { ...proj, progress, status, images: imageCount, imageCount, taskCount: total, needsSetup };
             } catch (e) {
               console.error('Failed to fetch tasks for project', proj.id, e);
-              return { ...proj, progress: 0, images: 0, imageCount: 0 };
+              return { ...proj, progress: 0, images: 0, imageCount: 0, needsSetup: Number(proj.labels || 0) === 0 || !proj.datasetId };
             }
           })
         );
@@ -166,6 +180,13 @@ export default function Projects() {
       setIsLoadingProjects(false);
     }
   }, []);
+
+  function normalizeArray(value) {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.data)) return value.data;
+    if (Array.isArray(value?.content)) return value.content;
+    return [];
+  }
 
   useEffect(() => {
     fetchProjects();
@@ -293,6 +314,44 @@ export default function Projects() {
     }
   };
 
+  const handleEditProject = (project) => {
+    setEditingProject({
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      status: project.status === 'in_progress' ? 'ACTIVE' : project.status === 'completed' ? 'ARCHIVED' : 'DRAFT',
+    });
+  };
+
+  const handleUpdateProject = async (event) => {
+    event.preventDefault();
+    if (!editingProject?.name?.trim()) return;
+    try {
+      await updateProject(editingProject.id, {
+        name: editingProject.name.trim(),
+        description: editingProject.description.trim(),
+        status: editingProject.status,
+      });
+      setToast({ type: 'success', message: 'Project updated' });
+      setEditingProject(null);
+      await fetchProjects();
+    } catch (error) {
+      setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to update project') });
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteProject(deleteTarget.id);
+      setToast({ type: 'success', message: 'Project deleted' });
+      setDeleteTarget(null);
+      await fetchProjects();
+    } catch (error) {
+      setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to delete project') });
+    }
+  };
+
 
   const isFormValid = projectName.trim().length >= 3;
 
@@ -301,7 +360,8 @@ export default function Projects() {
   const filteredProjects = useMemo(() => {
     const safeList = Array.isArray(projects) ? projects : [];
     return safeList.filter((p) => {
-      const matchesFilter = activeFilter === 'all' || p?.status === activeFilter;
+      const matchesFilter = activeFilter === 'all'
+        || (activeFilter === 'needs_setup' ? p?.needsSetup : p?.status === activeFilter);
       const matchesSearch =
         !searchQuery.trim() ||
         p?.name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -315,8 +375,9 @@ export default function Projects() {
     const completed = projects.filter((p) => p.status === 'completed').length;
     const pending = projects.filter((p) => p.status === 'initialized').length;
     const inReview = projects.filter((p) => p.status === 'review').length;
+    const needsSetup = projects.filter((p) => p.needsSetup).length;
 
-    return { total, active, completed, pending, inReview };
+    return { total, active, completed, pending, inReview, needsSetup };
   }, [projects]);
 
   // ─── Create Form ─────────────────────────────────────────────────────────
@@ -509,7 +570,7 @@ export default function Projects() {
                 <div>
                   <h1 className="manager-page-title">Projects</h1>
                   <p className="manager-page-subtitle">
-                    Manage your active labeling campaigns.
+                    Manage labeling campaigns from setup through review.
                   </p>
                 </div>
                 <button
@@ -532,12 +593,15 @@ export default function Projects() {
                 <KpiCard title="All Projects" value={stats.total} icon="folder_managed" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
+                <KpiCard title="Needs Setup" value={stats.needsSetup} icon="clock" variant="summary" />
+              </div>
+              <div className="projects-kpi-wrap">
                 <KpiCard title="Active Projects" value={stats.active} icon="folder_managed" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
                 <KpiCard title="Completed Projects" value={stats.completed} icon="assignment_turned_in" variant="summary" />
               </div>
-              <div className="projects-kpi_wrap">
+              <div className="projects-kpi-wrap">
                 <KpiCard title="Pending Projects" value={stats.pending} icon="clock" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
@@ -561,6 +625,7 @@ export default function Projects() {
                     {chip.id !== 'all' && (
                       <span className="filter-chip__count">
                         {chip.id === 'initialized' && stats.pending}
+                        {chip.id === 'needs_setup' && stats.needsSetup}
                         {chip.id === 'in_progress' && stats.active}
                         {chip.id === 'review' && stats.inReview}
                         {chip.id === 'completed' && stats.completed}
@@ -615,6 +680,8 @@ export default function Projects() {
                   projects={filteredProjects}
                   statusColors={STATUS_COLORS}
                   totalProjects={filteredProjects.length}
+                  onEdit={handleEditProject}
+                  onDelete={setDeleteTarget}
                 />
               ) : (
                 <div className="project-grid" role="list" aria-label="Projects">
@@ -623,6 +690,8 @@ export default function Projects() {
                       key={project.id}
                       project={project}
                       statusColors={STATUS_COLORS}
+                      onEdit={handleEditProject}
+                      onDelete={setDeleteTarget}
                     />
                   ))}
                 </div>
@@ -638,6 +707,52 @@ export default function Projects() {
         >
           {renderCreateProjectForm()}
         </Modal>
+
+        <Modal
+          isOpen={Boolean(editingProject)}
+          onClose={() => setEditingProject(null)}
+          title="Edit Project"
+        >
+          {editingProject && (
+            <form className="create-project-form" onSubmit={handleUpdateProject}>
+              <label className="form-field">
+                <span className="form-field__label">Project name</span>
+                <input className="form-field__input" value={editingProject.name} onChange={(event) => setEditingProject((prev) => ({ ...prev, name: event.target.value }))} />
+              </label>
+              <label className="form-field">
+                <span className="form-field__label">Description</span>
+                <textarea className="form-field__textarea" rows={4} value={editingProject.description} onChange={(event) => setEditingProject((prev) => ({ ...prev, description: event.target.value }))} />
+              </label>
+              <label className="form-field">
+                <span className="form-field__label">Status</span>
+                <select className="form-field__input" value={editingProject.status} onChange={(event) => setEditingProject((prev) => ({ ...prev, status: event.target.value }))}>
+                  <option value="DRAFT">Draft</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
+              </label>
+              <div className="form-actions">
+                <button type="submit" className="create-project-submit-btn">Save changes</button>
+                <button type="button" className="cancel-btn" onClick={() => setEditingProject(null)}>Cancel</button>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title="Delete Project"
+        >
+          <div className="delete-confirmation">
+            <p>Delete <strong>{deleteTarget?.name}</strong>? This project will be soft-deleted and removed from active lists.</p>
+            <div className="form-actions">
+              <button type="button" className="danger-btn" onClick={handleDeleteProject}>Delete project</button>
+              <button type="button" className="cancel-btn" onClick={() => setDeleteTarget(null)}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
+        {toast && <Toast type={toast.type || 'success'} message={toast.message} onClose={() => setToast(null)} />}
       </div>
     </div>
   );

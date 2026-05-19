@@ -110,6 +110,14 @@ export default function SystemConfigPanel({
     }
   }, [maxImageSize, aiEnabled, onSave]);
 
+  const handleDiscardChanges = useCallback(() => {
+    const baseline = baselineRef.current;
+    setMaxImageSize(baseline.maxImageSize);
+    setAiEnabled(baseline.aiEnabled);
+    setHasChanges(false);
+    setShowToast(false);
+  }, []);
+
   return (
     <div className="config-panel">
       <div className="config-panel__header">
@@ -120,6 +128,18 @@ export default function SystemConfigPanel({
       </div>
 
       <div className="config-panel__content">
+        {hasChanges && (
+          <div className="config-dirty-state" role="status">
+            <div>
+              <strong>Unsaved changes</strong>
+              <span>Review or discard policy updates before leaving this page.</span>
+            </div>
+            <button type="button" onClick={handleDiscardChanges} disabled={isSaving}>
+              Discard changes
+            </button>
+          </div>
+        )}
+
         <div className="config-field">
           <label className="config-field__label" htmlFor="max-image-size">
             Max Image File Size

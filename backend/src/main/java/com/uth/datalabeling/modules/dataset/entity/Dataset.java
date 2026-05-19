@@ -49,4 +49,6 @@ public class Dataset {
 
     @UpdateTimestamp
     LocalDateTime updatedAt;
+
+    LocalDateTime deletedAt;
 }

@@ -11,12 +11,16 @@ import com.uth.datalabeling.modules.dataset.mapper.DatasetMapper;
 import com.uth.datalabeling.modules.dataset.repository.DataSampleRepository;
 import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
+import com.uth.datalabeling.modules.task.entity.Task;
+import com.uth.datalabeling.modules.task.repository.TaskRepository;
+import com.uth.datalabeling.modules.annotation.repository.AnnotationRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,6 +35,8 @@ public class DatasetService {
     DatasetMapper datasetMapper;
     ProjectAccessService projectAccessService;
     com.uth.datalabeling.modules.image.service.ImageService imageService;
+    TaskRepository taskRepository;
+    AnnotationRepository annotationRepository;
 
     /**
      * Tạo mới một tập dữ liệu.
@@ -47,7 +53,7 @@ public class DatasetService {
      */
     @Transactional(readOnly = true)
     public List<DatasetResponse> getAllDatasets() {
-        return datasetRepository.findAll().stream()
+        return datasetRepository.findAllByDeletedAtIsNull().stream()
                 .map(datasetMapper::toDatasetResponse)
                 .collect(Collectors.toList());
     }
@@ -57,17 +63,34 @@ public class DatasetService {
      */
     @Transactional(readOnly = true)
     public DatasetResponse getDatasetById(UUID id) {
-        Dataset dataset = datasetRepository.findById(id)
+        Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
         return datasetMapper.toDatasetResponse(dataset);
+    }
+
+    @Transactional
+    public DatasetResponse updateDataset(UUID id, DatasetRequest request) {
+        Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
+        datasetMapper.updateDataset(dataset, request);
+        return datasetMapper.toDatasetResponse(datasetRepository.save(dataset));
+    }
+
+    @Transactional
+    public void deleteDataset(UUID id) {
+        Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
+        dataset.setDeletedAt(LocalDateTime.now());
+        datasetRepository.save(dataset);
     }
 
     /**
      * Thêm một mẫu dữ liệu (hình ảnh) vào tập dữ liệu.
      */
     @Transactional
-    public DataSampleResponse addSampleToDataset(UUID datasetId, String imageUrl, java.util.Map<String, Object> metadata) {
-        Dataset dataset = datasetRepository.findById(datasetId)
+    public DataSampleResponse addSampleToDataset(UUID datasetId, String imageUrl,
+            java.util.Map<String, Object> metadata) {
+        Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(datasetId)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
 
         DataSample sample = DataSample.builder()
@@ -84,7 +107,7 @@ public class DatasetService {
      */
     @Transactional(readOnly = true)
     public List<DataSampleResponse> getSamplesByDataset(UUID datasetId) {
-        Dataset dataset = datasetRepository.findById(datasetId)
+        Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(datasetId)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
         return dataset.getDataSamples().stream()
                 .map(datasetMapper::toDataSampleResponse)
@@ -92,8 +115,9 @@ public class DatasetService {
     }
 
     @Transactional
-    public List<DataSampleResponse> uploadSamples(UUID datasetId, List<org.springframework.web.multipart.MultipartFile> files) {
-        Dataset dataset = datasetRepository.findById(datasetId)
+    public List<DataSampleResponse> uploadSamples(UUID datasetId,
+            List<org.springframework.web.multipart.MultipartFile> files) {
+        Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(datasetId)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
 
         var uploadResponses = imageService.uploadImages(files);
@@ -105,8 +129,10 @@ public class DatasetService {
             metadata.put("fileName", uploadRes.getFileName());
             metadata.put("sizeBytes", uploadRes.getSizeBytes());
             metadata.put("format", uploadRes.getFormat());
-            if (uploadRes.getWidth() != null)  metadata.put("width",  uploadRes.getWidth());
-            if (uploadRes.getHeight() != null) metadata.put("height", uploadRes.getHeight());
+            if (uploadRes.getWidth() != null)
+                metadata.put("width", uploadRes.getWidth());
+            if (uploadRes.getHeight() != null)
+                metadata.put("height", uploadRes.getHeight());
 
             DataSample sample = DataSample.builder()
                     .dataset(dataset)
@@ -117,5 +143,33 @@ public class DatasetService {
         }
 
         return sampleResponses;
+    }
+
+    @Transactional
+    public void deleteSample(UUID datasetId, UUID sampleId) {
+        Dataset dataset = datasetRepository.findById(datasetId)
+                .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
+
+        DataSample sample = dataSampleRepository.findById(sampleId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        // Ensure the sample actually belongs to this dataset
+        if (!sample.getDataset().getId().equals(dataset.getId())) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        // Delete associated tasks and annotations first to prevent foreign key
+        // constraint violations
+        List<Task> relatedTasks = taskRepository.findBySampleId(sample.getId());
+        for (Task task : relatedTasks) {
+            annotationRepository.deleteByTaskId(task.getId());
+        }
+        taskRepository.deleteAll(relatedTasks);
+
+        // We could also delete the physical file from LocalStorageService if needed:
+        // localStorageService.deleteFile(sample.getImageUrl());
+        // For now, just deleting the DB record.
+
+        dataSampleRepository.delete(sample);
     }
 }

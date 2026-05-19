@@ -56,6 +56,25 @@ public class DatasetController {
                 .build();
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ApiResponse<DatasetResponse> updateDataset(
+            @PathVariable UUID id,
+            @RequestBody @Valid DatasetRequest request) {
+        return ApiResponse.<DatasetResponse>builder()
+                .result(datasetService.updateDataset(id, request))
+                .build();
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ApiResponse<Void> deleteDataset(@PathVariable UUID id) {
+        datasetService.deleteDataset(id);
+        return ApiResponse.<Void>builder()
+                .message("Dataset deleted successfully")
+                .build();
+    }
+
     /**
      * Lấy danh sách các mẫu dữ liệu (DataSamples) trong tập dữ liệu.
      */
@@ -77,6 +96,18 @@ public class DatasetController {
             @RequestParam("file") List<org.springframework.web.multipart.MultipartFile> files) {
         return ApiResponse.<List<DataSampleResponse>>builder()
                 .result(datasetService.uploadSamples(id, files))
+                .build();
+    }
+
+    /**
+     * Xóa một mẫu dữ liệu (hình ảnh) trong tập dữ liệu.
+     */
+    @DeleteMapping("/{id}/samples/{sampleId}")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ApiResponse<Void> deleteSample(@PathVariable UUID id, @PathVariable UUID sampleId) {
+        datasetService.deleteSample(id, sampleId);
+        return ApiResponse.<Void>builder()
+                .message("Sample deleted successfully")
                 .build();
     }
 }
