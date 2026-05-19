@@ -29,15 +29,17 @@ export default function Topbar({
       try {
         const { getLogs, getUsers } = await import('@/services/api');
         const [logsRes, usersRes] = await Promise.all([
-          getLogs(0, 5).catch(() => ({ data: { result: [] } })),
+          getLogs(0, 10).catch(() => ({ data: { result: {} } })),
           getUsers().catch(() => ({ data: { result: [] } }))
         ]);
-        const logsList = Array.isArray(logsRes.data?.result)
-          ? logsRes.data.result
-          : Array.isArray(logsRes.data)
-          ? logsRes.data
-          : [];
-        const usersList = usersRes.data?.result || [];
+        
+        // Extract log array safely supporting multiple data structures
+        const rawLogs = logsRes.data?.result?.data || logsRes.data?.result?.content || logsRes.data?.result || logsRes.data || [];
+        const logsList = Array.isArray(rawLogs) ? rawLogs : [];
+        
+        const rawUsers = usersRes.data?.result || usersRes.data || [];
+        const usersList = Array.isArray(rawUsers) ? rawUsers : [];
+        
         const userMap = {};
         usersList.forEach(u => {
           userMap[u.id] = u.fullName || u.email || 'System User';
@@ -46,15 +48,16 @@ export default function Topbar({
         const mapped = logsList.slice(0, 5).map((log, index) => {
           let type = 'info';
           let iconChar = 'i';
-          if (log.action?.includes('CREATE')) {
+          if (log.action?.includes('CREATE') || log.action?.includes('ADD')) {
             type = 'success';
             iconChar = '✓';
-          } else if (log.action?.includes('DELETE') || log.action?.includes('ERROR')) {
+          } else if (log.action?.includes('DELETE') || log.action?.includes('ERROR') || log.status === 'FAILED') {
             type = 'warning';
             iconChar = '!';
           }
           
-          const uName = userMap[log.userId] || 'System User';
+          const userIdVal = log.userId || log.user_id;
+          const uName = userMap[userIdVal] || (userIdVal ? `User ${userIdVal.toString().substring(0, 8)}...` : 'System');
           
           const actionTextMap = {
             CREATE_PROJECT: 'created a new project',
@@ -68,15 +71,16 @@ export default function Topbar({
           };
           const formattedAction = actionTextMap[log.action] || `performed ${log.action?.toLowerCase().replace(/_/g, ' ')}`;
 
-          const dateVal = log.createdAt;
+          const dateVal = log.createdAt || log.created_at;
           const parseDate = (dVal) => {
             if (!dVal) return new Date();
             try {
-              if (Array.isArray(dateVal)) {
-                const [y, m, d, h = 0, min = 0, s = 0] = dateVal;
+              if (Array.isArray(dVal)) {
+                const [y, m, d, h = 0, min = 0, s = 0] = dVal;
                 return new Date(y, m - 1, d, h, min, s);
               }
-              return new Date(dateVal);
+              const parsed = new Date(dVal);
+              return isNaN(parsed) ? new Date() : parsed;
             } catch {
               return new Date();
             }
@@ -84,7 +88,8 @@ export default function Topbar({
           const dateObj = parseDate(dateVal);
           const formatTimeAgo = (date) => {
             const seconds = Math.floor((new Date() - date) / 1000);
-            if (seconds < 60) return 'Just now';
+            if (seconds < 10) return 'Just now';
+            if (seconds < 60) return `${seconds}s ago`;
             const minutes = Math.floor(seconds / 60);
             if (minutes < 60) return `${minutes}m ago`;
             const hours = Math.floor(minutes / 60);
