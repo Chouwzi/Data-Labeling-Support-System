@@ -2,6 +2,9 @@ package com.uth.datalabeling.modules.task.controller;
 
 import com.uth.datalabeling.common.response.ApiResponse;
 import com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest;
+import com.uth.datalabeling.modules.task.dto.request.TaskSplitRequest;
+import com.uth.datalabeling.modules.task.dto.response.GenerateTasksResponse;
+import com.uth.datalabeling.modules.task.dto.response.ProjectWorkloadResponse;
 import com.uth.datalabeling.modules.task.dto.response.TaskResponse;
 import com.uth.datalabeling.modules.task.service.TaskService;
 import jakarta.validation.Valid;
@@ -28,12 +31,13 @@ public class TaskController {
      */
     @PostMapping("/generate")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ApiResponse<Void> generateTasks(
+    public ApiResponse<GenerateTasksResponse> generateTasks(
             @PathVariable UUID projectId,
             @RequestParam UUID datasetId) {
-        taskService.generateTasksFromDataset(projectId, datasetId);
-        return ApiResponse.<Void>builder()
+        GenerateTasksResponse response = taskService.generateTasksFromDataset(projectId, datasetId);
+        return ApiResponse.<GenerateTasksResponse>builder()
                 .message("Công việc đã được tạo thành công từ tập dữ liệu.")
+                .result(response)
                 .build();
     }
 
@@ -62,6 +66,24 @@ public class TaskController {
             @RequestBody @Valid TaskAssignRequest request) {
         return ApiResponse.<List<TaskResponse>>builder()
                 .result(taskService.assignTasks(projectId, request))
+                .build();
+    }
+
+    @GetMapping("/workload")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ApiResponse<ProjectWorkloadResponse> getWorkload(@PathVariable UUID projectId) {
+        return ApiResponse.<ProjectWorkloadResponse>builder()
+                .result(taskService.getProjectWorkload(projectId))
+                .build();
+    }
+
+    @PostMapping("/split")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ApiResponse<List<TaskResponse>> splitTasks(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid TaskSplitRequest request) {
+        return ApiResponse.<List<TaskResponse>>builder()
+                .result(taskService.splitTasks(projectId, request))
                 .build();
     }
 }

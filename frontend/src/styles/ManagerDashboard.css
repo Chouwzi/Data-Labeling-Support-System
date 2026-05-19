@@ -2209,6 +2209,19 @@
   gap: 1rem;
 }
 
+.project-detail-grid--catalog-first {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.28fr);
+  align-items: start;
+}
+
+.project-detail-section--catalog {
+  order: 1;
+}
+
+.project-detail-section--upload-queue {
+  order: 2;
+}
+
 .project-detail-section {
   padding: 1.25rem;
 }
@@ -2556,6 +2569,19 @@
   gap: 0.875rem;
 }
 
+.project-detail-section--catalog .project-detail-sample-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.project-detail-section--upload-queue .project-detail-dropzone {
+  min-height: 150px;
+}
+
+.project-detail-section--upload-queue .project-detail-upload-list {
+  max-height: 360px;
+  overflow: auto;
+}
+
 .project-detail-sample-card,
 .project-detail-task-card {
   position: relative;
@@ -2785,6 +2811,10 @@
   padding: 1.5rem;
 }
 
+.project-dataset-link-panel {
+  margin-bottom: 1rem;
+}
+
 .dataset-library-header h1 {
   margin: 0;
   color: #111827;
@@ -2993,6 +3023,42 @@
   justify-content: flex-end;
   gap: 0.625rem;
   flex-wrap: wrap;
+}
+
+.dataset-linked-projects {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  max-width: 520px;
+}
+
+.annotator-next-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #d1fae5;
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+}
+
+.annotator-next-task strong,
+.annotator-next-task span {
+  display: block;
+}
+
+.annotator-next-task strong {
+  color: #064e3b;
+  font-weight: 800;
+}
+
+.annotator-next-task span {
+  margin-top: 0.25rem;
+  color: #047857;
+  font-size: 0.875rem;
 }
 
 .dataset-link-controls select {

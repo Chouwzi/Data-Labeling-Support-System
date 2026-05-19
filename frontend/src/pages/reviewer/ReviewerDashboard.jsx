@@ -19,122 +19,9 @@ import {
   BarChart2,
   Calendar
 } from 'lucide-react';
-import { getReviewQueueImages, getCompletedReviewImages } from '@/services/api';
+import { getReviewQueueImages, getReviewHistory, getReviewStats, getMyProjects } from '@/services/api';
 import '@/styles/Dashboard.css';
 import '@/styles/ReviewerDashboard.css';
-
-const MOCK_COMPLETED_REVIEWS = [
-  {
-    task_id: 'mock-rev-1',
-    image_url: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Bui Trang',
-    submitted_at: '2026-05-19T06:09:28.000Z',
-    reviewed_at: '2026-05-19T06:12:15.000Z',
-    defect_category_name: null,
-    comments: 'Excellent work, all bounding boxes are extremely precise.',
-    annotations: [{}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-2',
-    image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
-    status: 'REJECTED',
-    annotator_name: 'Minh Thu',
-    submitted_at: '2026-05-18T14:22:10.000Z',
-    reviewed_at: '2026-05-19T01:30:00.000Z',
-    defect_category_name: 'Boundary Mismatch',
-    comments: 'Bounding boxes for vehicles are drawn too wide. Please snap to edges.',
-    annotations: [{}, {}]
-  },
-  {
-    task_id: 'mock-rev-3',
-    image_url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Hoang Nam',
-    submitted_at: '2026-05-18T10:05:45.000Z',
-    reviewed_at: '2026-05-18T11:15:20.000Z',
-    defect_category_name: null,
-    comments: 'Great labeling on background elements.',
-    annotations: [{}, {}, {}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-4',
-    image_url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Bui Trang',
-    submitted_at: '2026-05-18T09:12:30.000Z',
-    reviewed_at: '2026-05-18T10:00:15.000Z',
-    defect_category_name: null,
-    comments: 'Very clean tree segmentation bounds.',
-    annotations: [{}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-5',
-    image_url: 'https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=400&h=300&fit=crop',
-    status: 'REJECTED',
-    annotator_name: 'Hoang Nam',
-    submitted_at: '2026-05-17T16:40:00.000Z',
-    reviewed_at: '2026-05-18T08:20:00.000Z',
-    defect_category_name: 'Missed Bounding Box',
-    comments: 'Forgot to label 3 pedestrians in the shadows.',
-    annotations: [{}]
-  },
-  {
-    task_id: 'mock-rev-6',
-    image_url: 'https://images.unsplash.com/photo-1472214222541-d510753a49fa?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Viet Hoang',
-    submitted_at: '2026-05-17T13:00:00.000Z',
-    reviewed_at: '2026-05-17T15:10:00.000Z',
-    defect_category_name: null,
-    comments: 'All objects detected correctly.',
-    annotations: [{}, {}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-7',
-    image_url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Minh Thu',
-    submitted_at: '2026-05-17T11:15:00.000Z',
-    reviewed_at: '2026-05-17T12:00:00.000Z',
-    defect_category_name: null,
-    comments: 'Accurate label boundaries.',
-    annotations: [{}, {}]
-  },
-  {
-    task_id: 'mock-rev-8',
-    image_url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=300&fit=crop',
-    status: 'REJECTED',
-    annotator_name: 'Viet Hoang',
-    submitted_at: '2026-05-16T15:30:00.000Z',
-    reviewed_at: '2026-05-16T17:45:00.000Z',
-    defect_category_name: 'Incorrect Class Label',
-    comments: 'Trucks are labeled as compact cars. Please re-read taxonomies.',
-    annotations: [{}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-9',
-    image_url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Bui Trang',
-    submitted_at: '2026-05-16T09:40:00.000Z',
-    reviewed_at: '2026-05-16T10:30:00.000Z',
-    defect_category_name: null,
-    comments: 'Solid quality work.',
-    annotations: [{}, {}, {}, {}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-10',
-    image_url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Minh Thu',
-    submitted_at: '2026-05-15T15:00:00.000Z',
-    reviewed_at: '2026-05-15T16:15:00.000Z',
-    defect_category_name: null,
-    comments: 'Perfect labels.',
-    annotations: [{}, {}]
-  }
-];
 
 export default function ReviewerDashboard() {
   const { user, logout } = useAuth();
@@ -142,6 +29,8 @@ export default function ReviewerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState(null);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   
@@ -150,6 +39,7 @@ export default function ReviewerDashboard() {
   const [selectedAnnotator, setSelectedAnnotator] = useState('ALL');
 
   const isDashboard = location.pathname === '/reviewer';
+  const isProjectsTab = location.pathname === '/reviewer/projects';
   const isCompletedTab = location.pathname === '/reviewer/completed';
 
   let pageTitle = 'Reviewer Dashboard';
@@ -158,31 +48,38 @@ export default function ReviewerDashboard() {
     pageTitle = 'Review Statistics';
     pageSubtitle = 'Comprehensive performance metrics and curation quality review';
   } else if (!isDashboard) {
+    if (isProjectsTab) {
+      pageTitle = 'Assigned Review Projects';
+      pageSubtitle = 'Projects where you are part of the reviewer pool';
+    } else {
     pageTitle = 'Pending Reviews';
     pageSubtitle = 'Annotations currently waiting for your verification';
+    }
   }
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
       if (isCompletedTab) {
-        try {
-          // Attempt to fetch real completed data from the new backend API
-          const res = await getCompletedReviewImages();
-          const data = res.data?.result?.data || res.data?.result || [];
-          if (data && data.length > 0) {
-            setReviews(data);
-          } else {
-            setReviews(MOCK_COMPLETED_REVIEWS);
-          }
-        } catch (apiError) {
-          console.warn('Completed API not ready yet, falling back to mock data', apiError);
-          setReviews(MOCK_COMPLETED_REVIEWS);
-        }
+        const [historyRes, statsRes] = await Promise.all([
+          getReviewHistory({ page: 0, size: 100 }),
+          getReviewStats({ range: '30d' }).catch(() => null),
+        ]);
+        const data = historyRes.data?.result?.data || historyRes.data?.result?.content || historyRes.data?.result || [];
+        setReviews(Array.isArray(data) ? data : []);
+        setReviewStats(statsRes?.data?.result || null);
       } else {
-        const res = await getReviewQueueImages();
+        const [queueRes, statsRes, projectsRes] = await Promise.all([
+          getReviewQueueImages(),
+          getReviewStats({ range: 'today' }).catch(() => null),
+          getMyProjects({ role: 'REVIEWER' }).catch(() => ({ data: { result: { data: [] } } })),
+        ]);
+        const res = queueRes;
         const data = res.data?.result?.data || res.data?.result || [];
-        setReviews(data);
+        setReviews(Array.isArray(data) ? data : []);
+        setReviewStats(statsRes?.data?.result || null);
+        const projectData = projectsRes.data?.result?.data || projectsRes.data?.result || [];
+        setProjects(Array.isArray(projectData) ? projectData : []);
       }
     } catch (err) {
       console.error('Failed to fetch reviewer queue:', err);
@@ -214,14 +111,20 @@ export default function ReviewerDashboard() {
   };
 
   // Compute values dynamically from "reviews" list
-  const totalReviewed = reviews.length;
-  const approvedList = reviews.filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED');
+  const reviewStatus = (r) => (r.reviewAction || r.status || '').toUpperCase();
+  const totalReviewed = reviewStats?.totalReviewed ?? reviews.length;
+  const approvedList = reviews.filter(r => ['APPROVED', 'COMPLETED'].includes(reviewStatus(r)));
   const approvedCount = approvedList.length;
-  const rejectedList = reviews.filter(r => r.status === 'REJECTED');
+  const rejectedList = reviews.filter(r => reviewStatus(r) === 'REJECTED');
   const rejectedCount = rejectedList.length;
-  const approvalRate = totalReviewed > 0 ? ((approvedCount / totalReviewed) * 100).toFixed(1) : '0';
-  const rejectionRate = totalReviewed > 0 ? ((rejectedCount / totalReviewed) * 100).toFixed(1) : '0';
-  const avgReviewTime = '1.8m';
+  const approvedMetric = reviewStats?.approved ?? approvedCount;
+  const rejectedMetric = reviewStats?.rejected ?? rejectedCount;
+  const pendingMetric = reviewStats?.pendingReview ?? reviews.length;
+  const approvalRate = reviewStats?.approvalRate ?? (totalReviewed > 0 ? Number(((approvedMetric / totalReviewed) * 100).toFixed(1)) : 0);
+  const rejectionRate = reviewStats?.rejectionRate ?? (totalReviewed > 0 ? Number(((rejectedMetric / totalReviewed) * 100).toFixed(1)) : 0);
+  const avgReviewTime = reviewStats?.averageReviewTimeSeconds
+    ? `${Math.round(reviewStats.averageReviewTimeSeconds / 60)}m`
+    : 'Not enough data';
 
   // Compute unique list of annotators dynamically for the dropdown filter
   const uniqueAnnotators = [...new Set(reviews.map(r => r.annotator_name || r.annotatorName || 'Unknown'))].filter(Boolean);
@@ -229,8 +132,8 @@ export default function ReviewerDashboard() {
   // Compute common defect categories distribution dynamically
   const defectBreakdown = {};
   reviews.forEach(r => {
-    if (r.status === 'REJECTED') {
-      const cat = r.defect_category_name || r.defectCategory || 'Uncategorized';
+    if (reviewStatus(r) === 'REJECTED') {
+      const cat = r.defect_category_name || r.defectCategoryName || r.defectCategory || 'Uncategorized';
       defectBreakdown[cat] = (defectBreakdown[cat] || 0) + 1;
     }
   });
@@ -243,9 +146,9 @@ export default function ReviewerDashboard() {
       annotatorStatsMap[name] = { name, total: 0, approved: 0, rejected: 0 };
     }
     annotatorStatsMap[name].total += 1;
-    if (r.status === 'APPROVED' || r.status === 'COMPLETED') {
+    if (['APPROVED', 'COMPLETED'].includes(reviewStatus(r))) {
       annotatorStatsMap[name].approved += 1;
-    } else if (r.status === 'REJECTED') {
+    } else if (reviewStatus(r) === 'REJECTED') {
       annotatorStatsMap[name].rejected += 1;
     }
   });
@@ -260,7 +163,7 @@ export default function ReviewerDashboard() {
     const imageUrl = review.image_url || review.imageUrl || '';
     const fileName = imageUrl ? imageUrl.replace(/\\/g, '/').split('/').pop() : '';
     const annotatorName = review.annotator_name || review.annotatorName || 'Unknown';
-    const status = review.status || 'COMPLETED';
+    const status = reviewStatus(review) || 'COMPLETED';
 
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           annotatorName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -276,8 +179,8 @@ export default function ReviewerDashboard() {
 
   // SVG Circle stroke length math: radius = 50, circumference = 2 * Math.PI * 50 = 314.16
   const strokeCircumference = 314.16;
-  const approvedStrokeOffset = strokeCircumference * (1 - approvedCount / (totalReviewed || 1));
-  const rejectedStrokeOffset = strokeCircumference * (1 - rejectedCount / (totalReviewed || 1));
+  const approvedStrokeOffset = strokeCircumference * (1 - approvedMetric / (totalReviewed || 1));
+  const rejectedStrokeOffset = strokeCircumference * (1 - rejectedMetric / (totalReviewed || 1));
 
   return (
     <div className="dashboard-layout">
@@ -305,7 +208,30 @@ export default function ReviewerDashboard() {
           {/* ========================================================= */}
           {/* STATS VIEW (Completed Tab) */}
           {/* ========================================================= */}
-          {isCompletedTab ? (
+          {isProjectsTab ? (
+            <div className="review-grid">
+              {projects.length === 0 ? (
+                <div className="empty-state">
+                  <ClipboardCheck size={44} />
+                  <p>No review projects assigned.</p>
+                </div>
+              ) : projects.map((project) => (
+                <article key={project.id} className="review-card">
+                  <div className="review-card__content">
+                    <h3>{project.name}</h3>
+                    <p>{project.description || 'No description provided.'}</p>
+                    <div className="review-card__meta">
+                      <span>Manager: {project.manager_name || project.managerName || 'Unassigned'}</span>
+                      <span>Pending: {project.task_stats?.pendingReview || project.taskStats?.pendingReview || 0}</span>
+                    </div>
+                    {project.guideline_url || project.guidelineUrl ? (
+                      <a className="action-btn" href={project.guideline_url || project.guidelineUrl} target="_blank" rel="noreferrer">Guideline</a>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : isCompletedTab ? (
             <div className="stats-dashboard">
               {/* KPI metrics row */}
               <div className="kpi-container-custom">
@@ -318,14 +244,14 @@ export default function ReviewerDashboard() {
                 />
                 <KpiCard
                   title="Approved Annotations"
-                  value={`${approvedCount} (${approvalRate}%)`}
+                              value={`${approvedMetric} (${approvalRate}%)`}
                   icon={ThumbsUp}
                   trend="Acceptance"
                   variant="success"
                 />
                 <KpiCard
                   title="Rejected / Redo"
-                  value={`${rejectedCount} (${rejectionRate}%)`}
+                              value={`${rejectedMetric} (${rejectionRate}%)`}
                   icon={ThumbsDown}
                   trend="Issue Rate"
                   variant="danger"
@@ -370,7 +296,7 @@ export default function ReviewerDashboard() {
                               r="50" 
                               strokeDasharray={strokeCircumference}
                               strokeDashoffset={rejectedStrokeOffset}
-                              style={{ transform: `rotate(${(approvedCount / totalReviewed) * 360}deg)`, transformOrigin: '60px 60px' }}
+                              style={{ transform: `rotate(${(approvedMetric / totalReviewed) * 360}deg)`, transformOrigin: '60px 60px' }}
                             />
                           </>
                         )}
@@ -385,12 +311,12 @@ export default function ReviewerDashboard() {
                       <div className="legend-item">
                         <div className="legend-dot legend-dot--approved"></div>
                         <span className="legend-lbl">Approved</span>
-                        <span className="legend-val">{approvedCount} imgs</span>
+                        <span className="legend-val">{approvedMetric} imgs</span>
                       </div>
                       <div className="legend-item">
                         <div className="legend-dot legend-dot--rejected"></div>
                         <span className="legend-lbl">Rejected</span>
-                        <span className="legend-val">{rejectedCount} imgs</span>
+                        <span className="legend-val">{rejectedMetric} imgs</span>
                       </div>
                       <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', color: '#1e293b' }}>
                         <span>Grand Total:</span>
@@ -409,7 +335,7 @@ export default function ReviewerDashboard() {
                   <div className="defect-bar-list">
                     {Object.keys(defectBreakdown).length > 0 ? (
                       Object.entries(defectBreakdown).map(([category, count]) => {
-                        const percent = rejectedCount > 0 ? (count / rejectedCount) * 100 : 0;
+                        const percent = rejectedMetric > 0 ? (count / rejectedMetric) * 100 : 0;
                         return (
                           <div key={category} className="defect-bar-item">
                             <div className="defect-bar-meta">
@@ -521,7 +447,7 @@ export default function ReviewerDashboard() {
                           const imageUrl = review.image_url || review.imageUrl || '';
                           const fileName = imageUrl ? imageUrl.replace(/\\/g, '/').split('/').pop() : 'image.jpg';
                           const annotatorName = review.annotator_name || review.annotatorName || 'Unknown';
-                          const status = review.status || 'COMPLETED';
+                          const status = reviewStatus(review) || 'COMPLETED';
                           
                           // Format date nicely
                           const reviewDateStr = review.reviewed_at || review.reviewedAt || review.submitted_at || review.submittedAt || new Date().toISOString();
@@ -534,7 +460,7 @@ export default function ReviewerDashboard() {
                           });
 
                           const isApproved = status === 'APPROVED' || status === 'COMPLETED';
-                          const defectCategory = review.defect_category_name || review.defectCategory || '';
+                          const defectCategory = review.defect_category_name || review.defectCategoryName || review.defectCategory || '';
 
                           return (
                             <tr key={review.task_id || Math.random()}>
@@ -587,30 +513,30 @@ export default function ReviewerDashboard() {
                 <div className="kpi-grid">
                   <KpiCard
                     title="Pending Review"
-                    value={reviews.length.toString()}
+                    value={pendingMetric.toString()}
                     icon={ClipboardCheck}
                     trend="Real-time"
                     variant="warning"
                   />
                   <KpiCard
                     title="Approved Today"
-                    value="45"
+                    value={(reviewStats?.approved ?? 0).toString()}
                     icon={CheckSquare}
-                    trend="+12%"
+                    trend="Today"
                     variant="success"
                   />
                   <KpiCard
                     title="Rejected Today"
-                    value="3"
+                    value={(reviewStats?.rejected ?? 0).toString()}
                     icon={XSquare}
-                    trend="-2%"
+                    trend="Today"
                     variant="danger"
                   />
                   <KpiCard
                     title="Avg. Review Time"
-                    value="2.5m"
+                    value={avgReviewTime}
                     icon={Clock}
-                    trend="-10s"
+                    trend="Real data"
                     variant="primary"
                   />
                 </div>

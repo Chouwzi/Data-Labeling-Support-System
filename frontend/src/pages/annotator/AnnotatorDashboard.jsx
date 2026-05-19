@@ -13,7 +13,7 @@ import {
   Loader
 } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
-import { getProjects, getProject, getMyProjects, getLabelsByProject, getMyAssignedImages } from '@/services/api';
+import { getMyProjects, getLabelsByProject, getMyAssignedImages, getMyPerformance } from '@/services/api';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import KpiCard from '@/components/dashboard/KpiCard';
@@ -27,6 +27,8 @@ export default function AnnotatorDashboard() {
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [assignedImages, setAssignedImages] = useState([]);
+  const [performance, setPerformance] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardSearchTerm, setDashboardSearchTerm] = useState('');
 
@@ -49,16 +51,22 @@ export default function AnnotatorDashboard() {
         let finalProjects = [];
         let allAssignedImages = [];
         try {
-          const assignedImagesRes = await getMyAssignedImages({ page: 0, size: 1000 });
+          const [assignedImagesRes, performanceRes] = await Promise.all([
+            getMyAssignedImages({ page: 0, size: 1000 }),
+            getMyPerformance().catch(() => ({ data: { result: null } })),
+          ]);
           allAssignedImages = assignedImagesRes.data?.result?.data || assignedImagesRes.data?.result || [];
+          setPerformance(performanceRes.data?.result || null);
           if (!Array.isArray(allAssignedImages)) allAssignedImages = [];
+          setAssignedImages(allAssignedImages);
         } catch (assignedErr) {
           console.warn('Could not fetch assigned images for stats calculation', assignedErr);
+          setAssignedImages([]);
         }
 
         try {
           // Attempt 1: Get projects assigned to the current user
-          const res = await getMyProjects();
+          const res = await getMyProjects({ role: 'ANNOTATOR' });
           finalProjects = res.data?.result?.data || res.data?.result || res.data || [];
           if (!Array.isArray(finalProjects)) finalProjects = [];
         } catch (err) {
@@ -107,22 +115,6 @@ export default function AnnotatorDashboard() {
           } else {
             throw err;
           }
-        }
-
-        // Mock data fallback if still no projects found
-        if (!Array.isArray(finalProjects) || finalProjects.length === 0) {
-          finalProjects = [
-            {
-              id: 'mock-1',
-              name: 'Urban Infrastructure Mapping',
-              description: 'Identifying roads, buildings, and green spaces from satellite imagery.',
-              labels: [
-                { name: 'Road', color: '#3b82f6' },
-                { name: 'Building', color: '#ef4444' },
-                { name: 'Green Space', color: '#10b981' }
-              ]
-            }
-          ];
         }
 
         // Final normalization and fetching labels for projects that don't have them
@@ -175,6 +167,14 @@ export default function AnnotatorDashboard() {
     fetchProjects();
   }, [user]);
 
+  const statusCount = (statuses) => assignedImages.filter((image) => statuses.includes(image.status?.toUpperCase())).length;
+  const activeImages = statusCount(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'REJECTED']);
+  const unlabeledImages = statusCount(['PENDING', 'ASSIGNED', 'IN_PROGRESS']);
+  const pendingReview = statusCount(['PENDING_REVIEW']);
+  const completedImages = statusCount(['COMPLETED', 'APPROVED']);
+  const rejectedImages = statusCount(['REJECTED']);
+  const nextImage = assignedImages.find((image) => ['REJECTED', 'ASSIGNED', 'PENDING', 'IN_PROGRESS'].includes(image.status?.toUpperCase()));
+
   return (
     <div className="dashboard-wrapper">
       <AnnotatorSidebar isOpen={sidebarOpen} onNavigate={closeSidebar} />
@@ -195,20 +195,28 @@ export default function AnnotatorDashboard() {
           <div className="dashboard-content-inner fade-in-up">
             <div className="stats-grid stats-grid--compact">
               <KpiCard 
-                title="Assigned Work" 
-                value={`${projects.length} Projects`}
-                subtitle={`${projects.reduce((acc, p) => acc + (p.imageCount || p.total_images || 0), 0)} Total Images`}
+                title="Ready to Label" 
+                value={activeImages}
+                subtitle={`${projects.length} active project${projects.length === 1 ? '' : 's'}`}
                 icon="folder_managed"
-                trend="Assigned"
+                trend={rejectedImages > 0 ? `${rejectedImages} needs work` : 'Queue'}
                 compact
               />
 
               <KpiCard 
-                title="Your Progress" 
-                value={`${projects.filter(p => p.status === 'COMPLETED' || p.progress === 100).length} Finished`}
-                subtitle={`${projects.reduce((acc, p) => acc + (p.completed_images || 0), 0)} Images Labeled`}
+                title="Submitted" 
+                value={pendingReview}
+                subtitle={`${completedImages} approved or completed`}
                 icon="assignment_turned_in"
-                trend={`${projects.length > 0 ? Math.round((projects.reduce((acc, p) => acc + (p.completed_images || 0), 0) / Math.max(1, projects.reduce((acc, p) => acc + (p.imageCount || p.total_images || 0), 0))) * 100) : 0}% Done`}
+                trend={`${assignedImages.length > 0 ? Math.round((completedImages / Math.max(1, assignedImages.length)) * 100) : 0}% done`}
+                compact
+              />
+              <KpiCard
+                title="Approval Rate"
+                value={`${Math.round(performance?.approvalRate ?? performance?.approval_rate ?? 0)}%`}
+                subtitle={`${rejectedImages} rejected / rework`}
+                icon="assignment_turned_in"
+                trend={`${unlabeledImages} unlabeled`}
                 compact
               />
             </div>
@@ -216,8 +224,24 @@ export default function AnnotatorDashboard() {
             <section className="guideline-section">
               <div className="section-header">
                 <BookOpen size={20} className="section-icon" />
-                <h2 className="section-title">PROJECT GUIDELINES</h2>
+                <h2 className="section-title">WORK QUEUE</h2>
               </div>
+
+              {!isLoading && nextImage && (
+                <div className="annotator-next-task">
+                  <div>
+                    <strong>{nextImage.file_name || nextImage.fileName || 'Next image'}</strong>
+                    <span>{nextImage.project_name || nextImage.projectName || 'Assigned project'} · {nextImage.status || 'ASSIGNED'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="project-detail-primary-btn"
+                    onClick={() => navigate(`/annotator/projects/${nextImage.project_id || nextImage.projectId}/workspace/${nextImage.task_id || nextImage.taskId || nextImage.id}`)}
+                  >
+                    Continue labeling
+                  </button>
+                </div>
+              )}
 
               {isLoading ? (
                 <div className="loading-state">

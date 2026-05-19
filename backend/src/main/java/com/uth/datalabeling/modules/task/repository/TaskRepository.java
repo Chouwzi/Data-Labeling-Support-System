@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -17,9 +18,18 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
         boolean existsByProjectIdAndAnnotatorId(UUID projectId, UUID annotatorId);
 
+        boolean existsByProjectIdAndSampleId(UUID projectId, UUID sampleId);
+
         List<Task> findByProjectId(UUID projectId);
 
         List<Task> findBySampleId(UUID sampleId);
+
+        @Query("SELECT t.sample.id FROM Task t WHERE t.project.id = :projectId AND t.sample.id IN :sampleIds")
+        Set<UUID> findExistingSampleIdsForProject(
+                        @Param("projectId") UUID projectId,
+                        @Param("sampleIds") List<UUID> sampleIds);
+
+        long countByStatusIgnoreCase(String status);
 
         List<Task> findByProjectIdAndStatusIgnoreCase(UUID projectId, String status);
 
@@ -47,19 +57,52 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
                         LEFT JOIN FETCH t.annotator
                         WHERE (:projectId IS NULL OR t.project.id = :projectId)
                           AND (:managerId IS NULL OR t.project.managerId = :managerId)
+                          AND (:reviewerId IS NULL OR EXISTS (
+                              SELECT reviewer FROM Project p2 JOIN p2.reviewers reviewer
+                              WHERE p2 = t.project AND reviewer.id = :reviewerId
+                          ))
                           AND UPPER(t.status) = :status
                         ORDER BY t.updatedAt DESC, t.createdAt DESC
                         """, countQuery = """
                         SELECT COUNT(t) FROM Task t
                         WHERE (:projectId IS NULL OR t.project.id = :projectId)
                           AND (:managerId IS NULL OR t.project.managerId = :managerId)
+                          AND (:reviewerId IS NULL OR EXISTS (
+                              SELECT reviewer FROM Project p2 JOIN p2.reviewers reviewer
+                              WHERE p2 = t.project AND reviewer.id = :reviewerId
+                          ))
                           AND UPPER(t.status) = :status
                         """)
         Page<Task> findReviewQueueImages(
                         @Param("projectId") UUID projectId,
                         @Param("managerId") UUID managerId,
+                        @Param("reviewerId") UUID reviewerId,
                         @Param("status") String status,
                         Pageable pageable);
+
+        default Page<Task> findReviewQueueImages(UUID projectId, UUID managerId, String status, Pageable pageable) {
+                return findReviewQueueImages(projectId, managerId, null, status, pageable);
+        }
+
+        @Query("""
+                        SELECT COUNT(t) FROM Task t
+                        WHERE (:projectId IS NULL OR t.project.id = :projectId)
+                          AND (:managerId IS NULL OR t.project.managerId = :managerId)
+                          AND (:reviewerId IS NULL OR EXISTS (
+                              SELECT reviewer FROM Project p2 JOIN p2.reviewers reviewer
+                              WHERE p2 = t.project AND reviewer.id = :reviewerId
+                          ))
+                          AND UPPER(t.status) = :status
+                        """)
+        long countReviewQueueImages(
+                        @Param("projectId") UUID projectId,
+                        @Param("managerId") UUID managerId,
+                        @Param("reviewerId") UUID reviewerId,
+                        @Param("status") String status);
+
+        default long countReviewQueueImages(UUID projectId, UUID managerId, String status) {
+                return countReviewQueueImages(projectId, managerId, null, status);
+        }
 
         /**
          * Eagerly fetches sample (and sample.dataset) for all COMPLETED tasks in a

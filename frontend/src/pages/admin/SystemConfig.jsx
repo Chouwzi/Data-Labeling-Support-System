@@ -5,7 +5,14 @@ import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import SystemConfigPanel from '@/components/system/SystemConfigPanel';
 import BrandLogo from '@/components/common/BrandLogo';
-import { getSystemConfig, updateSystemConfig } from '@/services/api';
+import {
+  createDefectCategory,
+  deleteDefectCategory,
+  getDefectCategories,
+  getSystemConfig,
+  updateDefectCategory,
+  updateSystemConfig,
+} from '@/services/api';
 import '@/styles/SystemConfig.css';
 
 export default function SystemConfig() {
@@ -15,6 +22,10 @@ export default function SystemConfig() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [configData, setConfigData] = useState({ maxImageSize: 10, aiEnabled: true });
+  const [defectCategories, setDefectCategories] = useState([]);
+  const [defectForm, setDefectForm] = useState({ name: '', description: '' });
+  const [editingDefectId, setEditingDefectId] = useState(null);
+  const [defectError, setDefectError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((o) => !o);
@@ -28,12 +39,17 @@ export default function SystemConfig() {
   useEffect(() => {
     async function loadConfig() {
       try {
-        const res = await getSystemConfig();
+        const [res, defectRes] = await Promise.all([
+          getSystemConfig(),
+          getDefectCategories().catch(() => ({ data: { result: [] } })),
+        ]);
         const data = res.data?.result || res.data;
         setConfigData({
           maxImageSize: data.maxImageSize ?? 10,
           aiEnabled: data.aiEnabled ?? true,
         });
+        const defects = defectRes.data?.result || defectRes.data || [];
+        setDefectCategories(Array.isArray(defects) ? defects : []);
       } catch {
         setError('Không thể tải cấu hình. Vui lòng thử lại.');
       } finally {
@@ -46,6 +62,60 @@ export default function SystemConfig() {
 
   const handleSave = async (config) => {
     await updateSystemConfig(config);
+  };
+
+  const resetDefectForm = () => {
+    setDefectForm({ name: '', description: '' });
+    setEditingDefectId(null);
+    setDefectError('');
+  };
+
+  const reloadDefects = async () => {
+    const res = await getDefectCategories();
+    const defects = res.data?.result || res.data || [];
+    setDefectCategories(Array.isArray(defects) ? defects : []);
+  };
+
+  const handleSubmitDefect = async (event) => {
+    event.preventDefault();
+    const payload = {
+      name: defectForm.name.trim(),
+      description: defectForm.description.trim(),
+    };
+    if (!payload.name) {
+      setDefectError('Defect category name is required.');
+      return;
+    }
+    try {
+      if (editingDefectId) {
+        await updateDefectCategory(editingDefectId, payload);
+      } else {
+        await createDefectCategory(payload);
+      }
+      resetDefectForm();
+      await reloadDefects();
+    } catch (error) {
+      setDefectError(error.response?.data?.message || 'Could not save defect category.');
+    }
+  };
+
+  const handleEditDefect = (category) => {
+    setEditingDefectId(category.id);
+    setDefectForm({
+      name: category.name || '',
+      description: category.description || '',
+    });
+    setDefectError('');
+  };
+
+  const handleDeleteDefect = async (categoryId) => {
+    try {
+      await deleteDefectCategory(categoryId);
+      if (editingDefectId === categoryId) resetDefectForm();
+      await reloadDefects();
+    } catch (error) {
+      setDefectError(error.response?.data?.message || 'Could not delete defect category.');
+    }
   };
 
   const userName = user?.fullName || user?.email || 'Admin';
@@ -98,6 +168,61 @@ export default function SystemConfig() {
                   onSave={handleSave}
                 />
               </div>
+              <section className="config-page-panel defect-config-panel" aria-labelledby="defect-config-heading">
+                <div className="config-panel__header">
+                  <h2 className="config-panel__title" id="defect-config-heading">Defect Categories</h2>
+                  <p className="config-panel__subtitle">Review rejection taxonomy</p>
+                </div>
+                <form className="defect-config-form" onSubmit={handleSubmitDefect}>
+                  <label className="form-field">
+                    <span className="form-field__label">Category name</span>
+                    <input
+                      className="form-field__input"
+                      value={defectForm.name}
+                      onChange={(event) => setDefectForm((prev) => ({ ...prev, name: event.target.value }))}
+                      placeholder="e.g. Boundary mismatch"
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span className="form-field__label">Description</span>
+                    <textarea
+                      className="form-field__textarea"
+                      value={defectForm.description}
+                      onChange={(event) => setDefectForm((prev) => ({ ...prev, description: event.target.value }))}
+                      placeholder="When reviewers should use this category"
+                      rows={3}
+                    />
+                  </label>
+                  {defectError && <p className="form-field__error" role="alert">{defectError}</p>}
+                  <div className="defect-config-actions">
+                    <button type="submit" className="config-save-btn" disabled={!defectForm.name.trim()}>
+                      {editingDefectId ? 'Save category' : 'Add category'}
+                    </button>
+                    {editingDefectId && (
+                      <button type="button" className="defect-config-secondary" onClick={resetDefectForm}>
+                        Cancel edit
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                <div className="defect-category-list">
+                  {defectCategories.length === 0 ? (
+                    <p className="defect-category-empty">No defect categories configured yet.</p>
+                  ) : defectCategories.map((category) => (
+                    <article key={category.id} className="defect-category-row">
+                      <div>
+                        <strong>{category.name}</strong>
+                        <span>{category.description || 'No description'}</span>
+                      </div>
+                      <div className="defect-category-row__actions">
+                        <button type="button" onClick={() => handleEditDefect(category)}>Edit</button>
+                        <button type="button" onClick={() => handleDeleteDefect(category.id)}>Delete</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
             </div>
           )}
         </main>

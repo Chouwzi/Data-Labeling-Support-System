@@ -11,7 +11,7 @@ const ROLE_STYLES = {
   REVIEWER:  { bg: '#fdf4ff', color: '#7c3aed', label: 'Reviewer' },
 };
 
-export default function RoleModal({ isOpen, onClose, user, onSave, loading }) {
+export default function RoleModal({ isOpen, onClose, user, onSave, loading, allowedRoles = ROLES }) {
   const [selected, setSelected] = useState(user?.role || '');
   const [error, setError] = useState('');
 
@@ -77,7 +77,7 @@ export default function RoleModal({ isOpen, onClose, user, onSave, loading }) {
               disabled={loading}
             >
               <option value="">— Select Role —</option>
-              {ROLES.map((role) => (
+              {allowedRoles.map((role) => (
                 <option key={role} value={role}>
                   {ROLE_STYLES[role].label}
                 </option>

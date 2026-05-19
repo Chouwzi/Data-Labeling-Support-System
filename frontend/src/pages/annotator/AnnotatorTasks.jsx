@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Search, 
-  Filter, 
+import {
   ChevronLeft, 
   Clock, 
   CheckCircle2, 
@@ -21,12 +19,9 @@ import '@/styles/Dashboard.css';
 import '@/styles/ManagerDashboard.css';
 
 const TASK_STATUSES = [
-  { id: 'all', label: 'All Tasks', color: 'var(--color-text-secondary)' },
-  { id: 'PENDING', label: 'Pending', color: '#f59e0b', icon: Clock },
-  { id: 'ASSIGNED', label: 'Assigned', color: '#f59e0b', icon: Clock },
-  { id: 'IN_PROGRESS', label: 'In Progress', color: '#3b82f6', icon: Clock },
-  { id: 'COMPLETED', label: 'Completed', color: '#10b981', icon: CheckCircle2 },
-  { id: 'REJECTED', label: 'Rejected', color: '#ef4444', icon: AlertCircle },
+  { id: 'unlabeled', label: 'To Label', color: '#f59e0b', statuses: ['PENDING', 'ASSIGNED', 'IN_PROGRESS'] },
+  { id: 'submitted', label: 'Submitted', color: '#10b981', statuses: ['PENDING_REVIEW', 'COMPLETED', 'APPROVED'] },
+  { id: 'rework', label: 'Rework', color: '#ef4444', statuses: ['REJECTED'] },
 ];
 
 export default function AnnotatorTasks() {
@@ -36,7 +31,7 @@ export default function AnnotatorTasks() {
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('unlabeled');
   const [viewMode, setViewMode] = useState('grid');
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,19 +65,12 @@ export default function AnnotatorTasks() {
     const fetchTasks = async () => {
       try {
         setIsLoading(true);
-        // API handles status filtering if it's not 'all'
-        const statusParam = statusFilter === 'all' ? undefined : statusFilter;
-        
-        // We use getMyAssignedImages which is more appropriate for annotator role
-        // Parameter name must match @RequestParam in AssignedImageController (projectId)
         const res = await getMyAssignedImages({ 
           projectId: projectId, 
-          status: statusParam,
           page: 0,
-          size: 100
+          size: 1000
         });
         
-        console.log('Annotator Tasks Raw Data:', res.data);
         const resultData = res.data?.result?.data || res.data?.result || [];
         const rawData = Array.isArray(resultData) ? resultData : [];
         
@@ -115,17 +103,18 @@ export default function AnnotatorTasks() {
     };
 
     fetchTasks();
-  }, [projectId, statusFilter]);
+  }, [projectId]);
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           task.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+    const bucket = TASK_STATUSES.find((item) => item.id === statusFilter) || TASK_STATUSES[0];
+    const matchesStatus = bucket.statuses.includes(task.status?.toUpperCase());
     return matchesSearch && matchesStatus;
   });
 
   const getStatusStyle = (status) => {
-    const s = TASK_STATUSES.find(st => st.id === status);
+    const s = TASK_STATUSES.find(st => st.statuses.includes(status?.toUpperCase()));
     return {
       backgroundColor: `${s?.color}15`,
       color: s?.color,
@@ -170,7 +159,7 @@ export default function AnnotatorTasks() {
                       className={`filter-tab ${statusFilter === status.id ? 'active' : ''}`}
                       onClick={() => setStatusFilter(status.id)}
                     >
-                      {status.label}
+                      {status.label} ({tasks.filter((task) => status.statuses.includes(task.status?.toUpperCase())).length})
                     </button>
                   ))}
                 </div>
@@ -214,6 +203,8 @@ export default function AnnotatorTasks() {
                           src={task.imageUrl} 
                           alt={task.name} 
                           className="task-img-preview"
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
@@ -252,7 +243,7 @@ export default function AnnotatorTasks() {
                           onClick={() => navigate(`/annotator/projects/${projectId}/workspace/${task.id}`)}
                         >
                           <ExternalLink size={14} />
-                          <span>Label Now</span>
+                          <span>{task.status === 'REJECTED' ? 'Fix annotations' : task.status === 'PENDING_REVIEW' ? 'View submission' : task.status === 'COMPLETED' || task.status === 'APPROVED' ? 'View result' : 'Label now'}</span>
                         </button>
                         <button className="action-btn action-btn--icon" title="View details">
                           <Info size={16} />
@@ -286,7 +277,17 @@ export default function AnnotatorTasks() {
         .view-switch { display: flex; gap: 0.25rem; }
         .view-btn { padding: 0.5rem; background: white; border: 1px solid #e2e8f0; border-radius: 6px; color: #64748b; cursor: pointer; }
         .view-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
-        .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+        .tasks-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .tasks-list .task-item { display: grid; grid-template-columns: 132px minmax(0, 1fr); }
+        .tasks-list .task-preview { height: 100%; min-height: 112px; }
+        .tasks-list .task-content { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1rem; align-items: center; padding: 1rem; }
+        .tasks-list .task-id-row, .tasks-list .task-meta { margin: 0; }
+        .tasks-list .task-actions { min-width: 170px; }
+        .tasks-grid .task-item { display: grid; grid-template-rows: 150px minmax(0, 1fr); }
+        .tasks-grid .task-content { display: grid; gap: 0.75rem; min-width: 0; }
+        .tasks-grid .task-id-row { min-width: 0; }
+        .tasks-grid .task-meta { gap: 0.75rem; justify-content: flex-start; flex-wrap: wrap; }
         .task-item { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; transition: transform 0.2s, box-shadow 0.2s; }
         .task-item:hover { transform: translateY(-4px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .task-preview { height: 140px; background: #f8fafc; position: relative; display: flex; align-items: center; justify-content: center; }
@@ -310,6 +311,21 @@ export default function AnnotatorTasks() {
         .loading-state { display: flex; flex-direction: column; align-items: center; padding: 4rem; }
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+          .tasks-header { align-items: flex-start; gap: 1rem; }
+          .back-btn { width: auto; flex-shrink: 0; }
+          .project-title-area { min-width: 0; }
+          .project-title-area .project-id { display: block; overflow-wrap: anywhere; }
+          .filter-actions { align-items: stretch; }
+          .status-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+          .filter-tab { padding: 0.45rem 0.35rem; white-space: normal; }
+          .tasks-grid { grid-template-columns: 1fr; gap: 0.875rem; }
+          .tasks-list .task-item { grid-template-columns: 132px minmax(0, 1fr); }
+          .tasks-list .task-content { display: grid; grid-template-columns: 1fr; gap: 0.65rem; }
+          .task-meta { justify-content: flex-start; gap: 0.75rem; flex-wrap: wrap; }
+          .task-actions { align-items: stretch; }
+          .action-btn--primary { min-width: 0; }
+        }
       `}} />
     </div>
   );

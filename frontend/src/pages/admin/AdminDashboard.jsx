@@ -76,6 +76,7 @@ export default function AdminDashboard() {
   });
   const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
   const [attentionItems, setAttentionItems] = useState([]);
+  const [systemConfig, setSystemConfig] = useState({ maxImageSize: 10, aiEnabled: true });
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
@@ -83,12 +84,21 @@ export default function AdminDashboard() {
   useEffect(() => {
       const fetchData = async () => {
         try {
-          const { getUsers, getProjects, getLogs, getTasks } = await import('@/services/api');
-          const [usersRes, projectsRes, logsRes] = await Promise.all([
+          const { getUsers, getProjects, getLogs, getTasks, getSystemConfig } = await import('@/services/api');
+          const [usersRes, projectsRes, logsRes, configRes] = await Promise.all([
             getUsers().catch(() => ({ data: { result: [] } })),
             getProjects().catch(() => ({ data: { result: { content: [] } } })),
-            getLogs(0, 3).catch(() => ({ data: { result: { content: [] } } }))
+            getLogs(0, 3).catch(() => ({ data: { result: { content: [] } } })),
+            getSystemConfig().catch(() => null)
           ]);
+
+          if (configRes) {
+            const config = configRes.data?.result || {};
+            setSystemConfig({
+              maxImageSize: config.maxImageSize ?? 10,
+              aiEnabled: config.aiEnabled ?? true,
+            });
+          }
           
           const usersList = usersRes.data?.result || [];
           const totalUsers = usersList.length;
@@ -272,6 +282,10 @@ export default function AdminDashboard() {
     try {
       const { updateSystemConfig } = await import('@/services/api');
       await updateSystemConfig(config);
+      setSystemConfig({
+        maxImageSize: config.maxImageSize,
+        aiEnabled: config.aiEnabled,
+      });
       setToast({ message: 'Configuration saved successfully', type: 'success' });
     } catch (err) {
       setToast({
@@ -448,7 +462,11 @@ export default function AdminDashboard() {
                   <button type="button" onClick={() => navigate('/admin/logs')}>Activity Logs <ArrowRight size={14} /></button>
                 </div>
                 <div className="admin-config-compact">
-                  <SystemConfigPanel onSave={handleSaveConfig} />
+                  <SystemConfigPanel
+                    initialMaxImageSize={systemConfig.maxImageSize}
+                    initialAiEnabled={systemConfig.aiEnabled}
+                    onSave={handleSaveConfig}
+                  />
                 </div>
               </section>
             </aside>

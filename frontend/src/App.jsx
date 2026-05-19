@@ -223,20 +223,20 @@ function App() {
         }
       />
       <Route
-        path="/manager/upload-images"
+        path="/manager/groups"
         element={
           <ProtectedRoute allowedRoles={['MANAGER']}>
-            <UploadImages />
+            <UsersPage />
           </ProtectedRoute>
         }
       />
       <Route
+        path="/manager/upload-images"
+        element={<Navigate to="/manager/projects" replace />}
+      />
+      <Route
         path="/manager/annotators"
-        element={
-          <ProtectedRoute allowedRoles={['MANAGER']}>
-            <AnnotatorsImageGrid />
-          </ProtectedRoute>
-        }
+        element={<Navigate to="/manager/projects" replace />}
       />
       <Route
         path="/manager/reports"
@@ -257,19 +257,11 @@ function App() {
 
       <Route
         path="/manager/taxonomy"
-        element={
-          <ProtectedRoute allowedRoles={['MANAGER']}>
-            <LabelTaxonomy />
-          </ProtectedRoute>
-        }
+        element={<Navigate to="/manager/projects" replace />}
       />
       <Route
         path="/manager/taxonomy/:projectId"
-        element={
-          <ProtectedRoute allowedRoles={['MANAGER']}>
-            <LabelTaxonomy />
-          </ProtectedRoute>
-        }
+        element={<Navigate to="/manager/projects" replace />}
       />
 
       <Route
@@ -285,6 +277,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['ANNOTATOR']}>
             <AnnotatorSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/annotator/projects"
+        element={
+          <ProtectedRoute allowedRoles={['ANNOTATOR']}>
+            <AnnotatorDashboard />
           </ProtectedRoute>
         }
       />
@@ -314,6 +314,14 @@ function App() {
       />
       <Route
         path="/reviewer/completed"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviewer/projects"
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>
             <ReviewerDashboard />

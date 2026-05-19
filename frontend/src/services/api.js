@@ -60,6 +60,16 @@ export const getUsers = () => api.get('/users');
 
 export const getAnnotators = () => api.get('/users/annotators');
 
+export const getGroups = () => api.get('/groups');
+
+export const createGroup = (data) => api.post('/groups', data);
+
+export const updateGroup = (groupId, data) => api.put(`/groups/${groupId}`, data);
+
+export const deleteGroup = (groupId) => api.delete(`/groups/${groupId}`);
+
+export const getGroupMembers = (groupId) => api.get(`/groups/${groupId}/members`);
+
 export const createUser = (data) => api.post('/users', data);
 
 export const updateUser = (userId, data) => api.put(`/users/${userId}`, data);
@@ -71,6 +81,8 @@ export const updateUserRole = (user, newRole) => {
     email: user.email,
     full_name: user.fullName,
     role: newRole,
+    active: user.active,
+    group_id: user.groupId || user.group_id || null,
   };
   console.log('Sending payload (updateUserRole):', payload);
   return api.put(`/users/${user.id}`, payload);
@@ -132,8 +144,8 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 // Projects
 // =====================
-export const getProjects = () => api.get('/projects', { params: { size: 1000, sort: 'createdAt,desc' } });
-export const getMyProjects = () => api.get('/me/projects', { params: { size: 1000 } });
+export const getProjects = () => api.get('/projects', { params: { page: 0, size: 200 } });
+export const getMyProjects = (params = {}) => api.get('/me/projects', { params: { page: 0, size: 200, ...params } });
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
 export const deleteProject = (projectId) => api.delete(`/projects/${projectId}`);
@@ -175,6 +187,27 @@ export const deleteDatasetSample = (datasetId, sampleId) => api.delete(`/dataset
 
 export const updateProject = (projectId, data) =>
   api.put(`/projects/${projectId}`, data);
+
+export const updateProjectManager = (projectId, managerId) =>
+  api.put(`/projects/${projectId}/manager`, { manager_id: managerId });
+
+export const updateProjectReviewers = (projectId, reviewerIds) =>
+  api.put(`/projects/${projectId}/reviewers`, { reviewer_ids: reviewerIds });
+
+export const getProjectWorkload = (projectId) =>
+  api.get(`/projects/${projectId}/workload`);
+
+export const splitProjectTasks = (projectId, data) =>
+  api.post(`/projects/${projectId}/tasks/split`, data);
+
+export const getProjectPerformance = (projectId) =>
+  api.get(`/projects/${projectId}/performance`);
+
+export const getAdminUserPerformance = () =>
+  api.get('/admin/users/performance');
+
+export const getMyPerformance = () =>
+  api.get('/me/performance');
 
 export const uploadGuidelineFile = (projectId, file) => {
   const formData = new FormData();
@@ -251,5 +284,20 @@ export const rejectReviewImage = (taskId, defectCategoryId, comments) =>
 
 export const getDefectCategories = () =>
   api.get('/defect-categories');
+
+export const createDefectCategory = (data) =>
+  api.post('/defect-categories', data);
+
+export const updateDefectCategory = (categoryId, data) =>
+  api.put(`/defect-categories/${categoryId}`, data);
+
+export const deleteDefectCategory = (categoryId) =>
+  api.delete(`/defect-categories/${categoryId}`);
+
+export const getReviewStats = (params = {}) =>
+  api.get('/review-queue/stats', { params });
+
+export const getReviewHistory = (params = {}) =>
+  api.get('/review-queue/completed', { params });
 
 export default api;

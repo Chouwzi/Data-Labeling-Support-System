@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { CheckCircle, AlertCircle, Info } from 'lucide-react';
 import '@/styles/SystemConfigPanel.css';
 function ToggleSwitch({ checked, onChange, disabled = false, labelledBy }) {
@@ -34,6 +34,16 @@ export default function SystemConfigPanel({
     maxImageSize: initialMaxImageSize,
     aiEnabled: initialAiEnabled,
   });
+
+  useEffect(() => {
+    baselineRef.current = {
+      maxImageSize: initialMaxImageSize,
+      aiEnabled: initialAiEnabled,
+    };
+    setMaxImageSize(initialMaxImageSize);
+    setAiEnabled(initialAiEnabled);
+    setHasChanges(false);
+  }, [initialMaxImageSize, initialAiEnabled]);
 
   const recomputeDirty = useCallback((nextSize, nextAi) => {
     const b = baselineRef.current;

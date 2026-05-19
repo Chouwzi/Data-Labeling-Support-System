@@ -13,11 +13,15 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface UserMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
+  @Mapping(target = "group", ignore = true)
   User toUser(UserCreationRequest request);
 
+  @Mapping(target = "groupId", source = "group.id")
+  @Mapping(target = "groupName", source = "group.name")
   UserResponse toUserResponse(User user);
 
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
+  @Mapping(target = "group", ignore = true)
   void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

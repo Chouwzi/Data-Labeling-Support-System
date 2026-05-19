@@ -76,7 +76,7 @@ public class ProjectAccessService {
         User currentUser = getCurrentUser();
 
         if (isAdmin(currentUser)
-                || isReviewer(currentUser)
+                || isAssignedReviewer(projectId, currentUser)
                 || Objects.equals(project.getManagerId(), currentUser.getId())
                 || isAssignedAnnotator(projectId, currentUser)) {
             return project;
@@ -92,6 +92,23 @@ public class ProjectAccessService {
 
     private boolean isReviewer(User currentUser) {
         return "REVIEWER".equals(currentUser.getRole());
+    }
+
+    private boolean isAssignedReviewer(java.util.UUID projectId, User currentUser) {
+        return isReviewer(currentUser)
+                && projectRepository.existsByIdAndReviewersId(projectId, currentUser.getId());
+    }
+
+    public void ensureUserAssignableInCurrentScope(User target) {
+        User currentUser = getCurrentUser();
+        if (isAdmin(currentUser)) {
+            return;
+        }
+        java.util.UUID currentGroupId = currentUser.getGroup() != null ? currentUser.getGroup().getId() : null;
+        java.util.UUID targetGroupId = target.getGroup() != null ? target.getGroup().getId() : null;
+        if (currentGroupId == null || !currentGroupId.equals(targetGroupId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
     }
 
     /**

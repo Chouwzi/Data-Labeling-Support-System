@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardCheck, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, BarChart2 } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/reviewer' },
+  { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/reviewer/projects' },
   { id: 'completed', label: 'Review Stats', icon: BarChart2, path: '/reviewer/completed' },
 ];
 

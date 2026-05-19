@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, UserPlus, FolderPlus, Edit2, Lock, Unlock } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
+import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import Filters from '@/components/Filters';
 import CreateGroupModal from '@/components/CreateGroupModal';
@@ -10,7 +11,16 @@ import RoleModal from '@/components/RoleModal';
 import Toast from '@/components/Toast';
 import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getUsers, createUser, updateUserRole, toggleUserStatus } from '@/services/api';
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  updateUserRole,
+  toggleUserStatus,
+  getGroups,
+  createGroup,
+  getAdminUserPerformance,
+} from '@/services/api';
 import '@/styles/AdminDashboard.css';
 import '@/styles/UsersPage.css';
 
@@ -23,6 +33,7 @@ export default function UsersPage() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState(null);
   const [groups, setGroups] = useState([]);
+  const [performance, setPerformance] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -35,14 +46,21 @@ export default function UsersPage() {
   const [roleTargetUser, setRoleTargetUser] = useState(null);
   const [roleLoading, setRoleLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const isManager = user?.role === 'MANAGER';
 
   // Gọi API lấy danh sách users
   useEffect(() => {
     async function fetchUsers() {
       try {
         setUsersLoading(true);
-        const res = await getUsers();
+        const [res, groupsRes, performanceRes] = await Promise.all([
+          getUsers(),
+          getGroups().catch(() => ({ data: { result: [] } })),
+          isManager ? Promise.resolve({ data: { result: [] } }) : getAdminUserPerformance().catch(() => ({ data: { result: [] } })),
+        ]);
         setUsers(res.data.result || []);
+        setGroups(groupsRes.data.result || []);
+        setPerformance(performanceRes.data.result || []);
       } catch (err) {
         setUsersError(err.response?.data?.message || 'Không thể tải danh sách users');
       } finally {
@@ -50,7 +68,7 @@ export default function UsersPage() {
       }
     }
     fetchUsers();
-  }, []);
+  }, [isManager]);
 
   const handleLogout = () => {
     logout();
@@ -89,6 +107,41 @@ export default function UsersPage() {
     }
   };
 
+  const handleEditName = async (targetUser) => {
+    const nextName = window.prompt('Tên người dùng', targetUser.fullName || '');
+    if (!nextName || nextName.trim() === targetUser.fullName) return;
+    try {
+      await updateUser(targetUser.id, {
+        email: targetUser.email,
+        full_name: nextName.trim(),
+        role: targetUser.role,
+        active: targetUser.active,
+        group_id: targetUser.groupId,
+      });
+      setToast({ type: 'success', message: 'Đã cập nhật tên người dùng.' });
+      const res = await getUsers();
+      setUsers(res.data.result || []);
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'Cập nhật tên thất bại.' });
+    }
+  };
+
+  const handleAssignGroup = async (targetUser, groupId) => {
+    try {
+      await updateUser(targetUser.id, {
+        email: targetUser.email,
+        full_name: targetUser.fullName,
+        role: targetUser.role,
+        active: targetUser.active,
+        group_id: groupId || null,
+      });
+      setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? { ...u, group_id: groupId || null, groupId: groupId || null } : u)));
+      setToast({ type: 'success', message: 'Đã cập nhật group.' });
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'Cập nhật group thất bại.' });
+    }
+  };
+
   const handleToggleStatus = async (user) => {
     const newActive = !user.active;
     setUsers((prev) =>
@@ -111,12 +164,15 @@ export default function UsersPage() {
     }
   };
 
-  const handleCreateGroup = (groupName) => {
-    const newGroup = {
-      id: groups.length > 0 ? Math.max(...groups.map((g) => g.id)) + 1 : 1,
-      name: groupName,
-    };
-    setGroups((prev) => [...prev, newGroup]);
+  const handleCreateGroup = async (groupName) => {
+    try {
+      const res = await createGroup({ name: groupName });
+      setGroups((prev) => [...prev, res.data.result]);
+      setToast({ type: 'success', message: 'Đã tạo group.' });
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'Tạo group thất bại.' });
+      throw err;
+    }
   };
 
   // Chuẩn hóa dữ liệu user từ API (snake_case → camelCase)
@@ -126,8 +182,13 @@ export default function UsersPage() {
     email: u.email,
     role: u.role,
     active: u.active,
-    groupId: u.groupId || null,
+    groupId: u.groupId || u.group_id || null,
   }));
+
+  const performanceByUserId = performance.reduce((acc, item) => {
+    acc[item.userId || item.user_id] = item;
+    return acc;
+  }, {});
 
   const filteredUsers = normalizedUsers.filter((u) => {
     const isActive = u.active === true || u.active === 'active';
@@ -155,10 +216,14 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="admin-layout">
-      <Sidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
+    <div className={isManager ? 'manager-layout' : 'admin-layout'}>
+      {isManager ? (
+        <ManagerSidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
+      ) : (
+        <Sidebar isOpen={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
+      )}
 
-      <div className="admin-main">
+      <div className={isManager ? 'manager-main' : 'admin-main'}>
         <Topbar
           userName={user?.fullName || user?.email || 'Administrator'}
           userRole={user?.role ? user.role.replace('_', ' ') : 'USER'}
@@ -166,19 +231,19 @@ export default function UsersPage() {
           onLogout={handleLogout}
         />
 
-        <main className="admin-content">
+        <main className={isManager ? 'manager-content' : 'admin-content'}>
           <div className="users-header">
             <button
               type="button"
               className="log-back-btn"
-              onClick={() => navigate('/admin', { replace: true })}
+              onClick={() => navigate(isManager ? '/manager' : '/admin', { replace: true })}
             >
               <ArrowLeft size={16} aria-hidden="true" />
               <span>Dashboard</span>
             </button>
-            <h1 className="admin-page-title">User Management</h1>
+            <h1 className="admin-page-title">{isManager ? 'Group Members' : 'User Management'}</h1>
             <p className="admin-page-subtitle">
-              Manage system users, roles, and team assignments.
+              {isManager ? 'Manage annotator and reviewer roles inside your group.' : 'Manage system users, roles, and team assignments.'}
             </p>
           </div>
 
@@ -191,6 +256,10 @@ export default function UsersPage() {
               groupFilter={groupFilter}
               onGroupFilterChange={setGroupFilter}
               groups={groups}
+              roleOptions={isManager ? [
+                { value: 'ANNOTATOR', label: 'Annotator' },
+                { value: 'REVIEWER', label: 'Reviewer' },
+              ] : undefined}
             />
 
             <label className="users-status-filter">
@@ -206,24 +275,26 @@ export default function UsersPage() {
               </select>
             </label>
 
-            <div className="users-toolbar__actions">
-              <button
-                type="button"
-                className="users-btn users-btn--secondary"
-                onClick={() => setShowCreateGroupModal(true)}
-              >
-                <FolderPlus size={16} />
-                <span>Create Group</span>
-              </button>
-              <button
-                type="button"
-                className="users-btn users-btn--primary"
-                onClick={() => setShowCreateUserModal(true)}
-              >
-                <UserPlus size={16} />
-                <span>Create Account</span>
-              </button>
-            </div>
+            {!isManager && (
+              <div className="users-toolbar__actions">
+                <button
+                  type="button"
+                  className="users-btn users-btn--secondary"
+                  onClick={() => setShowCreateGroupModal(true)}
+                >
+                  <FolderPlus size={16} />
+                  <span>Create Group</span>
+                </button>
+                <button
+                  type="button"
+                  className="users-btn users-btn--primary"
+                  onClick={() => setShowCreateUserModal(true)}
+                >
+                  <UserPlus size={16} />
+                  <span>Create Account</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="users-summary" aria-label="User summary">
@@ -236,7 +307,7 @@ export default function UsersPage() {
             <button type="button" className={statusFilter === 'disabled' ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => setStatusFilter('disabled')}>
               Disabled <strong>{userSummary.disabled}</strong>
             </button>
-            {['ADMIN', 'MANAGER', 'REVIEWER', 'ANNOTATOR'].map((role) => (
+            {(isManager ? ['REVIEWER', 'ANNOTATOR'] : ['ADMIN', 'MANAGER', 'REVIEWER', 'ANNOTATOR']).map((role) => (
               <button
                 type="button"
                 key={role}
@@ -266,6 +337,7 @@ export default function UsersPage() {
                     <th>Role</th>
                     <th>Status</th>
                     <th>Group</th>
+                    <th>Work</th>
                     <th className="users-table__actions-header">Actions</th>
                   </tr>
                 </thead>
@@ -273,6 +345,7 @@ export default function UsersPage() {
                   {filteredUsers.map((u) => {
                     const isActive = u.active === true || u.active === 'active';
                     const group = groups.find((g) => g.id === u.groupId);
+                    const perf = performanceByUserId[u.id] || {};
                     return (
                       <tr key={u.id}>
                         <td>
@@ -292,9 +365,33 @@ export default function UsersPage() {
                             {isActive ? 'Active' : 'Disabled'}
                           </span>
                         </td>
-                        <td className="users-table__muted">{group?.name || 'No group'}</td>
+                        <td className="users-table__muted">
+                          {isManager ? (
+                            group?.name || 'No group'
+                          ) : (
+                            <select
+                              aria-label={`Group for ${u.email}`}
+                              value={u.groupId || ''}
+                              onChange={(event) => handleAssignGroup(u, event.target.value || null)}
+                            >
+                              <option value="">No group</option>
+                              {groups.map((g) => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
+                        <td className="users-table__muted">
+                          {u.role === 'REVIEWER'
+                            ? `${perf.reviewed || 0} reviewed / ${perf.pendingToReview || perf.pending_to_review || 0} pending`
+                            : `${perf.completed || 0} done / ${perf.rejected || 0} rework`}
+                        </td>
                         <td>
                           <div className="users-row-actions">
+                            <button type="button" onClick={() => handleEditName(u)}>
+                              <Edit2 size={14} />
+                              Name
+                            </button>
                             <button type="button" onClick={() => handleEditRole(u)}>
                               <Edit2 size={14} />
                               Role
@@ -351,6 +448,7 @@ export default function UsersPage() {
         user={roleTargetUser}
         onSave={handleSaveRole}
         loading={roleLoading}
+        allowedRoles={isManager ? ['ANNOTATOR', 'REVIEWER'] : undefined}
       />
 
       {toast && (

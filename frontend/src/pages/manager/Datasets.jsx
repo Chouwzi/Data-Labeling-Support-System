@@ -7,7 +7,6 @@ import {
   Download,
   FolderOpen,
   Image as ImageIcon,
-  Link as LinkIcon,
   Loader,
   Plus,
   Search,
@@ -31,7 +30,6 @@ import {
   deleteDataset,
   deleteDatasetSample,
   updateDataset,
-  updateProject,
   uploadSamples,
 } from '@/services/api';
 import {
@@ -66,6 +64,7 @@ function normalizeDataset(raw) {
     creatorId: raw?.creatorId || raw?.creator_id || null,
     createdAt: raw?.createdAt || raw?.created_at || null,
     updatedAt: raw?.updatedAt || raw?.updated_at || null,
+    imageCount: raw?.imageCount || 0,
   };
 }
 
@@ -156,7 +155,6 @@ function DatasetLibrary() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [datasets, setDatasets] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [sampleCounts, setSampleCounts] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -175,16 +173,6 @@ function DatasetLibrary() {
       const nextProjects = normalizeArray(resultData(projectsRes)).map(normalizeProject);
       setDatasets(nextDatasets);
       setProjects(nextProjects);
-      const counts = {};
-      await Promise.all(nextDatasets.map(async (dataset) => {
-        try {
-          const samplesRes = await getDatasetSamples(dataset.id);
-          counts[dataset.id] = normalizeArray(resultData(samplesRes)).length;
-        } catch {
-          counts[dataset.id] = 0;
-        }
-      }));
-      setSampleCounts(counts);
     } catch (error) {
       console.error('Failed to load datasets:', error);
       setToast({ type: 'error', message: 'Failed to load datasets' });
@@ -200,24 +188,27 @@ function DatasetLibrary() {
   const linkedProjectByDataset = useMemo(() => {
     const map = new Map();
     projects.forEach((project) => {
-      if (project.datasetId) map.set(project.datasetId, project);
+      if (!project.datasetId) return;
+      const linked = map.get(project.datasetId) || [];
+      linked.push(project);
+      map.set(project.datasetId, linked);
     });
     return map;
   }, [projects]);
 
   const enrichedDatasets = useMemo(() => datasets.map((dataset) => ({
     ...dataset,
-    imageCount: sampleCounts[dataset.id] || 0,
-    linkedProject: linkedProjectByDataset.get(dataset.id) || null,
-  })), [datasets, linkedProjectByDataset, sampleCounts]);
+    imageCount: dataset.imageCount || 0,
+    linkedProjects: linkedProjectByDataset.get(dataset.id) || [],
+  })), [datasets, linkedProjectByDataset]);
 
   const filteredDatasets = enrichedDatasets.filter((dataset) => {
     const matchesSearch = !searchQuery.trim()
       || dataset.name.toLowerCase().includes(searchQuery.toLowerCase())
       || dataset.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = statusFilter === 'all'
-      || (statusFilter === 'linked' && dataset.linkedProject)
-      || (statusFilter === 'unlinked' && !dataset.linkedProject)
+      || (statusFilter === 'linked' && dataset.linkedProjects.length > 0)
+      || (statusFilter === 'unlinked' && dataset.linkedProjects.length === 0)
       || (statusFilter === 'empty' && dataset.imageCount === 0)
       || (statusFilter === 'with_images' && dataset.imageCount > 0);
     return matchesSearch && matchesFilter;
@@ -226,7 +217,7 @@ function DatasetLibrary() {
   const stats = {
     total: datasets.length,
     images: enrichedDatasets.reduce((sum, dataset) => sum + dataset.imageCount, 0),
-    linked: enrichedDatasets.filter((dataset) => dataset.linkedProject).length,
+    linked: enrichedDatasets.filter((dataset) => dataset.linkedProjects.length > 0).length,
     empty: enrichedDatasets.filter((dataset) => dataset.imageCount === 0).length,
   };
 
@@ -362,9 +353,13 @@ function DatasetLibrary() {
                             <span>{dataset.description || dataset.id}</span>
                           </td>
                           <td>{dataset.imageCount}</td>
-                          <td>{dataset.linkedProject?.name || 'Not linked'}</td>
+                          <td>
+                            {dataset.linkedProjects.length > 0
+                              ? dataset.linkedProjects.map((project) => project.name).join(', ')
+                              : 'Not linked'}
+                          </td>
                           <td>{formatDate(dataset.createdAt)}</td>
-                          <td><span className={dataset.linkedProject ? 'dataset-status dataset-status--linked' : 'dataset-status'}>{dataset.linkedProject ? 'Linked' : 'Available'}</span></td>
+                          <td><span className={dataset.linkedProjects.length > 0 ? 'dataset-status dataset-status--linked' : 'dataset-status'}>{dataset.linkedProjects.length > 0 ? `${dataset.linkedProjects.length} project${dataset.linkedProjects.length === 1 ? '' : 's'}` : 'Available'}</span></td>
                           <td>
                             <Link className="dataset-open-link" to={`${basePath}/datasets/${dataset.id}`}>
                               Open
@@ -467,7 +462,6 @@ function DatasetDetail() {
   const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSampleIds, setSelectedSampleIds] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [uploadPolicy, setUploadPolicy] = useState(DEFAULT_UPLOAD_POLICY);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -501,7 +495,7 @@ function DatasetDetail() {
     loadDetail();
   }, [loadDetail]);
 
-  const linkedProject = projects.find((project) => project.datasetId === datasetId);
+  const linkedProjects = projects.filter((project) => project.datasetId === datasetId);
   const filteredSamples = samples.filter((sample) => sample.fileName.toLowerCase().includes(searchQuery.toLowerCase()));
   const selectedSamples = samples.filter((sample) => selectedSampleIds.includes(sample.id));
   const totalSamplePages = Math.max(1, Math.ceil(filteredSamples.length / SAMPLE_PAGE_SIZE));
@@ -519,7 +513,7 @@ function DatasetDetail() {
     },
     summary: {
       images: items.length,
-      linkedProject: linkedProject?.name || null,
+      linkedProjects: linkedProjects.map((project) => ({ id: project.id, name: project.name })),
       exportedAt: new Date().toISOString(),
     },
     samples: items,
@@ -554,18 +548,6 @@ function DatasetDetail() {
       setToast({ type: 'error', message: apiErrorMessage(error, 'Upload failed') });
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleLinkProject = async () => {
-    if (!selectedProjectId) return;
-    try {
-      await updateProject(selectedProjectId, { dataset_id: datasetId });
-      setToast({ type: 'success', message: 'Dataset linked to project' });
-      await loadDetail();
-    } catch (error) {
-      console.error('Failed to link project:', error);
-      setToast({ type: 'error', message: 'Failed to link dataset' });
     }
   };
 
@@ -667,25 +649,23 @@ function DatasetDetail() {
             <section className="dataset-kpi-grid" aria-label="Dataset detail statistics">
               <div className="dataset-kpi"><span>Images</span><strong>{samples.length}</strong></div>
               <div className="dataset-kpi"><span>Selected</span><strong>{selectedSamples.length}</strong></div>
-              <div className="dataset-kpi"><span>Linked project</span><strong>{linkedProject?.name || 'None'}</strong></div>
+              <div className="dataset-kpi"><span>Linked projects</span><strong>{linkedProjects.length}</strong></div>
               <div className="dataset-kpi"><span>Created</span><strong>{formatDate(dataset?.createdAt)}</strong></div>
             </section>
 
             <section className="dataset-link-panel">
               <div>
-                <h2>Link to project</h2>
-                <p>Attach this reusable dataset to a project before generating annotation tasks.</p>
+                <h2>Project usage</h2>
+                <p>Datasets are linked from each project so the same dataset can safely be reused by multiple workflows.</p>
               </div>
-              <div className="dataset-link-controls">
-                <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}>
-                  <option value="">Choose project...</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>{project.name}</option>
-                  ))}
-                </select>
-                <button type="button" className="project-detail-primary-btn" onClick={handleLinkProject} disabled={!selectedProjectId}>
-                  <LinkIcon size={16} /> Link dataset
-                </button>
+              <div className="dataset-linked-projects">
+                {linkedProjects.length === 0 ? (
+                  <span className="dataset-status">Available</span>
+                ) : linkedProjects.map((project) => (
+                  <Link key={project.id} className="dataset-open-link" to={`${basePath}/projects/${project.id}?tab=dataset`}>
+                    {project.name}
+                  </Link>
+                ))}
               </div>
             </section>
 

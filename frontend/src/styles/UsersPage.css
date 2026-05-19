@@ -1,6 +1,7 @@
 /* UsersPage - User management with grid layout */
 .users-toolbar {
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
@@ -35,6 +36,7 @@
   display: flex;
   gap: 0.75rem;
   flex-shrink: 0;
+  min-width: 0;
 }
 .users-btn {
   display: flex;
@@ -69,6 +71,7 @@
 
 .users-summary {
   display: flex;
+  min-width: 0;
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-bottom: 1rem;
@@ -100,6 +103,9 @@
 }
 
 .users-table-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   background: #ffffff;
   border: 1px solid rgba(5, 150, 105, 0.08);
@@ -263,7 +269,15 @@
 }
 @media (max-width: 640px) {
   .users-grid { grid-template-columns: 1fr; }
+  .users-toolbar { padding: 1rem; }
   .users-toolbar__actions { flex-direction: column; }
   .users-btn { justify-content: center; width: 100%; }
   .users-status-filter { flex-direction: column; align-items: stretch; }
+  .users-table-shell {
+    max-width: calc(100vw - 2rem);
+    margin-inline: auto;
+  }
+  .users-table {
+    min-width: 720px;
+  }
 }

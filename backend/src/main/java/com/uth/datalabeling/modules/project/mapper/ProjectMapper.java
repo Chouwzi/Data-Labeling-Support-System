@@ -28,6 +28,7 @@ public interface ProjectMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "reviewers", ignore = true)
     Project toProject(ProjectCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -41,9 +42,13 @@ public interface ProjectMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
     @Mapping(target = "labels", ignore = true)
+    @Mapping(target = "reviewers", ignore = true)
     void updateProject(@MappingTarget Project project, ProjectUpdateRequest request);
 
     @Mapping(target = "datasetId", source = "dataset.id")
+    @Mapping(target = "managerName", ignore = true)
+    @Mapping(target = "reviewers", ignore = true)
+    @Mapping(target = "taskStats", ignore = true)
     ProjectResponse toProjectResponse(Project project);
 
     @Mapping(target = "id", ignore = true)

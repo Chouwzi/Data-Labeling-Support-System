@@ -41,7 +41,7 @@ public class UserController {
    * Lấy danh sách tất cả người dùng.
    */
   @GetMapping
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   @LogActivity(action = "VIEW_ALL_USERS")
   public ApiResponse<List<UserResponse>> getAllUsers() {
     return ApiResponse.<List<UserResponse>>builder()
@@ -64,7 +64,7 @@ public class UserController {
    * Lấy thông tin chi tiết một người dùng theo ID.
    */
   @GetMapping("/{userId}")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   @LogActivity(action = "VIEW_USER")
   public ApiResponse<UserResponse> getUser(@PathVariable("userId") UUID userId) {
     return ApiResponse.<UserResponse>builder()
@@ -76,7 +76,7 @@ public class UserController {
    * Cập nhật thông tin người dùng.
    */
   @PutMapping("/{userId}")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   @LogActivity(action = "UPDATE_USER", entityType = "USER", entityIdParam = "userId")
   public ApiResponse<UserResponse> updateUser(@PathVariable("userId") UUID userId,
       @Valid @RequestBody UserUpdateRequest request) {

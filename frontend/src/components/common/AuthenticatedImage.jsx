@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '@/services/api';
 
+const protectedImageCache = new Map();
+const inflightImageRequests = new Map();
+
 function isProtectedUploadUrl(src) {
   return src?.startsWith('/api/v1/');
 }
@@ -19,15 +22,36 @@ export default function AuthenticatedImage({ src, alt, fallback = null, loadProt
       return undefined;
     }
 
-    api.get(apiPathFromSrc(src), { responseType: 'blob' })
+    const cached = protectedImageCache.get(src);
+    if (cached) {
+      setImageState({ src, objectUrl: cached, failed: false });
+      return () => {
+        active = false;
+      };
+    }
+
+    const request = inflightImageRequests.get(src)
+      || api.get(apiPathFromSrc(src), { responseType: 'blob' })
+        .then((response) => {
+          const objectUrl = URL.createObjectURL(response.data);
+          protectedImageCache.set(src, objectUrl);
+          inflightImageRequests.delete(src);
+          return objectUrl;
+        })
+        .catch((error) => {
+          inflightImageRequests.delete(src);
+          throw error;
+        });
+    inflightImageRequests.set(src, request);
+
+    request
       .then((response) => {
         if (!active) return;
-        setImageState((previous) => ({
+        setImageState({
           src,
-          objectUrl: URL.createObjectURL(response.data),
-          previousObjectUrl: previous.objectUrl,
+          objectUrl: response,
           failed: false,
-        }));
+        });
       })
       .catch(() => {
         if (active) setImageState({ src, objectUrl: '', failed: true });
@@ -38,20 +62,13 @@ export default function AuthenticatedImage({ src, alt, fallback = null, loadProt
     };
   }, [loadProtected, src]);
 
-  useEffect(() => {
-    if (imageState.previousObjectUrl) URL.revokeObjectURL(imageState.previousObjectUrl);
-    return () => {
-      if (imageState.objectUrl) URL.revokeObjectURL(imageState.objectUrl);
-    };
-  }, [imageState.objectUrl, imageState.previousObjectUrl]);
-
   if (!src) return fallback;
 
   if (isProtectedUploadUrl(src)) {
     if (!loadProtected) return fallback;
     if (imageState.src !== src || imageState.failed || !imageState.objectUrl) return fallback;
-    return <img src={imageState.objectUrl} alt={alt} {...props} />;
+    return <img src={imageState.objectUrl} alt={alt} loading="lazy" decoding="async" {...props} />;
   }
 
-  return <img src={src} alt={alt} {...props} />;
+  return <img src={src} alt={alt} loading="lazy" decoding="async" {...props} />;
 }

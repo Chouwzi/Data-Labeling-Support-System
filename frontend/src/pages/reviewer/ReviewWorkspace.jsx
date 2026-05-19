@@ -4,10 +4,12 @@ import { useAuth } from '@/contexts/useAuth';
 import ReviewerSidebar from '@/components/reviewer/ReviewerSidebar';
 import Topbar from '@/components/common/Topbar';
 import RejectModal from '@/components/reviewer/RejectModal';
-import { ArrowLeft, Check, X, Info } from 'lucide-react';
+import { ArrowLeft, Check, X, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { getReviewQueueImages, approveReviewImage, rejectReviewImage } from '@/services/api';
 import '@/styles/Dashboard.css';
 import '@/styles/ReviewerDashboard.css';
+
+let pendingReviewQueueCache = null;
 
 export default function ReviewWorkspace() {
   const { id } = useParams();
@@ -18,6 +20,7 @@ export default function ReviewWorkspace() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   
   const [review, setReview] = useState(null);
+  const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -27,9 +30,17 @@ export default function ReviewWorkspace() {
     const fetchReviewDetail = async () => {
       try {
         setLoading(true);
-        const res = await getReviewQueueImages();
-        const data = res.data?.result?.data || res.data?.result || [];
-        const currentReview = data.find((r) => (r.task_id || r.taskId) === id);
+        const queueData = pendingReviewQueueCache || await getReviewQueueImages().then((res) => {
+          const data = res.data?.result?.data || res.data?.result || [];
+          const normalized = Array.isArray(data) ? data : [];
+          pendingReviewQueueCache = normalized;
+          return normalized;
+        });
+        setQueue(queueData.map((item) => ({
+          id: item.task_id || item.taskId,
+          fileName: (item.image_url || item.imageUrl || '').replace(/\\/g, '/').split('/').pop() || 'image.jpg',
+        })).filter((item) => item.id));
+        const currentReview = queueData.find((r) => (r.task_id || r.taskId) === id);
         if (currentReview) {
           setReview(currentReview);
         } else {
@@ -72,12 +83,21 @@ export default function ReviewWorkspace() {
     setShowApproveModal(true);
   };
 
+  const currentQueueIndex = queue.findIndex((item) => item.id === id);
+  const previousReview = currentQueueIndex > 0 ? queue[currentQueueIndex - 1] : null;
+  const nextReview = currentQueueIndex >= 0 && currentQueueIndex < queue.length - 1 ? queue[currentQueueIndex + 1] : null;
+  const navigateToNext = () => {
+    const target = nextReview || previousReview;
+    navigate(target ? `/reviewer/workspace/${target.id}` : '/reviewer');
+  };
+
   const handleConfirmApprove = async () => {
     try {
       setSubmitting(true);
       await approveReviewImage(id);
+      pendingReviewQueueCache = null;
       setShowApproveModal(false);
-      navigate('/reviewer');
+      navigateToNext();
     } catch (err) {
       console.error('Failed to approve image:', err);
       alert('Failed to approve image. Please try again.');
@@ -94,8 +114,9 @@ export default function ReviewWorkspace() {
     try {
       setSubmitting(true);
       await rejectReviewImage(id, rejectionData.defectCategoryId, rejectionData.note);
+      pendingReviewQueueCache = null;
       setShowRejectModal(false);
-      navigate('/reviewer');
+      navigateToNext();
     } catch (err) {
       console.error('Failed to reject image:', err);
       alert('Failed to reject image. Please try again.');
@@ -150,6 +171,14 @@ export default function ReviewWorkspace() {
               <h1 className="content-title">Review Image: {fileName}</h1>
               <p className="content-subtitle">Annotator: {annotatorName}</p>
             </div>
+            <div className="review-workspace-nav">
+              <button className="btn btn--secondary" onClick={() => previousReview && navigate(`/reviewer/workspace/${previousReview.id}`)} disabled={!previousReview}>
+                <ChevronLeft size={16} /> Previous
+              </button>
+              <button className="btn btn--secondary" onClick={() => nextReview && navigate(`/reviewer/workspace/${nextReview.id}`)} disabled={!nextReview}>
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="review-container">
@@ -161,6 +190,8 @@ export default function ReviewWorkspace() {
                   alt={fileName} 
                   className="image-viewer" 
                   onLoad={handleImageLoad}
+                  loading="eager"
+                  decoding="async"
                   style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '75vh', objectFit: 'contain' }}
                 />
                 {imageLoaded && imageSize.width > 0 && (
@@ -220,7 +251,7 @@ export default function ReviewWorkspace() {
             <div className="review-sidebar-panel">
               <div className="panel-content-scrollable">
                 <div className="panel-section">
-                  <h2 className="section-title">Detail Information</h2>
+                  <h2 className="section-title">Review Context</h2>
                   <div className="info-grid">
                     <div className="info-item">
                       <span className="info-label">Task ID:</span>
@@ -265,6 +296,12 @@ export default function ReviewWorkspace() {
                       );
                     })}
                   </div>
+                </div>
+                <div className="panel-section">
+                  <h2 className="section-title"><MessageSquare size={16} /> Feedback</h2>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '14px', lineHeight: 1.5 }}>
+                    Use Reject to attach a defect category and actionable note to the annotator. Approve only when boxes and labels are ready for export.
+                  </p>
                 </div>
               </div>
 

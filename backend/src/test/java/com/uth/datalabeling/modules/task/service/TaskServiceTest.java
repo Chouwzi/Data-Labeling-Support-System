@@ -10,6 +10,7 @@ import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest;
 import com.uth.datalabeling.modules.task.dto.response.AssignedImageResponse;
+import com.uth.datalabeling.modules.task.dto.response.GenerateTasksResponse;
 import com.uth.datalabeling.modules.task.dto.response.TaskResponse;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.mapper.TaskMapper;
@@ -78,11 +79,29 @@ public class TaskServiceTest {
     void generateTasksFromDataset_Success() {
         when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
         when(datasetRepository.findById(datasetId)).thenReturn(Optional.of(dataset));
+        when(taskRepository.findExistingSampleIdsForProject(projectId, List.of(sample.getId()))).thenReturn(java.util.Set.of());
 
-        taskService.generateTasksFromDataset(projectId, datasetId);
+        GenerateTasksResponse result = taskService.generateTasksFromDataset(projectId, datasetId);
 
+        assertEquals(1, result.getCreatedCount());
+        assertEquals(0, result.getSkippedCount());
+        assertEquals(1, result.getTotalSamples());
         verify(projectAccessService).findProjectAndCheckAccess(projectId, true);
-        verify(taskRepository, times(1)).save(any(Task.class));
+        verify(taskRepository, times(1)).saveAll(anyList());
+    }
+
+    @Test
+    void generateTasksFromDataset_SkipsExistingSamples() {
+        when(projectAccessService.findProjectAndCheckAccess(projectId, true)).thenReturn(project);
+        when(datasetRepository.findById(datasetId)).thenReturn(Optional.of(dataset));
+        when(taskRepository.findExistingSampleIdsForProject(projectId, List.of(sample.getId()))).thenReturn(java.util.Set.of(sample.getId()));
+
+        GenerateTasksResponse result = taskService.generateTasksFromDataset(projectId, datasetId);
+
+        assertEquals(0, result.getCreatedCount());
+        assertEquals(1, result.getSkippedCount());
+        assertEquals(1, result.getTotalSamples());
+        verify(taskRepository, never()).saveAll(anyList());
     }
 
     @Test
