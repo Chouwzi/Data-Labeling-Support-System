@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardCheck, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, ClipboardCheck, BarChart2 } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/reviewer' },
-  { id: 'completed', label: 'Completed', icon: CheckSquare, path: '/reviewer/completed' },
+  { id: 'completed', label: 'Review Stats', icon: BarChart2, path: '/reviewer/completed' },
 ];
 
 export default function ReviewerSidebar({ isOpen = false, onNavigate }) {
