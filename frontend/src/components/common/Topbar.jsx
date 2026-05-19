@@ -108,10 +108,25 @@ export default function Topbar({
       }
     };
     
+    const role = localStorage.getItem('role');
     if (localStorage.getItem('accessToken')) {
-      fetchNotifs();
-      const interval = setInterval(fetchNotifs, 10000);
-      return () => clearInterval(interval);
+      if (role === 'ADMIN') {
+        fetchNotifs();
+        const interval = setInterval(fetchNotifs, 10000);
+        return () => clearInterval(interval);
+      } else {
+        // For non-admin roles (Manager, Annotator, Reviewer)
+        setNotifications([
+          {
+            id: 'welcome-notif',
+            type: 'info',
+            iconChar: 'i',
+            message: `Welcome back, ${userName}! Have a productive data-labeling session today.`,
+            time: 'Just now',
+            unread: true
+          }
+        ]);
+      }
     }
   }, []);
 

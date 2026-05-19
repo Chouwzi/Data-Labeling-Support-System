@@ -22,17 +22,17 @@ export default function Login() {
 
   const validateEmail = (value) => {
     if (!value) {
-      return { valid: false, message: 'Vui lòng nhập email' };
+      return { valid: false, message: 'Please enter your email' };
     }
     if (!EMAIL_REGEX.test(value)) {
-      return { valid: false, message: 'Email không hợp lệ' };
+      return { valid: false, message: 'Invalid email address' };
     }
     return { valid: true };
   };
 
   const validatePassword = (value) => {
     if (!value) {
-      return { valid: false, message: 'Vui lòng nhập mật khẩu' };
+      return { valid: false, message: 'Please enter your password' };
     }
     return { valid: true };
   };
@@ -76,7 +76,7 @@ export default function Login() {
       const message =
         err.response?.data?.message ||
         err.message ||
-        'Đăng nhập thất bại';
+        'Login failed';
       setError(message);
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export default function Login() {
           <div className="logo-mark">
             <BrandLogo size={48} />
           </div>
-          <h1 className="login-title">Đăng nhập</h1>
+          <h1 className="login-title">Sign In</h1>
           <p className="login-subtitle">DataLabel Pro</p>
         </header>
 
@@ -176,7 +176,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 id="password"
                 className={`form-input form-input--password ${error ? 'has-error' : ''}`}
-                placeholder="Mật khẩu"
+                placeholder="Password"
                 value={password}
                 onChange={handleInputChange(setPassword)}
                 autoComplete="current-password"
@@ -187,7 +187,7 @@ export default function Login() {
                 type="button"
                 className={`toggle-password ${showPassword ? 'active' : ''}`}
                 onClick={togglePassword}
-                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 aria-pressed={showPassword}
               >
                 {showPassword ? (
@@ -227,17 +227,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="form-actions">
-            <a
-              href="#forgot-password"
-              className="link-forgot"
-              onClick={(e) => {
-                e.preventDefault();
-              }}
-            >
-              Quên mật khẩu?
-            </a>
-          </div>
+
 
           <button
             type="submit"
@@ -245,7 +235,7 @@ export default function Login() {
             disabled={loading}
           >
             <span className="btn-text">
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </span>
             <span className="btn-loader">
               <svg className="spinner" viewBox="0 0 24 24" fill="none">

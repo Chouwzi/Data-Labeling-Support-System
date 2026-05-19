@@ -8,6 +8,9 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
   const itemsPerPage = 4;
   const navigate = useNavigate();
 
+  const userRole = localStorage.getItem('role') || 'MANAGER';
+  const prefix = userRole === 'ADMIN' ? '/admin' : '/manager';
+
   const paginated = projects.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -162,7 +165,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                         className="project-table__action-btn project-table__action-btn--edit"
                         aria-label={`Edit ${project.name}`}
                         title="Edit Taxonomy"
-                        onClick={() => navigate(`/manager/taxonomy/${project.id}`)}
+                        onClick={() => navigate(`${prefix}/taxonomy/${project.id}`)}
                       >
                         <Edit2 size={14} />
                       </button>
@@ -171,7 +174,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                         className="project-table__action-btn project-table__action-btn--view"
                         aria-label={`View ${project.name}`}
                         title="Assign Images"
-                        onClick={() => navigate('/manager/annotators')}
+                        onClick={() => navigate(`${prefix}/annotators`)}
                       >
                         <Eye size={14} />
                       </button>
@@ -221,7 +224,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                               }}
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate(`/manager/taxonomy/${project.id}`)}
+                              onClick={() => navigate(`${prefix}/taxonomy/${project.id}`)}
                             >
                               <Edit2 size={13} style={{ color: '#6b7280' }} />
                               Taxonomy Labels
@@ -244,7 +247,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                               }}
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate('/manager/annotators')}
+                              onClick={() => navigate(`${prefix}/annotators`)}
                             >
                               <Eye size={13} style={{ color: '#6b7280' }} />
                               Assign Images
@@ -267,7 +270,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                               }}
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                              onClick={() => navigate('/manager/upload-images')}
+                              onClick={() => navigate(`${prefix}/upload-images`)}
                             >
                               <FolderPlus size={13} style={{ color: '#6b7280' }} />
                               Upload Images
