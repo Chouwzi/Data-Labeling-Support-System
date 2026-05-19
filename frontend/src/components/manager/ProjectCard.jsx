@@ -6,6 +6,9 @@ export default function ProjectCard({ project, statusColors }) {
   const isNew = Boolean(project.isNew);
   const navigate = useNavigate();
 
+  const userRole = localStorage.getItem('role') || 'MANAGER';
+  const prefix = userRole === 'ADMIN' ? '/admin' : '/manager';
+
   return (
     <article className="project-card" role="listitem">
       {/* Thumbnail */}
@@ -106,7 +109,7 @@ export default function ProjectCard({ project, statusColors }) {
               className="project-card__action-btn"
               aria-label={`Edit ${project.name}`}
               title="Edit Taxonomy"
-              onClick={() => navigate(`/manager/taxonomy/${project.id}`)}
+              onClick={() => navigate(`${prefix}/taxonomy/${project.id}`)}
             >
               <Edit2 size={14} />
             </button>
@@ -115,7 +118,7 @@ export default function ProjectCard({ project, statusColors }) {
               className="project-card__action-btn project-card__action-btn--primary"
               aria-label={`View ${project.name}`}
               title="Assign Images"
-              onClick={() => navigate('/manager/annotators')}
+              onClick={() => navigate(`${prefix}/annotators`)}
             >
               <Eye size={14} />
             </button>

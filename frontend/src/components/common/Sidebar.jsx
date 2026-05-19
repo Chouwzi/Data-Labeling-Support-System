@@ -20,13 +20,10 @@ export default function Sidebar({ isOpen = false, onNavigate }) {
 
   return (
     <>
-      <button
-        type="button"
+      <div
         className={`sidebar__backdrop ${isOpen ? 'sidebar__backdrop--visible' : ''}`}
-        aria-hidden={!isOpen}
-        tabIndex={-1}
         onClick={() => onNavigate?.()}
-        aria-label="Close menu"
+        aria-hidden="true"
       />
       <aside
         className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}

@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ClipboardCheck, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, ClipboardCheck, BarChart2 } from 'lucide-react';
 import BrandLogo from '@/components/common/BrandLogo';
 import '@/styles/Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/reviewer' },
-  { id: 'completed', label: 'Completed', icon: CheckSquare, path: '/reviewer/completed' },
+  { id: 'completed', label: 'Review Stats', icon: BarChart2, path: '/reviewer/completed' },
 ];
 
 export default function ReviewerSidebar({ isOpen = false, onNavigate }) {
@@ -17,13 +17,10 @@ export default function ReviewerSidebar({ isOpen = false, onNavigate }) {
 
   return (
     <>
-      <button
-        type="button"
+      <div
         className={`sidebar__backdrop ${isOpen ? 'sidebar__backdrop--visible' : ''}`}
-        aria-hidden={!isOpen}
-        tabIndex={-1}
         onClick={() => onNavigate?.()}
-        aria-label="Close menu"
+        aria-hidden="true"
       />
       <aside
         className={`sidebar sidebar--reviewer ${isOpen ? 'sidebar--open' : ''}`}

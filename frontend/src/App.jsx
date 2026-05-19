@@ -121,6 +121,38 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/taxonomy"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <LabelTaxonomy />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/taxonomy/:projectId"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <LabelTaxonomy />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/upload-images"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <UploadImages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/annotators"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AnnotatorsImageGrid />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Other role dashboards */}
       <Route
