@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import { useAuth } from '@/contexts/useAuth';
@@ -171,9 +171,27 @@ const handlePageChange = (newPage) => {
               </table>
 
               <div className="log-pagination">
-                <button onClick={() => handlePageChange(page - 1)} disabled={page === 0 || loading}>Previous</button>
-                <span>Page {page + 1}</span>
-                <button onClick={() => handlePageChange(page + 1)} disabled={logs.length < size || loading}>Next</button>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(page - 1)} 
+                  disabled={page === 0 || loading}
+                  aria-label="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                  <span>Previous</span>
+                </button>
+                <div className="pagination-info">
+                  Page <span className="pagination-current">{page + 1}</span>
+                </div>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(page + 1)} 
+                  disabled={logs.length < size || loading}
+                  aria-label="Next Page"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
           )}
