@@ -19,122 +19,11 @@ import {
   BarChart2,
   Calendar
 } from 'lucide-react';
-import { getReviewQueueImages, getCompletedReviewImages } from '@/services/api';
+import { getReviewQueueImages } from '@/services/api';
 import '@/styles/Dashboard.css';
 import '@/styles/ReviewerDashboard.css';
 
-const MOCK_COMPLETED_REVIEWS = [
-  {
-    task_id: 'mock-rev-1',
-    image_url: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Bui Trang',
-    submitted_at: '2026-05-19T06:09:28.000Z',
-    reviewed_at: '2026-05-19T06:12:15.000Z',
-    defect_category_name: null,
-    comments: 'Excellent work, all bounding boxes are extremely precise.',
-    annotations: [{}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-2',
-    image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
-    status: 'REJECTED',
-    annotator_name: 'Minh Thu',
-    submitted_at: '2026-05-18T14:22:10.000Z',
-    reviewed_at: '2026-05-19T01:30:00.000Z',
-    defect_category_name: 'Boundary Mismatch',
-    comments: 'Bounding boxes for vehicles are drawn too wide. Please snap to edges.',
-    annotations: [{}, {}]
-  },
-  {
-    task_id: 'mock-rev-3',
-    image_url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Hoang Nam',
-    submitted_at: '2026-05-18T10:05:45.000Z',
-    reviewed_at: '2026-05-18T11:15:20.000Z',
-    defect_category_name: null,
-    comments: 'Great labeling on background elements.',
-    annotations: [{}, {}, {}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-4',
-    image_url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Bui Trang',
-    submitted_at: '2026-05-18T09:12:30.000Z',
-    reviewed_at: '2026-05-18T10:00:15.000Z',
-    defect_category_name: null,
-    comments: 'Very clean tree segmentation bounds.',
-    annotations: [{}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-5',
-    image_url: 'https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=400&h=300&fit=crop',
-    status: 'REJECTED',
-    annotator_name: 'Hoang Nam',
-    submitted_at: '2026-05-17T16:40:00.000Z',
-    reviewed_at: '2026-05-18T08:20:00.000Z',
-    defect_category_name: 'Missed Bounding Box',
-    comments: 'Forgot to label 3 pedestrians in the shadows.',
-    annotations: [{}]
-  },
-  {
-    task_id: 'mock-rev-6',
-    image_url: 'https://images.unsplash.com/photo-1472214222541-d510753a49fa?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Viet Hoang',
-    submitted_at: '2026-05-17T13:00:00.000Z',
-    reviewed_at: '2026-05-17T15:10:00.000Z',
-    defect_category_name: null,
-    comments: 'All objects detected correctly.',
-    annotations: [{}, {}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-7',
-    image_url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Minh Thu',
-    submitted_at: '2026-05-17T11:15:00.000Z',
-    reviewed_at: '2026-05-17T12:00:00.000Z',
-    defect_category_name: null,
-    comments: 'Accurate label boundaries.',
-    annotations: [{}, {}]
-  },
-  {
-    task_id: 'mock-rev-8',
-    image_url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&h=300&fit=crop',
-    status: 'REJECTED',
-    annotator_name: 'Viet Hoang',
-    submitted_at: '2026-05-16T15:30:00.000Z',
-    reviewed_at: '2026-05-16T17:45:00.000Z',
-    defect_category_name: 'Incorrect Class Label',
-    comments: 'Trucks are labeled as compact cars. Please re-read taxonomies.',
-    annotations: [{}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-9',
-    image_url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Bui Trang',
-    submitted_at: '2026-05-16T09:40:00.000Z',
-    reviewed_at: '2026-05-16T10:30:00.000Z',
-    defect_category_name: null,
-    comments: 'Solid quality work.',
-    annotations: [{}, {}, {}, {}, {}, {}, {}]
-  },
-  {
-    task_id: 'mock-rev-10',
-    image_url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=400&h=300&fit=crop',
-    status: 'APPROVED',
-    annotator_name: 'Minh Thu',
-    submitted_at: '2026-05-15T15:00:00.000Z',
-    reviewed_at: '2026-05-15T16:15:00.000Z',
-    defect_category_name: null,
-    comments: 'Perfect labels.',
-    annotations: [{}, {}]
-  }
-];
+// MOCK_COMPLETED_REVIEWS has been removed to ensure statistics represent only real data.
 
 export default function ReviewerDashboard() {
   const { user, logout } = useAuth();
@@ -142,6 +31,7 @@ export default function ReviewerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [reviews, setReviews] = useState([]);
+  const [completedReviews, setCompletedReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   
@@ -162,30 +52,36 @@ export default function ReviewerDashboard() {
     pageSubtitle = 'Annotations currently waiting for your verification';
   }
 
+  const loadCompletedFromLocal = () => {
+    try {
+      const localData = localStorage.getItem('completed_reviews');
+      return localData ? JSON.parse(localData) : [];
+    } catch (e) {
+      console.error('Failed to parse completed_reviews from localStorage:', e);
+      return [];
+    }
+  };
+
   const fetchReviews = async () => {
     try {
       setLoading(true);
       if (isCompletedTab) {
-        try {
-          // Attempt to fetch real completed data from the new backend API
-          const res = await getCompletedReviewImages();
-          const data = res.data?.result?.data || res.data?.result || [];
-          if (data && data.length > 0) {
-            setReviews(data);
-          } else {
-            setReviews(MOCK_COMPLETED_REVIEWS);
-          }
-        } catch (apiError) {
-          console.warn('Completed API not ready yet, falling back to mock data', apiError);
-          setReviews(MOCK_COMPLETED_REVIEWS);
-        }
+        const data = loadCompletedFromLocal();
+        setReviews(data);
       } else {
         const res = await getReviewQueueImages();
         const data = res.data?.result?.data || res.data?.result || [];
         setReviews(data);
       }
+      
+      // Load completed reviews to calculate stats for the standard dashboard too
+      const completed = loadCompletedFromLocal();
+      setCompletedReviews(completed);
     } catch (err) {
       console.error('Failed to fetch reviewer queue:', err);
+      if (isCompletedTab) {
+        setReviews([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -221,7 +117,111 @@ export default function ReviewerDashboard() {
   const rejectedCount = rejectedList.length;
   const approvalRate = totalReviewed > 0 ? ((approvedCount / totalReviewed) * 100).toFixed(1) : '0';
   const rejectionRate = totalReviewed > 0 ? ((rejectedCount / totalReviewed) * 100).toFixed(1) : '0';
-  const avgReviewTime = '1.8m';
+  // Compute average review time dynamically from submission to review timestamps
+  let avgReviewTime = 'N/A';
+  if (reviews.length > 0) {
+    let totalMs = 0;
+    let validCount = 0;
+    
+    reviews.forEach(r => {
+      const reviewDateVal = r.reviewed_at || r.reviewedAt || r.updated_at || r.updatedAt;
+      const submitDateVal = r.submitted_at || r.submittedAt || r.created_at || r.createdAt;
+      
+      if (reviewDateVal && submitDateVal) {
+        const parseDate = (dVal) => {
+          if (!dVal) return null;
+          try {
+            if (Array.isArray(dVal)) {
+              const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+              return new Date(y, m - 1, d, h, min, s);
+            }
+            const parsed = new Date(dVal);
+            return isNaN(parsed) ? null : parsed;
+          } catch {
+            return null;
+          }
+        };
+        
+        const reviewDate = parseDate(reviewDateVal);
+        const submitDate = parseDate(submitDateVal);
+        
+        if (reviewDate && submitDate && reviewDate > submitDate) {
+          totalMs += (reviewDate - submitDate);
+          validCount++;
+        }
+      }
+    });
+    
+    if (validCount > 0) {
+      const avgSeconds = Math.round((totalMs / validCount) / 1000);
+      if (avgSeconds < 60) {
+        avgReviewTime = `${avgSeconds}s`;
+      } else {
+        const avgMinutes = (avgSeconds / 60).toFixed(1);
+        avgReviewTime = `${avgMinutes}m`;
+      }
+    }
+  }
+
+  // Dashboard calculations from completedReviews
+  const todayStr = new Date().toDateString();
+  const approvedTodayCount = completedReviews.filter(r => {
+    const isApproved = r.status === 'APPROVED' || r.status === 'COMPLETED';
+    const reviewedDate = r.reviewed_at || r.reviewedAt;
+    return isApproved && reviewedDate && new Date(reviewedDate).toDateString() === todayStr;
+  }).length;
+
+  const rejectedTodayCount = completedReviews.filter(r => {
+    const isRejected = r.status === 'REJECTED';
+    const reviewedDate = r.reviewed_at || r.reviewedAt;
+    return isRejected && reviewedDate && new Date(reviewedDate).toDateString() === todayStr;
+  }).length;
+
+  let dashboardAvgReviewTime = 'N/A';
+  if (completedReviews.length > 0) {
+    let totalMs = 0;
+    let validCount = 0;
+    
+    completedReviews.forEach(r => {
+      const reviewDateVal = r.reviewed_at || r.reviewedAt || r.updated_at || r.updatedAt;
+      const submitDateVal = r.submitted_at || r.submittedAt || r.created_at || r.createdAt;
+      
+      if (reviewDateVal && submitDateVal) {
+        const parseDate = (dVal) => {
+          if (!dVal) return null;
+          try {
+            if (Array.isArray(dVal)) {
+              const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+              return new Date(y, m - 1, d, h, min, s);
+            }
+            const parsed = new Date(dVal);
+            return isNaN(parsed) ? null : parsed;
+          } catch {
+            return null;
+          }
+        };
+        
+        const reviewDate = parseDate(reviewDateVal);
+        const submitDate = parseDate(submitDateVal);
+        
+        if (reviewDate && submitDate && reviewDate > submitDate) {
+          totalMs += (reviewDate - submitDate);
+          validCount++;
+        }
+      }
+    });
+    
+    if (validCount > 0) {
+      const avgSeconds = Math.round((totalMs / validCount) / 1000);
+      if (avgSeconds < 60) {
+        dashboardAvgReviewTime = `${avgSeconds}s`;
+      } else {
+        const avgMinutes = (avgSeconds / 60).toFixed(1);
+        dashboardAvgReviewTime = `${avgMinutes}m`;
+      }
+    }
+  }
+
 
   // Compute unique list of annotators dynamically for the dropdown filter
   const uniqueAnnotators = [...new Set(reviews.map(r => r.annotator_name || r.annotatorName || 'Unknown'))].filter(Boolean);
@@ -594,23 +594,23 @@ export default function ReviewerDashboard() {
                   />
                   <KpiCard
                     title="Approved Today"
-                    value="45"
+                    value={approvedTodayCount.toString()}
                     icon={CheckSquare}
-                    trend="+12%"
+                    trend="Today"
                     variant="success"
                   />
                   <KpiCard
                     title="Rejected Today"
-                    value="3"
+                    value={rejectedTodayCount.toString()}
                     icon={XSquare}
-                    trend="-2%"
+                    trend="Today"
                     variant="danger"
                   />
                   <KpiCard
                     title="Avg. Review Time"
-                    value="2.5m"
+                    value={dashboardAvgReviewTime}
                     icon={Clock}
-                    trend="-10s"
+                    trend="Lifetime"
                     variant="primary"
                   />
                 </div>

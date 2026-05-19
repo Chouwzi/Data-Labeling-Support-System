@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import { useAuth } from '@/contexts/useAuth';
@@ -36,7 +36,7 @@ const handleLogout = () => {
       setPage(currentPage);
     } catch (err) {
       console.error('Failed to fetch activity logs:', err);
-      setError('Không thể tải nhật ký hoạt động. Vui lòng thử lại sau.');
+      setError('Failed to load activity logs. Please try again later.');
       setLogs([]);
     } finally {
       setLoading(false);
@@ -74,7 +74,7 @@ const handleLogout = () => {
       const date = new Date(createdAt);
       if (isNaN(date.getTime())) return 'N/A';
 
-      return date.toLocaleString('vi-VN', {
+      return date.toLocaleString('en-US', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -110,7 +110,7 @@ const handlePageChange = (newPage) => {
               type="button"
               className="log-back-btn"
               onClick={() => navigate('/admin/dashboard', { replace: true })}
-              aria-label="Quay lại Dashboard"
+              aria-label="Back to Dashboard"
             >
               <ArrowLeft size={16} aria-hidden="true" />
               <span>Dashboard</span>
@@ -119,7 +119,7 @@ const handlePageChange = (newPage) => {
             <p className="admin-page-subtitle">Monitor and audit all user actions and system changes across the platform.</p>
           </div>
 
-          {loading && <div className="log-loading">Đang tải nhật ký hoạt động...</div>}
+          {loading && <div className="log-loading">Loading activity logs...</div>}
           {error && <div className="log-error">{error}</div>}
 
           {!loading && !error && (
@@ -164,16 +164,34 @@ const handlePageChange = (newPage) => {
                     );
                   }) : (
                     <tr>
-                      <td colSpan="5" className="log-table__empty">Không có nhật ký hoạt động nào.</td>
+                      <td colSpan="5" className="log-table__empty">No activity logs found.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
 
               <div className="log-pagination">
-                <button onClick={() => handlePageChange(page - 1)} disabled={page === 0 || loading}>Trước</button>
-                <span>Trang {page + 1}</span>
-                <button onClick={() => handlePageChange(page + 1)} disabled={logs.length < size || loading}>Sau</button>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(page - 1)} 
+                  disabled={page === 0 || loading}
+                  aria-label="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                  <span>Previous</span>
+                </button>
+                <div className="pagination-info">
+                  Page <span className="pagination-current">{page + 1}</span>
+                </div>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(page + 1)} 
+                  disabled={logs.length < size || loading}
+                  aria-label="Next Page"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
           )}

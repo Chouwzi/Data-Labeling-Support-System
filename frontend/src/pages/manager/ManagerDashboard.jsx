@@ -315,7 +315,7 @@ export default function ManagerDashboard() {
         }, 2000);
       }
     } catch (err) {
-      console.error("Lỗi API Dashboard:", err);
+      console.error("Dashboard API Error:", err);
 
       const errorMessage =
         err.response?.data?.message ||

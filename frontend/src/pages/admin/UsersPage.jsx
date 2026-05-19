@@ -44,7 +44,7 @@ export default function UsersPage() {
         const res = await getUsers();
         setUsers(res.data.result || []);
       } catch (err) {
-        setUsersError(err.response?.data?.message || 'Không thể tải danh sách users');
+        setUsersError(err.response?.data?.message || 'Failed to load user list.');
       } finally {
         setUsersLoading(false);
       }
@@ -64,7 +64,7 @@ export default function UsersPage() {
       setUsers(res.data.result || []);
       setShowCreateUserModal(false);
     } catch (err) {
-      throw new Error(err.response?.data?.message || 'Tạo user thất bại');
+      throw new Error(err.response?.data?.message || 'User creation failed.');
     }
   };
 
@@ -84,12 +84,12 @@ export default function UsersPage() {
     try {
       await updateUserRole(user, newRole);
       setRoleModalOpen(false);
-      setToast({ type: 'success', message: `Đã cập nhật vai trò của ${user.fullName || user.email} thành ${newRole}!` });
+      setToast({ type: 'success', message: `Updated role for ${user.fullName || user.email} to ${newRole}!` });
       const res = await getUsers();
       setUsers(res.data.result || []);
     } catch (err) {
       console.error('Update role failed:', err);
-      setToast({ type: 'error', message: 'Cập nhật vai trò thất bại!' });
+      setToast({ type: 'error', message: 'Failed to update role!' });
     } finally {
       setRoleLoading(false);
     }
@@ -104,7 +104,7 @@ export default function UsersPage() {
       await toggleUserStatus(user, newActive);
       setToast({ 
         type: 'success', 
-        message: `${newActive ? 'Đã kích hoạt' : 'Đã khóa'} tài khoản của ${user.fullName || user.email}!` 
+        message: `${newActive ? 'Activated' : 'Deactivated'} account for ${user.fullName || user.email}!` 
       });
       const res = await getUsers();
       setUsers(res.data.result || []);
@@ -112,7 +112,7 @@ export default function UsersPage() {
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, active: !newActive } : u))
       );
-      setToast({ type: 'error', message: 'Cập nhật trạng thái thất bại!' });
+      setToast({ type: 'error', message: 'Failed to update status!' });
       console.error('Toggle status failed:', err);
     }
   };
@@ -208,7 +208,7 @@ export default function UsersPage() {
 
           {usersLoading ? (
             <div className="users-empty">
-              <p>Đang tải danh sách users...</p>
+              <p>Loading users list...</p>
             </div>
           ) : usersError ? (
             <div className="users-empty">
@@ -250,7 +250,7 @@ export default function UsersPage() {
           onSubmit={handleCreateUser}
           onSuccess={async () => {
             setShowCreateUserModal(false);
-            setToast({ type: 'success', message: 'Tạo tài khoản thành công!' });
+            setToast({ type: 'success', message: 'Account created successfully!' });
             const res = await getUsers();
             setUsers(res.data.result || []);
           }}

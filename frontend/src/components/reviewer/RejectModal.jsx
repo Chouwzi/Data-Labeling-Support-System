@@ -40,8 +40,11 @@ export default function RejectModal({ onClose, onConfirm }) {
       return;
     }
     
+    const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+    
     onConfirm({
       defectCategoryId: selectedCategoryId,
+      defectCategoryName: selectedCategory ? selectedCategory.name : 'Unknown',
       note: note.trim()
     });
   };
