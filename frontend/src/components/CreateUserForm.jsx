@@ -65,7 +65,7 @@ export default function CreateUserForm({ onSuccess }) {
     e.preventDefault();
     
     if (!user) {
-      setSubmitError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      setSubmitError("Session expired. Please log in again.");
       return;
     }
 
@@ -100,11 +100,11 @@ export default function CreateUserForm({ onSuccess }) {
       if (errorMsg === "USER_ALREADY_EXISTS" || errorMsg.includes("already exists")) {
         setErrors(prev => ({
           ...prev,
-          email: 'Email này đã tồn tại trong hệ thống. Vui lòng sử dụng email khác!'
+          email: 'This email already exists in the system. Please use a different email!'
         }));
       } else {
         setSubmitError(err.message === "Failed to fetch" 
-          ? "Không thể kết nối Server. Vui lòng kiểm tra Backend!" 
+          ? "Could not connect to the server. Please check the backend service!" 
           : errorMsg);
       }
     } finally {

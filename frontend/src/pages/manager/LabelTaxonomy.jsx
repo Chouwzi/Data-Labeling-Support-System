@@ -186,7 +186,7 @@ export default function LabelTaxonomy() {
         nameInputRef.current?.focus();
       }
     } catch (err) {
-      console.error("❌ Lỗi tạo nhãn:", err);
+      console.error("❌ Error creating label:", err);
 
       const serverMessage = err.response?.data?.message || "Server Error 500";
       setNameError(serverMessage);
@@ -254,7 +254,7 @@ export default function LabelTaxonomy() {
 
       cancelEdit();
     } catch (err) {
-      console.error("❌ Lỗi cập nhật nhãn:", err);
+      console.error("❌ Error updating label:", err);
       const serverMsg = err.response?.data?.message || "Could not update label";
       setEditNameError(serverMsg);
       addToast(serverMsg, 'error');

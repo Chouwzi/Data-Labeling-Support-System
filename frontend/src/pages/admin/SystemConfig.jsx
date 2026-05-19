@@ -35,7 +35,7 @@ export default function SystemConfig() {
           aiEnabled: data.aiEnabled ?? true,
         });
       } catch {
-        setError('Không thể tải cấu hình. Vui lòng thử lại.');
+        setError('Failed to load system configuration. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -78,7 +78,7 @@ export default function SystemConfig() {
           {loading ? (
             <div className="config-page-loading">
               <div className="loading-spinner" />
-              <p>Đang tải cấu hình...</p>
+              <p>Loading system configuration...</p>
             </div>
           ) : error ? (
             <div className="config-page-error" role="alert">
