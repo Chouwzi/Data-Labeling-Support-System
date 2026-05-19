@@ -76,6 +76,29 @@ export default function ReviewWorkspace() {
     try {
       setSubmitting(true);
       await approveReviewImage(id);
+      
+      // Save real review data to localStorage
+      try {
+        const newReview = {
+          task_id: id,
+          image_url: review.imageUrl || review.image_url || '',
+          status: 'APPROVED',
+          annotator_name: review.annotatorName || review.annotator_name || 'Unknown',
+          submitted_at: review.submittedAt || review.submitted_at || new Date().toISOString(),
+          reviewed_at: new Date().toISOString(),
+          defect_category_name: null,
+          comments: 'Approved by reviewer',
+          annotations: review.annotations || []
+        };
+        const localData = localStorage.getItem('completed_reviews');
+        const completedList = localData ? JSON.parse(localData) : [];
+        const updatedList = completedList.filter(item => item.task_id !== id);
+        updatedList.push(newReview);
+        localStorage.setItem('completed_reviews', JSON.stringify(updatedList));
+      } catch (errLocal) {
+        console.error('Failed to save to localStorage:', errLocal);
+      }
+
       setShowApproveModal(false);
       navigate('/reviewer');
     } catch (err) {
@@ -94,6 +117,29 @@ export default function ReviewWorkspace() {
     try {
       setSubmitting(true);
       await rejectReviewImage(id, rejectionData.defectCategoryId, rejectionData.note);
+      
+      // Save real review data to localStorage
+      try {
+        const newReview = {
+          task_id: id,
+          image_url: review.imageUrl || review.image_url || '',
+          status: 'REJECTED',
+          annotator_name: review.annotatorName || review.annotator_name || 'Unknown',
+          submitted_at: review.submittedAt || review.submitted_at || new Date().toISOString(),
+          reviewed_at: new Date().toISOString(),
+          defect_category_name: rejectionData.defectCategoryName || 'Unknown',
+          comments: rejectionData.note || '',
+          annotations: review.annotations || []
+        };
+        const localData = localStorage.getItem('completed_reviews');
+        const completedList = localData ? JSON.parse(localData) : [];
+        const updatedList = completedList.filter(item => item.task_id !== id);
+        updatedList.push(newReview);
+        localStorage.setItem('completed_reviews', JSON.stringify(updatedList));
+      } catch (errLocal) {
+        console.error('Failed to save to localStorage:', errLocal);
+      }
+
       setShowRejectModal(false);
       navigate('/reviewer');
     } catch (err) {
