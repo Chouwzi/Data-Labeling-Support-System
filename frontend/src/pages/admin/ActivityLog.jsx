@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import { useAuth } from '@/contexts/useAuth';
@@ -168,7 +168,7 @@ const handlePageChange = (newPage) => {
             <button
               type="button"
               className="log-back-btn"
-              onClick={() => navigate('/admin/dashboard', { replace: true })}
+              onClick={() => navigate('/admin', { replace: true })}
               aria-label="Back to Dashboard"
             >
               <ArrowLeft size={16} aria-hidden="true" />

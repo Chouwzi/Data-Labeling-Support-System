@@ -102,11 +102,11 @@ export default function AnnotatorDashboard() {
                     const labelRes = await getLabelsByProject(id);
                     const rawLabels = labelRes.data?.result?.data || labelRes.data?.result || labelRes.data || [];
                     basicInfo.labels = Array.isArray(rawLabels) ? rawLabels : [];
-                  } catch (labelErr) {
+                  } catch {
                     console.warn(`Could not fetch labels for project ${id}`);
                   }
                   return basicInfo;
-                } catch (pErr) {
+                } catch {
                   return null;
                 }
               });

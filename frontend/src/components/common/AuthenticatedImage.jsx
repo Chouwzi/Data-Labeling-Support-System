@@ -24,7 +24,9 @@ export default function AuthenticatedImage({ src, alt, fallback = null, loadProt
 
     const cached = protectedImageCache.get(src);
     if (cached) {
-      setImageState({ src, objectUrl: cached, failed: false });
+      Promise.resolve().then(() => {
+        if (active) setImageState({ src, objectUrl: cached, failed: false });
+      });
       return () => {
         active = false;
       };

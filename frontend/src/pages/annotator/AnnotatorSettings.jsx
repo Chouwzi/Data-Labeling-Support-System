@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/useAuth';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
@@ -12,21 +12,20 @@ const DEFAULT_SETTINGS = {
 export default function AnnotatorSettings() {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-
-  useEffect(() => {
+  const [settings, setSettings] = useState(() => {
     try {
       const saved = localStorage.getItem('annotator_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          setSettings(prev => ({ ...prev, ...parsed }));
+          return { ...DEFAULT_SETTINGS, ...parsed };
         }
       }
     } catch (e) {
       console.warn('Could not parse annotator_settings', e);
     }
-  }, []);
+    return DEFAULT_SETTINGS;
+  });
 
   const handleToggle = (key) => {
     const updated = { ...settings, [key]: !settings[key] };
