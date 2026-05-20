@@ -82,11 +82,13 @@
   --color-primary-light: rgba(0, 108, 81, 0.08);
   
   /* Colors - Surface */
-  --color-bg: #f4fbf5;
-  --color-surface-low: #eff5f0;
-  --color-surface: #e8f0eb;
-  --color-surface-high: #dce4de;
+  --color-bg: #f5f7fb;
+  --color-surface-low: #eef3f7;
+  --color-surface: #e7edf3;
+  --color-surface-high: #d8e2ea;
   --color-surface-lowest: #ffffff;
+  --color-border: #d7e0e8;
+  --color-border-strong: #b8c7d3;
   
   /* Colors - Text */
   --color-text: #171d1a;
@@ -147,9 +149,9 @@
   
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(23, 29, 26, 0.04);
-  --shadow-sm: 0 2px 8px rgba(23, 29, 26, 0.04);
-  --shadow-md: 0 4px 16px rgba(23, 29, 26, 0.06);
-  --shadow-lg: 0 12px 32px -4px rgba(23, 29, 26, 0.08);
+  --shadow-sm: 0 2px 8px rgba(20, 33, 45, 0.06);
+  --shadow-md: 0 6px 18px rgba(20, 33, 45, 0.08);
+  --shadow-lg: 0 14px 34px -6px rgba(20, 33, 45, 0.12);
   --shadow-xl: 0 20px 48px -8px rgba(23, 29, 26, 0.12);
   
   /* Transitions */

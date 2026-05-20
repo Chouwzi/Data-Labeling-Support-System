@@ -46,7 +46,6 @@ import {
   splitProjectTasks,
   updateProject,
   updateProjectManager,
-  updateProjectReviewers,
   uploadSamples,
 } from '@/services/api';
 import {
@@ -84,6 +83,17 @@ function normalizeArray(value) {
   return [];
 }
 
+function normalizePage(value) {
+  const data = normalizeArray(value);
+  return {
+    data,
+    currentPage: Number(value?.currentPage ?? value?.current_page ?? 0),
+    totalPages: Number(value?.totalPages ?? value?.total_pages ?? 1),
+    pageSize: Number(value?.pageSize ?? value?.page_size ?? SAMPLE_PAGE_SIZE),
+    totalElements: Number(value?.totalElements ?? value?.total_elements ?? data.length),
+  };
+}
+
 function normalizeProject(raw) {
   return {
     id: raw?.id,
@@ -93,11 +103,6 @@ function normalizeProject(raw) {
     datasetId: raw?.dataset_id || raw?.datasetId || null,
     managerId: raw?.manager_id || raw?.managerId || null,
     managerName: raw?.manager_name || raw?.managerName || '',
-    reviewers: normalizeArray(raw?.reviewers).map((reviewer) => ({
-      id: reviewer.id,
-      name: reviewer.fullName || reviewer.full_name || reviewer.email,
-      email: reviewer.email,
-    })),
     taskStats: raw?.task_stats || raw?.taskStats || null,
     createdAt: raw?.created_at || raw?.createdAt,
   };
@@ -151,8 +156,11 @@ function fixImageUrl(url) {
 }
 
 function taskBucket(status) {
-  if (status === 'PENDING') return 'unassigned';
-  if (status === 'COMPLETED' || status === 'APPROVED') return 'completed';
+  const value = status?.toUpperCase();
+  if (value === 'PENDING') return 'unassigned';
+  if (value === 'PENDING_REVIEW') return 'reviewing';
+  if (value === 'REJECTED') return 'rework';
+  if (value === 'COMPLETED' || value === 'APPROVED') return 'completed';
   return 'assigned';
 }
 
@@ -181,9 +189,13 @@ export default function ProjectDetail() {
   const [tasks, setTasks] = useState([]);
   const [labels, setLabels] = useState([]);
   const [samples, setSamples] = useState([]);
+  const [sampleMeta, setSampleMeta] = useState({
+    currentPage: 0,
+    totalPages: 1,
+    pageSize: SAMPLE_PAGE_SIZE,
+    totalElements: 0,
+  });
   const [annotators, setAnnotators] = useState([]);
-  const [reviewers, setReviewers] = useState([]);
-  const [selectedReviewerIds, setSelectedReviewerIds] = useState([]);
   const [selectedManagerId, setSelectedManagerId] = useState('');
   const [managers, setManagers] = useState([]);
   const [workload, setWorkload] = useState(null);
@@ -214,7 +226,6 @@ export default function ProjectDetail() {
   const [selectedAnnotatorId, setSelectedAnnotatorId] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [splitting, setSplitting] = useState(false);
-  const [savingReviewers, setSavingReviewers] = useState(false);
   const [savingManager, setSavingManager] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -269,14 +280,17 @@ export default function ProjectDetail() {
     }
   }, [projectId]);
 
-  const loadSamples = useCallback(async (datasetId = project?.datasetId) => {
+  const loadSamples = useCallback(async (datasetId = project?.datasetId, page = samplePage) => {
     if (!datasetId) {
       setSamples([]);
+      setSampleMeta({ currentPage: 0, totalPages: 1, pageSize: SAMPLE_PAGE_SIZE, totalElements: 0 });
       return;
     }
     try {
-      const res = await getDatasetSamples(datasetId);
-      setSamples(normalizeArray(getResultData(res)).map((sample) => ({
+      const res = await getDatasetSamples(datasetId, { page: Math.max(0, page - 1), size: SAMPLE_PAGE_SIZE });
+      const samplePageData = normalizePage(getResultData(res));
+      setSampleMeta(samplePageData);
+      setSamples(samplePageData.data.map((sample) => ({
         id: sample.id,
         imageUrl: fixImageUrl(sample.imageUrl || sample.image_url),
         fileName: getSampleFileName(sample),
@@ -290,8 +304,9 @@ export default function ProjectDetail() {
     } catch (error) {
       console.error('Failed to load dataset samples:', error);
       setSamples([]);
+      setSampleMeta({ currentPage: 0, totalPages: 1, pageSize: SAMPLE_PAGE_SIZE, totalElements: 0 });
     }
-  }, [project?.datasetId]);
+  }, [project?.datasetId, samplePage]);
 
   useEffect(() => {
     loadProject();
@@ -303,6 +318,7 @@ export default function ProjectDetail() {
         id: item.id,
         name: item.fullName || item.full_name || item.email,
         email: item.email,
+        groupId: item.groupId || item.group_id || item.group?.id || null,
       }))))
       .catch(() => setAnnotators([]));
     getSystemConfig()
@@ -314,28 +330,22 @@ export default function ProjectDetail() {
     getUsers()
       .then((res) => {
         const users = normalizeArray(getResultData(res));
-        setReviewers(users.filter((item) => item.role === 'REVIEWER').map((item) => ({
-          id: item.id,
-          name: item.fullName || item.full_name || item.email,
-          email: item.email,
-        })));
         setManagers(users.filter((item) => item.role === 'MANAGER').map((item) => ({
           id: item.id,
           name: item.fullName || item.full_name || item.email,
           email: item.email,
+          groupId: item.groupId || item.group_id || item.group?.id || null,
         })));
       })
       .catch(() => {
-        setReviewers([]);
         setManagers([]);
       });
   }, [loadProject, loadTasks, loadLabels, loadWorkload]);
 
   useEffect(() => {
     setSelectedDatasetId(project?.datasetId || '');
-    setSelectedReviewerIds((project?.reviewers || []).map((reviewer) => reviewer.id));
     setSelectedManagerId(project?.managerId || project?.manager_id || '');
-    if (project?.datasetId) loadSamples(project.datasetId);
+    if (project?.datasetId) loadSamples(project.datasetId, samplePage);
   }, [project, loadSamples]);
 
   const stats = useMemo(() => {
@@ -343,21 +353,32 @@ export default function ProjectDetail() {
     const completed = tasks.filter((task) => taskBucket(task.status) === 'completed').length;
     const assigned = tasks.filter((task) => taskBucket(task.status) === 'assigned').length;
     const unassigned = tasks.filter((task) => taskBucket(task.status) === 'unassigned').length;
+    const reviewing = tasks.filter((task) => taskBucket(task.status) === 'reviewing').length;
+    const rework = tasks.filter((task) => taskBucket(task.status) === 'rework').length;
     return {
       total,
       completed,
       assigned,
       unassigned,
+      reviewing,
+      rework,
       progress: total > 0 ? Math.round((completed / total) * 100) : 0,
     };
   }, [tasks]);
+
+  const scopedAnnotators = useMemo(() => {
+    if (!isAdmin) return annotators;
+    const managerGroupId = managers.find((manager) => manager.id === project?.managerId)?.groupId;
+    if (!managerGroupId) return [];
+    return annotators.filter((annotator) => annotator.groupId === managerGroupId);
+  }, [annotators, isAdmin, managers, project?.managerId]);
 
   const setupChecklist = useMemo(() => ([
     {
       id: 'dataset',
       label: 'Dataset',
-      ready: Boolean(project?.datasetId) || samples.length > 0,
-      detail: samples.length > 0 ? `${samples.length} image${samples.length === 1 ? '' : 's'} in catalog` : 'Upload images to start task generation',
+      ready: Boolean(project?.datasetId) || sampleMeta.totalElements > 0,
+      detail: sampleMeta.totalElements > 0 ? `${sampleMeta.totalElements} image${sampleMeta.totalElements === 1 ? '' : 's'} in catalog` : 'Upload images to start task generation',
       tab: 'dataset',
       icon: Database,
     },
@@ -385,7 +406,7 @@ export default function ProjectDetail() {
       tab: 'tasks',
       icon: CheckCircle,
     },
-  ]), [labels.length, project?.datasetId, samples.length, stats.assigned, stats.completed, tasks.length]);
+  ]), [labels.length, project?.datasetId, sampleMeta.totalElements, stats.assigned, stats.completed, tasks.length]);
 
   const nextSetupAction = setupChecklist.find((item) => !item.ready) || {
     label: 'Analytics',
@@ -399,12 +420,14 @@ export default function ProjectDetail() {
     sample.fileName.toLowerCase().includes(datasetSearch.trim().toLowerCase())
   ));
   const selectedSamples = samples.filter((sample) => selectedSampleIds.includes(sample.id));
-  const totalSamplePages = Math.max(1, Math.ceil(filteredSamples.length / SAMPLE_PAGE_SIZE));
-  const pagedSamples = filteredSamples.slice((samplePage - 1) * SAMPLE_PAGE_SIZE, samplePage * SAMPLE_PAGE_SIZE);
+  const totalSamplePages = Math.max(1, sampleMeta.totalPages || 1);
+  const pagedSamples = filteredSamples;
 
   useEffect(() => {
-    setSamplePage(1);
-  }, [datasetSearch, samples.length]);
+    if (!datasetSearch.trim()) {
+      setSamplePage((page) => Math.min(page, totalSamplePages));
+    }
+  }, [datasetSearch, totalSamplePages]);
 
   const setActiveTab = (tabId) => {
     setSearchParams(tabId === 'overview' ? {} : { tab: tabId });
@@ -431,7 +454,7 @@ export default function ProjectDetail() {
       await updateProject(project.id, { dataset_id: selectedDatasetId });
       setProject((prev) => ({ ...prev, datasetId: selectedDatasetId }));
       setSelectedSampleIds([]);
-      await loadSamples(selectedDatasetId);
+      await loadSamples(selectedDatasetId, 1);
       setToast({ type: 'success', message: 'Dataset linked to this project' });
     } catch (error) {
       console.error('Failed to link dataset:', error);
@@ -488,7 +511,7 @@ export default function ProjectDetail() {
       }
       setToast({ type: 'success', message: `${ready.length} image${ready.length === 1 ? '' : 's'} uploaded` });
       setUploadFiles([]);
-      await loadSamples(datasetId);
+      await loadSamples(datasetId, samplePage);
     } catch (error) {
       console.error('Upload failed:', error);
       setToast({ type: 'error', message: apiErrorMessage(error, 'Upload failed. Please try again.') });
@@ -504,7 +527,7 @@ export default function ProjectDetail() {
       datasetId: project.datasetId,
     },
     summary: {
-      images: items.length,
+      images: datasetSearch.trim() ? items.length : sampleMeta.totalElements,
       labels: labels.length,
       tasks: tasks.length,
       exportedAt: new Date().toISOString(),
@@ -543,7 +566,7 @@ export default function ProjectDetail() {
       }
       setToast({ type: 'success', message: `Deleted ${selectedSampleIds.length} images` });
       setSelectedSampleIds([]);
-      await loadSamples();
+      await loadSamples(project?.datasetId, samplePage);
     } catch (error) {
       console.error('Failed to delete images:', error);
       setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to delete some images') });
@@ -561,7 +584,7 @@ export default function ProjectDetail() {
       await deleteDatasetSample(project.datasetId, sampleId);
       setToast({ type: 'success', message: `Deleted image` });
       setSelectedSampleIds(prev => prev.filter(id => id !== sampleId));
-      await loadSamples();
+      await loadSamples(project?.datasetId, samplePage);
     } catch (error) {
       console.error('Failed to delete image:', error);
       setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to delete image') });
@@ -638,7 +661,7 @@ export default function ProjectDetail() {
       const result = getResultData(res) || {};
       const created = Number(result.createdCount ?? 0);
       const skipped = Number(result.skippedCount ?? 0);
-      const total = Number(result.totalSamples ?? samples.length);
+      const total = Number(result.totalSamples ?? sampleMeta.totalElements);
       setToast({
         type: 'success',
         message: `Task generation complete: ${created} created, ${skipped} skipped, ${total} samples checked`,
@@ -674,7 +697,7 @@ export default function ProjectDetail() {
   };
 
   const handleSplitEvenly = async () => {
-    const annotatorIds = annotators.map((annotator) => annotator.id);
+    const annotatorIds = scopedAnnotators.map((annotator) => annotator.id);
     if (annotatorIds.length === 0) return;
     setSplitting(true);
     try {
@@ -690,26 +713,13 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleSaveReviewers = async () => {
-    setSavingReviewers(true);
-    try {
-      const res = await updateProjectReviewers(projectId, selectedReviewerIds);
-      setProject(normalizeProject(getResultData(res)));
-      setToast({ type: 'success', message: 'Project reviewers updated.' });
-    } catch (error) {
-      setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to update reviewers') });
-    } finally {
-      setSavingReviewers(false);
-    }
-  };
-
   const handleSaveManager = async () => {
-    if (!selectedManagerId || selectedManagerId === project.managerId) return;
+    if ((selectedManagerId || '') === (project.managerId || '')) return;
     setSavingManager(true);
     try {
-      const res = await updateProjectManager(projectId, selectedManagerId);
+      const res = await updateProjectManager(projectId, selectedManagerId || null);
       setProject(normalizeProject(getResultData(res)));
-      setToast({ type: 'success', message: 'Project manager updated.' });
+      setToast({ type: 'success', message: selectedManagerId ? 'Project manager updated.' : 'Project manager removed.' });
     } catch (error) {
       setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to update manager') });
     } finally {
@@ -721,15 +731,14 @@ export default function ProjectDetail() {
     setExporting(true);
     try {
       const res = await exportProjectCoco(projectId);
-      const data = getResultData(res) || res.data;
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([res.data], { type: 'application/zip' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `project-${projectId}-coco.json`;
+      link.download = `project-${projectId}-coco-package.zip`;
       link.click();
       URL.revokeObjectURL(url);
-      setToast({ type: 'success', message: 'COCO export downloaded' });
+      setToast({ type: 'success', message: 'COCO package downloaded' });
     } catch (error) {
       console.error('Export failed:', error);
       setToast({ type: 'error', message: 'COCO export failed' });
@@ -806,7 +815,7 @@ export default function ProjectDetail() {
 
             <section className="project-detail-metrics" aria-label="Project metrics">
               <div className="project-detail-metric"><span>Total tasks</span><strong>{stats.total}</strong></div>
-              <div className="project-detail-metric"><span>Dataset images</span><strong>{samples.length}</strong></div>
+              <div className="project-detail-metric"><span>Dataset images</span><strong>{sampleMeta.totalElements}</strong></div>
               <div className="project-detail-metric"><span>Labels</span><strong>{labels.length}</strong></div>
               <div className="project-detail-metric"><span>Progress</span><strong>{stats.progress}%</strong></div>
             </section>
@@ -878,35 +887,26 @@ export default function ProjectDetail() {
                   </div>
                   <div className="project-detail-section">
                     <h2>Project ownership</h2>
-                    <p>Assign the responsible manager and reviewer pool for this project.</p>
+                    <p>Assign one manager for this project. Reviewers are resolved automatically from that manager's group.</p>
                     {isAdmin && (
-                      <div className="dataset-link-controls">
-                        <select value={selectedManagerId} onChange={(event) => setSelectedManagerId(event.target.value)}>
+                      <div className="project-ownership-card">
+                        <label className="project-ownership-select">
+                          <span>Responsible manager</span>
+                          <select value={selectedManagerId} onChange={(event) => setSelectedManagerId(event.target.value)}>
                           <option value="">No manager selected</option>
                           {managers.map((manager) => (
                             <option key={manager.id} value={manager.id}>{manager.name}</option>
                           ))}
-                        </select>
-                        <button type="button" className="project-detail-secondary-btn" onClick={handleSaveManager} disabled={!selectedManagerId || savingManager}>
+                          </select>
+                        </label>
+                        <button type="button" className="project-detail-secondary-btn" onClick={() => setSelectedManagerId('')} disabled={!selectedManagerId || savingManager}>
+                          Remove manager
+                        </button>
+                        <button type="button" className="project-detail-primary-btn" onClick={handleSaveManager} disabled={(selectedManagerId || '') === (project.managerId || '') || savingManager}>
                           {savingManager ? 'Saving...' : 'Save manager'}
                         </button>
                       </div>
                     )}
-                    <div className="dataset-link-controls">
-                      <select
-                        multiple
-                        value={selectedReviewerIds}
-                        onChange={(event) => setSelectedReviewerIds(Array.from(event.target.selectedOptions).map((option) => option.value))}
-                        aria-label="Project reviewers"
-                      >
-                        {reviewers.map((reviewer) => (
-                          <option key={reviewer.id} value={reviewer.id}>{reviewer.name}</option>
-                        ))}
-                      </select>
-                      <button type="button" className="project-detail-secondary-btn" onClick={handleSaveReviewers} disabled={savingReviewers}>
-                        {savingReviewers ? 'Saving...' : 'Save reviewers'}
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -922,10 +922,10 @@ export default function ProjectDetail() {
                       <button type="button" className="project-detail-secondary-btn" onClick={() => fileInputRef.current?.click()}>
                         <Upload size={16} /> Add images
                       </button>
-                      <button type="button" className="project-detail-secondary-btn" onClick={handleDownloadDatasetManifest} disabled={samples.length === 0}>
+                      <button type="button" className="project-detail-secondary-btn" onClick={handleDownloadDatasetManifest} disabled={sampleMeta.totalElements === 0}>
                         <Download size={16} /> Download manifest
                       </button>
-                      <button type="button" className="project-detail-primary-btn" onClick={handleGenerateTasks} disabled={generating || samples.length === 0}>
+                      <button type="button" className="project-detail-primary-btn" onClick={handleGenerateTasks} disabled={generating || sampleMeta.totalElements === 0}>
                         <CheckCircle size={16} /> {generating ? 'Generating...' : 'Generate tasks'}
                       </button>
                     </div>
@@ -933,7 +933,7 @@ export default function ProjectDetail() {
                   <div className="project-detail-tab-kpis" aria-label="Dataset status">
                     <div className="project-detail-mini-metric"><span>Dataset status</span><strong>{project.datasetId ? 'Linked' : 'Not linked'}</strong></div>
                     <div className="project-detail-mini-metric"><span>Upload queue</span><strong>{uploadFiles.length}</strong></div>
-                    <div className="project-detail-mini-metric"><span>Catalog images</span><strong>{samples.length}</strong></div>
+                    <div className="project-detail-mini-metric"><span>Catalog images</span><strong>{sampleMeta.totalElements}</strong></div>
                   </div>
                   <section className="dataset-link-panel project-dataset-link-panel">
                     <div>
@@ -1015,8 +1015,8 @@ export default function ProjectDetail() {
                   <div className="project-detail-section project-detail-section--catalog">
                     <div className="project-detail-section-header">
                       <div>
-                        <h2>Image catalog ({filteredSamples.length})</h2>
-                        <p>{selectedSamples.length} selected</p>
+                        <h2>Image catalog ({sampleMeta.totalElements})</h2>
+                        <p>Showing {filteredSamples.length} on this page, {selectedSamples.length} selected</p>
                       </div>
                       <button type="button" className="project-detail-secondary-btn" onClick={selectAllFilteredSamples} disabled={filteredSamples.length === 0}>
                         Select all
@@ -1038,7 +1038,7 @@ export default function ProjectDetail() {
                         <Trash2 size={16} /> Delete selected
                       </button>
                     </div>
-                    {samples.length === 0 ? (
+                    {sampleMeta.totalElements === 0 ? (
                       <div className="project-detail-empty-state">
                         <ImageIcon size={28} />
                         <strong>No images uploaded yet.</strong>
@@ -1078,9 +1078,9 @@ export default function ProjectDetail() {
                         ))}
                       </div>
                     )}
-                    {filteredSamples.length > SAMPLE_PAGE_SIZE && (
+                    {totalSamplePages > 1 && (
                       <div className="dataset-pagination">
-                        <span>Page {samplePage} of {totalSamplePages}</span>
+                        <span>Page {samplePage} of {totalSamplePages} · {sampleMeta.totalElements} total images</span>
                         <button type="button" onClick={() => setSamplePage((page) => Math.max(1, page - 1))} disabled={samplePage === 1}>Previous</button>
                         <button type="button" onClick={() => setSamplePage((page) => Math.min(totalSamplePages, page + 1))} disabled={samplePage === totalSamplePages}>Next</button>
                       </div>
@@ -1152,6 +1152,8 @@ export default function ProjectDetail() {
                   <div className="project-detail-tab-kpis" aria-label="Task queue status">
                     <div className="project-detail-mini-metric"><span>Unassigned</span><strong>{stats.unassigned}</strong></div>
                     <div className="project-detail-mini-metric"><span>Assigned</span><strong>{stats.assigned}</strong></div>
+                    <div className="project-detail-mini-metric"><span>Reviewing</span><strong>{stats.reviewing}</strong></div>
+                    <div className="project-detail-mini-metric"><span>Rework</span><strong>{stats.rework}</strong></div>
                     <div className="project-detail-mini-metric"><span>Completed</span><strong>{stats.completed}</strong></div>
                   </div>
                   <div className="project-detail-section">
@@ -1163,13 +1165,13 @@ export default function ProjectDetail() {
                     <button type="button" className="project-detail-secondary-btn" onClick={handleGenerateTasks} disabled={generating}>
                       <CheckCircle size={16} /> {generating ? 'Generating...' : 'Generate tasks'}
                     </button>
-                    <button type="button" className="project-detail-secondary-btn" onClick={handleSplitEvenly} disabled={splitting || annotators.length === 0 || stats.unassigned === 0}>
+                    <button type="button" className="project-detail-secondary-btn" onClick={handleSplitEvenly} disabled={splitting || scopedAnnotators.length === 0 || stats.unassigned === 0}>
                       <Users size={16} /> {splitting ? 'Splitting...' : 'Split evenly'}
                     </button>
                   </div>
 
                   <div className="project-detail-task-tabs">
-                    {['unassigned', 'assigned', 'completed'].map((bucket) => (
+                    {['unassigned', 'assigned', 'reviewing', 'rework', 'completed'].map((bucket) => (
                       <button
                         key={bucket}
                         type="button"
@@ -1212,7 +1214,7 @@ export default function ProjectDetail() {
                   {taskTab === 'unassigned' && (
                     <div className="project-detail-assign-bar">
                       <span>{selectedTaskIds.length} selected</span>
-                      <AnnotatorSelect annotators={annotators} selectedId={selectedAnnotatorId} onChange={setSelectedAnnotatorId} placeholder="Choose annotator..." disabled={selectedTaskIds.length === 0} />
+                      <AnnotatorSelect annotators={scopedAnnotators} selectedId={selectedAnnotatorId} onChange={setSelectedAnnotatorId} placeholder="Choose annotator..." disabled={selectedTaskIds.length === 0} />
                       <button type="button" className="project-detail-primary-btn" onClick={handleAssignTasks} disabled={selectedTaskIds.length === 0 || !selectedAnnotatorId || assigning}>
                         <Users size={16} /> {assigning ? 'Assigning...' : 'Assign tasks'}
                       </button>
@@ -1237,6 +1239,23 @@ export default function ProjectDetail() {
                     <div className="project-detail-empty-state"><Users size={28} /> No annotator workload yet.</div>
                   )}
                 </div>
+                <div className="project-detail-section">
+                  <h2>Reviewer workload</h2>
+                  {workload?.reviewers?.length ? (
+                    <div className="project-detail-label-list">
+                      {workload.reviewers.map((row) => (
+                        <div key={row.reviewerId || row.reviewer_id} className="project-detail-label-row">
+                          <strong>{row.reviewerName || row.reviewer_name || row.email}</strong>
+                          <span>{row.pendingReview || row.pending_review || 0} reviewing</span>
+                          <span>{row.approved || 0} approved</span>
+                          <span>{row.rejected || 0} rejected</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="project-detail-empty-state"><Users size={28} /> No reviewer workload yet. Assign a manager with a reviewer group.</div>
+                  )}
+                </div>
                 </>
               )}
 
@@ -1253,7 +1272,9 @@ export default function ProjectDetail() {
                     <h2>Task distribution</h2>
                     {[
                       ['Unassigned', stats.unassigned, '#f59e0b'],
-                      ['Assigned / Review', stats.assigned, '#2563eb'],
+                      ['Assigned', stats.assigned, '#2563eb'],
+                      ['Reviewing', stats.reviewing, '#7c3aed'],
+                      ['Rework', stats.rework, '#ef4444'],
                       ['Completed', stats.completed, '#059669'],
                     ].map(([label, count, color]) => {
                       const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
@@ -1270,7 +1291,7 @@ export default function ProjectDetail() {
                     <h2>Operational readout</h2>
                     <p>Project setup is healthiest when images, labels, and generated tasks are all present before assignment begins.</p>
                     <ul className="project-detail-readout">
-                      <li><CheckCircle size={15} /> Dataset samples: {samples.length}</li>
+                      <li><CheckCircle size={15} /> Dataset samples: {sampleMeta.totalElements}</li>
                       <li><CheckCircle size={15} /> Label classes: {labels.length}</li>
                       <li><CheckCircle size={15} /> Generated tasks: {tasks.length}</li>
                     </ul>

@@ -144,8 +144,8 @@ export const getLogs = (page = 0, size = 20) =>
 // =====================
 // Projects
 // =====================
-export const getProjects = () => api.get('/projects', { params: { page: 0, size: 200 } });
-export const getMyProjects = (params = {}) => api.get('/me/projects', { params: { page: 0, size: 200, ...params } });
+export const getProjects = (params = {}) => api.get('/projects', { params: { page: 0, size: 24, ...params } });
+export const getMyProjects = (params = {}) => api.get('/me/projects', { params: { page: 0, size: 24, ...params } });
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
 
 export const deleteProject = (projectId) => api.delete(`/projects/${projectId}`);
@@ -154,7 +154,7 @@ export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
 
 export const exportProjectCoco = (projectId) =>
-  api.get(`/projects/${projectId}/export/coco`);
+  api.get(`/projects/${projectId}/export/coco.zip`, { responseType: 'blob' });
 
 export const generateTasks = (projectId, datasetId) =>
   api.post(`/projects/${projectId}/tasks/generate`, null, { params: { datasetId } });
@@ -162,18 +162,19 @@ export const generateTasks = (projectId, datasetId) =>
 export const assignTasks = (projectId, data) =>
   api.put(`/projects/${projectId}/tasks/assign`, data);
 
-export const createProject = ({ name, description }) =>
+export const createProject = ({ name, description, managerId, manager_id }) =>
   api.post('/projects', {
     name,
     description,
+    manager_id: managerId || manager_id || null,
     labels: [],
   });
 
-export const getDatasets = () => api.get('/datasets');
+export const getDatasets = (params = {}) => api.get('/datasets', { params: { page: 0, size: 24, ...params } });
 
 export const getDataset = (datasetId) => api.get(`/datasets/${datasetId}`);
 
-export const getDatasetSamples = (datasetId) => api.get(`/datasets/${datasetId}/samples`);
+export const getDatasetSamples = (datasetId, params = {}) => api.get(`/datasets/${datasetId}/samples`, { params: { page: 0, size: 24, ...params } });
 
 export const createDataset = (data) =>
   api.post('/datasets', typeof data === 'string' ? { name: data } : data);
@@ -254,6 +255,9 @@ export const deleteLabel = (projectId, labelId) =>
 export const getMyAssignedImages = (params) =>
   api.get('/me/assigned-images', { params });
 
+export const submitReadyImages = (projectId) =>
+  api.post(`/me/projects/${projectId}/tasks/submit-ready`);
+
 export const getAnnotations = (taskId) =>
   api.get(`/tasks/${taskId}/annotations`);
 
@@ -263,12 +267,12 @@ export const saveTaskAnnotations = (taskId, annotations, submit = false) =>
 // =====================
 // Reviewer API Services
 // =====================
-export const getReviewQueueImages = (projectId, page = 0, size = 100) =>
+export const getReviewQueueImages = (projectId, page = 0, size = 24) =>
   api.get('/review-queue/images', {
     params: { projectId, page, size }
   });
 
-export const getCompletedReviewImages = (projectId, page = 0, size = 100) =>
+export const getCompletedReviewImages = (projectId, page = 0, size = 24) =>
   api.get('/review-queue/completed', {
     params: { projectId, page, size }
   });

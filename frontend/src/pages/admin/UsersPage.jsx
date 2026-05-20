@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, UserPlus, FolderPlus, Edit2, Lock, Unlock } from 'lucide-react';
+import { ArrowLeft, UserPlus, FolderPlus, Edit2, Lock, Unlock, UsersRound } from 'lucide-react';
 import Sidebar from '@/components/common/Sidebar';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
@@ -19,6 +19,9 @@ import {
   toggleUserStatus,
   getGroups,
   createGroup,
+  updateGroup,
+  deleteGroup,
+  deleteUser,
   getAdminUserPerformance,
 } from '@/services/api';
 import '@/styles/AdminDashboard.css';
@@ -40,6 +43,8 @@ export default function UsersPage() {
   const [groupFilter, setGroupFilter] = useState('');
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [activeAdminTab, setActiveAdminTab] = useState('users');
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
 
   // Role modal
   const [roleModalOpen, setRoleModalOpen] = useState(false);
@@ -164,14 +169,63 @@ export default function UsersPage() {
     }
   };
 
-  const handleCreateGroup = async (groupName) => {
+  const handleCreateGroup = async (groupPayload) => {
     try {
-      const res = await createGroup({ name: groupName });
+      const res = await createGroup(typeof groupPayload === 'string' ? { name: groupPayload } : groupPayload);
       setGroups((prev) => [...prev, res.data.result]);
       setToast({ type: 'success', message: 'Đã tạo group.' });
     } catch (err) {
       setToast({ type: 'error', message: err.response?.data?.message || 'Tạo group thất bại.' });
       throw err;
+    }
+  };
+
+  const refreshUsersAndGroups = async () => {
+    const [usersRes, groupsRes] = await Promise.all([
+      getUsers(),
+      getGroups().catch(() => ({ data: { result: [] } })),
+    ]);
+    setUsers(usersRes.data.result || []);
+    setGroups(groupsRes.data.result || []);
+  };
+
+  const handleEditGroup = async (group) => {
+    const nextName = window.prompt('Group name', group.name || '');
+    if (!nextName) return;
+    const nextDescription = window.prompt('Group description', group.description || '') ?? group.description;
+    try {
+      await updateGroup(group.id, {
+        name: nextName.trim(),
+        description: nextDescription,
+        manager_id: group.manager_id || group.managerId || null,
+      });
+      await refreshUsersAndGroups();
+      setToast({ type: 'success', message: 'Đã cập nhật group.' });
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'Cập nhật group thất bại.' });
+    }
+  };
+
+  const handleDeleteGroup = async (group) => {
+    if (!window.confirm(`Xóa group "${group.name}"? Thành viên sẽ cần được gán lại group khác.`)) return;
+    try {
+      await deleteGroup(group.id);
+      if (selectedGroupId === group.id) setSelectedGroupId(null);
+      await refreshUsersAndGroups();
+      setToast({ type: 'success', message: 'Đã xóa group.' });
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'Xóa group thất bại.' });
+    }
+  };
+
+  const handleDeleteUser = async (targetUser) => {
+    if (!window.confirm(`Xóa user "${targetUser.email}"?`)) return;
+    try {
+      await deleteUser(targetUser.id);
+      await refreshUsersAndGroups();
+      setToast({ type: 'success', message: 'Đã xóa user.' });
+    } catch (err) {
+      setToast({ type: 'error', message: err.response?.data?.message || 'Xóa user thất bại.' });
     }
   };
 
@@ -214,6 +268,11 @@ export default function UsersPage() {
     },
     { total: 0, active: 0, disabled: 0, roles: {} }
   );
+
+  const selectedGroup = groups.find((group) => group.id === selectedGroupId);
+  const selectedGroupMembers = selectedGroupId
+    ? normalizedUsers.filter((item) => item.groupId === selectedGroupId)
+    : [];
 
   return (
     <div className={isManager ? 'manager-layout' : 'admin-layout'}>
@@ -297,6 +356,72 @@ export default function UsersPage() {
             )}
           </div>
 
+          {!isManager && (
+            <div className="users-summary" role="tablist" aria-label="Admin people views">
+              <button type="button" role="tab" className={activeAdminTab === 'users' ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => setActiveAdminTab('users')}>
+                Users <strong>{userSummary.total}</strong>
+              </button>
+              <button type="button" role="tab" className={activeAdminTab === 'groups' ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => setActiveAdminTab('groups')}>
+                Groups <strong>{groups.length}</strong>
+              </button>
+            </div>
+          )}
+
+          {(!isManager && activeAdminTab === 'groups') ? (
+            <>
+              <div className="admin-groups-grid">
+                {groups.map((group) => (
+                  <article
+                    key={group.id}
+                    className={selectedGroupId === group.id ? 'admin-group-card admin-group-card--active' : 'admin-group-card'}
+                  >
+                    <button type="button" className="admin-group-card__main" onClick={() => setSelectedGroupId(group.id)}>
+                      <span className="admin-group-card__icon"><UsersRound size={18} /></span>
+                      <strong>{group.name}</strong>
+                      <small>{group.description || 'No description yet'}</small>
+                      <span>{group.member_count || group.memberCount || 0} members</span>
+                    </button>
+                    <div className="admin-group-card__actions">
+                      <button type="button" onClick={() => handleEditGroup(group)}>Edit</button>
+                      <button type="button" onClick={() => handleDeleteGroup(group)}>Delete</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="users-table-shell">
+                <table className="users-table" aria-label="Group members">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th className="users-table__actions-header">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedGroup ? selectedGroupMembers : normalizedUsers.filter((item) => item.groupId)).map((member) => (
+                      <tr key={member.id}>
+                        <td>{member.fullName || 'Unnamed user'}</td>
+                        <td className="users-table__email">{member.email}</td>
+                        <td><span className={`users-role users-role--${member.role?.toLowerCase()}`}>{member.role}</span></td>
+                        <td>{member.active ? 'Active' : 'Disabled'}</td>
+                        <td>
+                          <div className="users-row-actions">
+                            <button type="button" onClick={() => handleEditName(member)}><Edit2 size={14} /> Name</button>
+                            <button type="button" onClick={() => handleEditRole(member)}><Edit2 size={14} /> Role</button>
+                            <button type="button" onClick={() => handleAssignGroup(member, null)}>Remove</button>
+                            <button type="button" className="users-row-actions__danger" onClick={() => handleDeleteUser(member)}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+          <>
           <div className="users-summary" aria-label="User summary">
             <button type="button" className={!roleFilter && !statusFilter ? 'users-summary__chip users-summary__chip--active' : 'users-summary__chip'} onClick={() => { setRoleFilter(''); setStatusFilter(''); }}>
               All <strong>{userSummary.total}</strong>
@@ -336,7 +461,7 @@ export default function UsersPage() {
                     <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
-                    <th>Group</th>
+                    {!isManager && <th>Group</th>}
                     <th>Work</th>
                     <th className="users-table__actions-header">Actions</th>
                   </tr>
@@ -344,7 +469,6 @@ export default function UsersPage() {
                 <tbody>
                   {filteredUsers.map((u) => {
                     const isActive = u.active === true || u.active === 'active';
-                    const group = groups.find((g) => g.id === u.groupId);
                     const perf = performanceByUserId[u.id] || {};
                     return (
                       <tr key={u.id}>
@@ -365,10 +489,8 @@ export default function UsersPage() {
                             {isActive ? 'Active' : 'Disabled'}
                           </span>
                         </td>
-                        <td className="users-table__muted">
-                          {isManager ? (
-                            group?.name || 'No group'
-                          ) : (
+                        {!isManager && (
+                          <td className="users-table__muted">
                             <select
                               aria-label={`Group for ${u.email}`}
                               value={u.groupId || ''}
@@ -379,8 +501,8 @@ export default function UsersPage() {
                                 <option key={g.id} value={g.id}>{g.name}</option>
                               ))}
                             </select>
-                          )}
-                        </td>
+                          </td>
+                        )}
                         <td className="users-table__muted">
                           {u.role === 'REVIEWER'
                             ? `${perf.reviewed || 0} reviewed / ${perf.pendingToReview || perf.pending_to_review || 0} pending`
@@ -388,22 +510,26 @@ export default function UsersPage() {
                         </td>
                         <td>
                           <div className="users-row-actions">
-                            <button type="button" onClick={() => handleEditName(u)}>
-                              <Edit2 size={14} />
-                              Name
-                            </button>
+                            {!isManager && (
+                              <button type="button" onClick={() => handleEditName(u)}>
+                                <Edit2 size={14} />
+                                Name
+                              </button>
+                            )}
                             <button type="button" onClick={() => handleEditRole(u)}>
                               <Edit2 size={14} />
                               Role
                             </button>
-                            <button
-                              type="button"
-                              className={isActive ? 'users-row-actions__danger' : 'users-row-actions__success'}
-                              onClick={() => handleToggleStatus(u)}
-                            >
-                              {isActive ? <Lock size={14} /> : <Unlock size={14} />}
-                              {isActive ? 'Lock' : 'Activate'}
-                            </button>
+                            {!isManager && (
+                              <button
+                                type="button"
+                                className={isActive ? 'users-row-actions__danger' : 'users-row-actions__success'}
+                                onClick={() => handleToggleStatus(u)}
+                              >
+                                {isActive ? <Lock size={14} /> : <Unlock size={14} />}
+                                {isActive ? 'Lock' : 'Activate'}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -416,6 +542,8 @@ export default function UsersPage() {
             <div className="users-empty">
               <p>No users found matching your filters.</p>
             </div>
+          )}
+          </>
           )}
         </main>
       </div>

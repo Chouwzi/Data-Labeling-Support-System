@@ -29,6 +29,9 @@ public class CocoAnnotation {
     /** [x_min, y_min, width, height] in absolute pixel values. */
     private List<Double> bbox;
 
+    /** Rectangle polygon derived from bbox for COCO instance-style consumers. */
+    private List<List<Double>> segmentation;
+
     /** For bounding-box-only annotations: bbox_width × bbox_height. */
     private double area;
 

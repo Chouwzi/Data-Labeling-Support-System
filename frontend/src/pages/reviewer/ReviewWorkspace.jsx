@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import ReviewerSidebar from '@/components/reviewer/ReviewerSidebar';
 import Topbar from '@/components/common/Topbar';
@@ -13,6 +13,8 @@ let pendingReviewQueueCache = null;
 
 export default function ReviewWorkspace() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get('projectId') || null;
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,15 +27,17 @@ export default function ReviewWorkspace() {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [highlightBoxes, setHighlightBoxes] = useState(false);
 
   useEffect(() => {
     const fetchReviewDetail = async () => {
       try {
         setLoading(true);
-        const queueData = pendingReviewQueueCache || await getReviewQueueImages().then((res) => {
+        const cacheKey = projectId || 'all';
+        const queueData = pendingReviewQueueCache?.key === cacheKey ? pendingReviewQueueCache.data : await getReviewQueueImages(projectId).then((res) => {
           const data = res.data?.result?.data || res.data?.result || [];
           const normalized = Array.isArray(data) ? data : [];
-          pendingReviewQueueCache = normalized;
+          pendingReviewQueueCache = { key: cacheKey, data: normalized };
           return normalized;
         });
         setQueue(queueData.map((item) => ({
@@ -45,7 +49,7 @@ export default function ReviewWorkspace() {
           setReview(currentReview);
         } else {
           console.warn(`Task ${id} not found in pending reviews queue.`);
-          navigate('/reviewer');
+          navigate(projectId ? `/reviewer/tasks?projectId=${projectId}` : '/reviewer');
         }
       } catch (err) {
         console.error('Failed to fetch review detail:', err);
@@ -54,7 +58,27 @@ export default function ReviewWorkspace() {
       }
     };
     fetchReviewDetail();
-  }, [id, navigate]);
+  }, [id, navigate, projectId]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.code === 'Space' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) {
+        event.preventDefault();
+        setHighlightBoxes(true);
+      }
+    };
+    const handleKeyUp = (event) => {
+      if (event.code === 'Space') {
+        setHighlightBoxes(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -88,7 +112,8 @@ export default function ReviewWorkspace() {
   const nextReview = currentQueueIndex >= 0 && currentQueueIndex < queue.length - 1 ? queue[currentQueueIndex + 1] : null;
   const navigateToNext = () => {
     const target = nextReview || previousReview;
-    navigate(target ? `/reviewer/workspace/${target.id}` : '/reviewer');
+    const suffix = projectId ? `?projectId=${projectId}` : '';
+    navigate(target ? `/reviewer/workspace/${target.id}${suffix}` : (projectId ? `/reviewer/tasks${suffix}` : '/reviewer'));
   };
 
   const handleConfirmApprove = async () => {
@@ -163,7 +188,7 @@ export default function ReviewWorkspace() {
 
         <main className="dashboard-content">
           <div className="content-header">
-            <button className="btn-back" onClick={() => navigate('/reviewer')}>
+            <button className="btn-back" onClick={() => navigate(projectId ? `/reviewer/tasks?projectId=${projectId}` : '/reviewer')}>
               <ArrowLeft size={16} />
               <span>Back to list</span>
             </button>
@@ -172,10 +197,10 @@ export default function ReviewWorkspace() {
               <p className="content-subtitle">Annotator: {annotatorName}</p>
             </div>
             <div className="review-workspace-nav">
-              <button className="btn btn--secondary" onClick={() => previousReview && navigate(`/reviewer/workspace/${previousReview.id}`)} disabled={!previousReview}>
+              <button className="btn btn--secondary" onClick={() => previousReview && navigate(`/reviewer/workspace/${previousReview.id}${projectId ? `?projectId=${projectId}` : ''}`)} disabled={!previousReview}>
                 <ChevronLeft size={16} /> Previous
               </button>
-              <button className="btn btn--secondary" onClick={() => nextReview && navigate(`/reviewer/workspace/${nextReview.id}`)} disabled={!nextReview}>
+              <button className="btn btn--secondary" onClick={() => nextReview && navigate(`/reviewer/workspace/${nextReview.id}${projectId ? `?projectId=${projectId}` : ''}`)} disabled={!nextReview}>
                 Next <ChevronRight size={16} />
               </button>
             </div>
@@ -196,7 +221,7 @@ export default function ReviewWorkspace() {
                 />
                 {imageLoaded && imageSize.width > 0 && (
                   <svg 
-                    className="svg-overlay" 
+                    className={`svg-overlay review-bbox-overlay ${highlightBoxes ? 'review-bbox-overlay--highlight' : ''}`} 
                     viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
                   >
@@ -216,10 +241,11 @@ export default function ReviewWorkspace() {
                             y={y}
                             width={width}
                             height={height}
-                            fill="none"
+                            fill={highlightBoxes ? `${color}22` : `${color}10`}
                             stroke={color}
-                            strokeWidth="3"
-                            className="bbox-rect"
+                            strokeWidth={highlightBoxes ? 7 : 4}
+                            className="bbox-rect review-bbox-rect"
+                            vectorEffect="non-scaling-stroke"
                           />
                           <rect
                             x={x}

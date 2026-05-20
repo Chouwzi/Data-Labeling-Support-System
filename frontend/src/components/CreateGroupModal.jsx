@@ -4,6 +4,7 @@ import './CreateGroupModal.css';
 
 export default function CreateGroupModal({ isOpen, onClose, onSave }) {
   const [groupName, setGroupName] = useState('');
+  const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const inputRef = useRef(null);
 
@@ -26,14 +27,16 @@ export default function CreateGroupModal({ isOpen, onClose, onSave }) {
       return;
     }
 
-    onSave(groupName.trim());
+    onSave({ name: groupName.trim(), description: description.trim() });
     setGroupName('');
+    setDescription('');
     setError('');
     onClose();
   };
 
   const handleClose = () => {
     setGroupName('');
+    setDescription('');
     setError('');
     onClose();
   };
@@ -82,6 +85,20 @@ export default function CreateGroupModal({ isOpen, onClose, onSave }) {
             {error && (
               <p className="modal-field__error" role="alert">{error}</p>
             )}
+          </div>
+
+          <div className="modal-field">
+            <label className="modal-field__label" htmlFor="groupDescription">
+              Description
+            </label>
+            <textarea
+              id="groupDescription"
+              className="modal-field__input"
+              placeholder="Purpose, team scope, or project ownership"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
           </div>
 
           <div className="modal-actions">

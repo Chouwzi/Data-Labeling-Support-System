@@ -67,8 +67,8 @@ public class ProjectAccessService {
 
     /**
      * Tìm project cho các API chỉ đọc.
-     * ADMIN và REVIEWER được đọc tất cả, MANAGER được đọc project của mình,
-     * ANNOTATOR chỉ được đọc project có task được giao.
+     * ADMIN được đọc tất cả, REVIEWER được đọc project trong group của manager,
+     * MANAGER được đọc project của mình, ANNOTATOR chỉ được đọc project có task được giao.
      */
     public Project findProjectAndCheckReadAccess(java.util.UUID projectId) {
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
@@ -95,8 +95,18 @@ public class ProjectAccessService {
     }
 
     private boolean isAssignedReviewer(java.util.UUID projectId, User currentUser) {
-        return isReviewer(currentUser)
-                && projectRepository.existsByIdAndReviewersId(projectId, currentUser.getId());
+        if (!isReviewer(currentUser) || currentUser.getGroup() == null) {
+            return false;
+        }
+        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        if (project.getManagerId() == null) {
+            return false;
+        }
+        return userRepository.findById(project.getManagerId())
+                .map(User::getGroup)
+                .map(group -> group.getId().equals(currentUser.getGroup().getId()))
+                .orElse(false);
     }
 
     public void ensureUserAssignableInCurrentScope(User target) {

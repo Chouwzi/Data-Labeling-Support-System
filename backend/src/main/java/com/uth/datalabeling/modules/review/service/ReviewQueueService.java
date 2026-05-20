@@ -51,10 +51,10 @@ public class ReviewQueueService {
     @Transactional(readOnly = true)
     public PageResponse<ReviewQueueImageResponse> getPendingReviewImages(UUID projectId, Pageable pageable) {
         UUID managerId = resolveManagerFilter(projectId);
-        UUID reviewerScopeId = resolveReviewerScopeFilter(projectId);
-        Page<Task> taskPage = reviewerScopeId == null
+        UUID reviewerGroupId = resolveReviewerGroupFilter(projectId);
+        Page<Task> taskPage = reviewerGroupId == null
                 ? taskRepository.findReviewQueueImages(projectId, managerId, STATUS_PENDING_REVIEW, pageable)
-                : taskRepository.findReviewQueueImages(projectId, managerId, reviewerScopeId, STATUS_PENDING_REVIEW, pageable);
+                : taskRepository.findReviewQueueImages(projectId, managerId, reviewerGroupId, STATUS_PENDING_REVIEW, pageable);
         List<Task> tasks = taskPage.getContent();
         Map<UUID, List<Annotation>> annotationsByTaskId = loadAnnotationsByTaskId(tasks);
 
@@ -82,7 +82,7 @@ public class ReviewQueueService {
         Page<Review> reviewPage = reviewRepository.findReviewHistory(
                 projectId,
                 managerId,
-                resolveReviewerScopeFilter(projectId),
+                resolveReviewerGroupFilter(projectId),
                 normalizedStatus,
                 annotatorId,
                 pageable);
@@ -107,14 +107,14 @@ public class ReviewQueueService {
     @Transactional(readOnly = true)
     public ReviewStatsResponse getReviewStats(UUID projectId, String range) {
         UUID managerId = resolveManagerFilter(projectId);
-        UUID reviewerScopeId = resolveReviewerScopeFilter(projectId);
+        UUID reviewerGroupId = resolveReviewerGroupFilter(projectId);
         LocalDateTime from = resolveRangeStart(range);
-        long pendingReview = reviewerScopeId == null
+        long pendingReview = reviewerGroupId == null
                 ? taskRepository.countReviewQueueImages(projectId, managerId, STATUS_PENDING_REVIEW)
-                : taskRepository.countReviewQueueImages(projectId, managerId, reviewerScopeId, STATUS_PENDING_REVIEW);
-        long approved = reviewRepository.countByActionSince(projectId, managerId, reviewerScopeId, ACTION_APPROVED, from);
-        long rejected = reviewRepository.countByActionSince(projectId, managerId, reviewerScopeId, ACTION_REJECTED, from);
-        long totalReviewed = reviewRepository.countReviewedSince(projectId, managerId, reviewerScopeId, from);
+                : taskRepository.countReviewQueueImages(projectId, managerId, reviewerGroupId, STATUS_PENDING_REVIEW);
+        long approved = reviewRepository.countByActionSince(projectId, managerId, reviewerGroupId, ACTION_APPROVED, from);
+        long rejected = reviewRepository.countByActionSince(projectId, managerId, reviewerGroupId, ACTION_REJECTED, from);
+        long totalReviewed = reviewRepository.countReviewedSince(projectId, managerId, reviewerGroupId, from);
 
         return ReviewStatsResponse.builder()
                 .pendingReview(pendingReview)
@@ -269,9 +269,11 @@ public class ReviewQueueService {
         return "MANAGER".equals(currentUser.getRole()) ? currentUser.getId() : null;
     }
 
-    private UUID resolveReviewerScopeFilter(UUID projectId) {
+    private UUID resolveReviewerGroupFilter(UUID projectId) {
         User currentUser = projectAccessService.getCurrentUser();
-        return projectId == null && "REVIEWER".equals(currentUser.getRole()) ? currentUser.getId() : null;
+        return "REVIEWER".equals(currentUser.getRole()) && currentUser.getGroup() != null
+                ? currentUser.getGroup().getId()
+                : null;
     }
 
     private String normalizeReviewAction(String status) {

@@ -55,28 +55,24 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
                         JOIN FETCH t.project
                         JOIN FETCH t.sample
                         LEFT JOIN FETCH t.annotator
+                        LEFT JOIN User manager ON manager.id = t.project.managerId
                         WHERE (:projectId IS NULL OR t.project.id = :projectId)
                           AND (:managerId IS NULL OR t.project.managerId = :managerId)
-                          AND (:reviewerId IS NULL OR EXISTS (
-                              SELECT reviewer FROM Project p2 JOIN p2.reviewers reviewer
-                              WHERE p2 = t.project AND reviewer.id = :reviewerId
-                          ))
+                          AND (:reviewerGroupId IS NULL OR manager.group.id = :reviewerGroupId)
                           AND UPPER(t.status) = :status
                         ORDER BY t.updatedAt DESC, t.createdAt DESC
                         """, countQuery = """
                         SELECT COUNT(t) FROM Task t
+                        LEFT JOIN User manager ON manager.id = t.project.managerId
                         WHERE (:projectId IS NULL OR t.project.id = :projectId)
                           AND (:managerId IS NULL OR t.project.managerId = :managerId)
-                          AND (:reviewerId IS NULL OR EXISTS (
-                              SELECT reviewer FROM Project p2 JOIN p2.reviewers reviewer
-                              WHERE p2 = t.project AND reviewer.id = :reviewerId
-                          ))
+                          AND (:reviewerGroupId IS NULL OR manager.group.id = :reviewerGroupId)
                           AND UPPER(t.status) = :status
                         """)
         Page<Task> findReviewQueueImages(
                         @Param("projectId") UUID projectId,
                         @Param("managerId") UUID managerId,
-                        @Param("reviewerId") UUID reviewerId,
+                        @Param("reviewerGroupId") UUID reviewerGroupId,
                         @Param("status") String status,
                         Pageable pageable);
 
@@ -86,18 +82,16 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
         @Query("""
                         SELECT COUNT(t) FROM Task t
+                        LEFT JOIN User manager ON manager.id = t.project.managerId
                         WHERE (:projectId IS NULL OR t.project.id = :projectId)
                           AND (:managerId IS NULL OR t.project.managerId = :managerId)
-                          AND (:reviewerId IS NULL OR EXISTS (
-                              SELECT reviewer FROM Project p2 JOIN p2.reviewers reviewer
-                              WHERE p2 = t.project AND reviewer.id = :reviewerId
-                          ))
+                          AND (:reviewerGroupId IS NULL OR manager.group.id = :reviewerGroupId)
                           AND UPPER(t.status) = :status
                         """)
         long countReviewQueueImages(
                         @Param("projectId") UUID projectId,
                         @Param("managerId") UUID managerId,
-                        @Param("reviewerId") UUID reviewerId,
+                        @Param("reviewerGroupId") UUID reviewerGroupId,
                         @Param("status") String status);
 
         default long countReviewQueueImages(UUID projectId, UUID managerId, String status) {
@@ -119,4 +113,14 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
         List<Task> findByProjectIdAndStatusWithSample(
                         @Param("projectId") UUID projectId,
                         @Param("status") String status);
+
+        @Query("""
+                        SELECT t FROM Task t
+                        WHERE t.project.id = :projectId
+                          AND t.annotator.id = :annotatorId
+                          AND UPPER(t.status) = 'READY_FOR_REVIEW'
+                        """)
+        List<Task> findReadyForReviewByProjectIdAndAnnotatorId(
+                        @Param("projectId") UUID projectId,
+                        @Param("annotatorId") UUID annotatorId);
 }

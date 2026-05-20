@@ -21,6 +21,9 @@ public class UserGroupRequest {
   @Size(min = 2, max = 100, message = "VALIDATION_ERROR")
   String name;
 
+  @Size(max = 500, message = "VALIDATION_ERROR")
+  String description;
+
   @JsonProperty("manager_id")
   UUID managerId;
 }

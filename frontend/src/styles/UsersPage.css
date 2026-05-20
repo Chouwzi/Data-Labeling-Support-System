@@ -250,6 +250,86 @@
 .users-row-actions .users-row-actions__success:hover {
   color: #047857;
 }
+
+.admin-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-group-card {
+  display: grid;
+  gap: 0.5rem;
+  min-height: 150px;
+  padding: 1rem;
+  text-align: left;
+  border: 1px solid var(--color-border, #d7e0e8);
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #111827;
+  cursor: default;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.admin-group-card__main {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-group-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-self: end;
+}
+
+.admin-group-card__actions button {
+  border: 1px solid #d7e0e8;
+  border-radius: 0.45rem;
+  background: #f8fafc;
+  padding: 0.4rem 0.55rem;
+  color: #334155;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-group-card:hover,
+.admin-group-card--active {
+  border-color: #10b981;
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.12);
+  transform: translateY(-2px);
+}
+
+.admin-group-card__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.admin-group-card strong {
+  font-size: 1rem;
+}
+
+.admin-group-card small {
+  color: #6b7280;
+  min-height: 2.4em;
+  line-height: 1.2;
+}
+
+.admin-group-card span:last-child {
+  color: #047857;
+  font-weight: 800;
+}
 .users-empty {
   display: flex;
   align-items: center;

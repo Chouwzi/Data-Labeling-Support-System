@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   FileText, 
   Download, 
@@ -24,6 +24,8 @@ import '@/styles/KpiCard.css';
 export default function AnnotatorDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProjectsPage = location.pathname === '/annotator/projects';
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -52,7 +54,7 @@ export default function AnnotatorDashboard() {
         let allAssignedImages = [];
         try {
           const [assignedImagesRes, performanceRes] = await Promise.all([
-            getMyAssignedImages({ page: 0, size: 1000 }),
+            getMyAssignedImages({ page: 0, size: 24 }),
             getMyPerformance().catch(() => ({ data: { result: null } })),
           ]);
           allAssignedImages = assignedImagesRes.data?.result?.data || assignedImagesRes.data?.result || [];
@@ -74,7 +76,7 @@ export default function AnnotatorDashboard() {
             console.warn('Direct project list forbidden or empty. Attempting smart fetch via assigned images...');
             
             // Attempt 2: Smart Fetch (Derive from assigned images)
-            const assignedRes = await getMyAssignedImages({ page: 0, size: 100 });
+            const assignedRes = await getMyAssignedImages({ page: 0, size: 24 });
             const assignedData = assignedRes.data?.result?.data || assignedRes.data?.result || assignedRes.data || [];
             
             if (Array.isArray(assignedData) && assignedData.length > 0) {
@@ -193,7 +195,7 @@ export default function AnnotatorDashboard() {
 
         <main className="dashboard-content">
           <div className="dashboard-content-inner fade-in-up">
-            <div className="stats-grid stats-grid--compact">
+            {!isProjectsPage && <div className="stats-grid stats-grid--compact">
               <KpiCard 
                 title="Ready to Label" 
                 value={activeImages}
@@ -219,15 +221,15 @@ export default function AnnotatorDashboard() {
                 trend={`${unlabeledImages} unlabeled`}
                 compact
               />
-            </div>
+            </div>}
 
             <section className="guideline-section">
               <div className="section-header">
                 <BookOpen size={20} className="section-icon" />
-                <h2 className="section-title">WORK QUEUE</h2>
+                <h2 className="section-title">{isProjectsPage ? 'PROJECT CATALOG' : 'WORK QUEUE'}</h2>
               </div>
 
-              {!isLoading && nextImage && (
+              {!isProjectsPage && !isLoading && nextImage && (
                 <div className="annotator-next-task">
                   <div>
                     <strong>{nextImage.file_name || nextImage.fileName || 'Next image'}</strong>
@@ -261,7 +263,7 @@ export default function AnnotatorDashboard() {
                       project.description?.toLowerCase().includes(dashboardSearchTerm.toLowerCase())
                     )
                     .map(project => (
-                      <ProjectGuidelineCard key={project.id} project={project} />
+                      <ProjectGuidelineCard key={project.id} project={project} compact={!isProjectsPage} />
                     ))}
                   {projects.length > 0 && projects.filter(p => p.name?.toLowerCase().includes(dashboardSearchTerm.toLowerCase()) || p.description?.toLowerCase().includes(dashboardSearchTerm.toLowerCase())).length === 0 && (
                     <div className="empty-guideline">
@@ -277,13 +279,40 @@ export default function AnnotatorDashboard() {
 
       <style dangerouslySetInnerHTML={{ __html: `
         .spinner { width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        .guideline-card--project-catalog {
+          border-color: var(--color-border, #d7e0e8);
+          background: #ffffff;
+          box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+        }
+        .project-catalog-progress {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 0.35rem 0.75rem;
+          margin-top: 0.75rem;
+          color: #64748b;
+          font-size: 0.78rem;
+        }
+        .project-catalog-progress strong { color: #0f766e; }
+        .project-catalog-progress div {
+          grid-column: 1 / -1;
+          height: 7px;
+          border-radius: 999px;
+          background: #e2e8f0;
+          overflow: hidden;
+        }
+        .project-catalog-progress i {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: #0f766e;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}} />
     </div>
   );
 }
 
-function ProjectGuidelineCard({ project }) {
+function ProjectGuidelineCard({ project, compact = false }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -292,7 +321,7 @@ function ProjectGuidelineCard({ project }) {
   );
 
   return (
-    <div className="guideline-card">
+    <div className={`guideline-card ${compact ? '' : 'guideline-card--project-catalog'}`}>
       <div className="guideline-card__info">
         <div className="guideline-card__icon">
           <FileText size={24} />
@@ -302,6 +331,13 @@ function ProjectGuidelineCard({ project }) {
           <p className="guideline-card__desc">
             {project.description || 'Your assigned labeling project.'}
           </p>
+          {!compact && (
+            <div className="project-catalog-progress">
+              <span>{project.completed_images || 0}/{project.total_images || 0} images complete</span>
+              <strong>{project.progress || 0}%</strong>
+              <div><i style={{ width: `${project.progress || 0}%` }} /></div>
+            </div>
+          )}
         </div>
       </div>
 

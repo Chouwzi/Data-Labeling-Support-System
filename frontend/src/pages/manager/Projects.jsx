@@ -10,7 +10,7 @@ import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
 import Toast from '@/components/Toast';
-import { createProject, deleteProject, getDatasetSamples, getProjects, getTasks, updateProject, uploadGuidelineFile } from '@/services/api';
+import { createProject, deleteProject, getProjects, getUsers, updateProject, updateProjectManager, uploadGuidelineFile } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
@@ -87,6 +87,9 @@ function normalizeProject(raw) {
       'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
     members: raw.members || [],
     description: raw.description || '',
+    managerId: raw.managerId || raw.manager_id || null,
+    managerName: raw.managerName || raw.manager_name || 'Unassigned',
+    taskStats: raw.taskStats || raw.task_stats || {},
   };
 }
 
@@ -99,6 +102,7 @@ export default function Projects() {
 
   // ── Project list state ──
   const [projects, setProjects] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [, setIsLoadingProjects] = useState(false);
 
   // View mode
@@ -109,6 +113,7 @@ export default function Projects() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedManagerId, setSelectedManagerId] = useState('');
   const [file, setFile] = useState(null);
   const [fileError, setFileError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
@@ -132,47 +137,36 @@ export default function Projects() {
       const data = res.data?.result?.data ?? [];
 
       if (Array.isArray(data)) {
-        const normalized = data.map(normalizeProject);
-        const withProgress = await Promise.all(
-          normalized.map(async (proj) => {
-            try {
-              const tasksRes = await getTasks(proj.id);
-              const tasks = Array.isArray(tasksRes.data?.result)
-                ? tasksRes.data.result
-                : Array.isArray(tasksRes.data)
-                ? tasksRes.data
-                : [];
-              let sampleCount = 0;
-              if (proj.datasetId) {
-                const samplesRes = await getDatasetSamples(proj.datasetId);
-                sampleCount = normalizeArray(samplesRes.data?.result ?? samplesRes.data).length;
-              }
-              const total = tasks.length;
-              const completed = tasks.filter(
-                (t) => t.status === 'DONE' || t.status === 'COMPLETED' || t.status === 'APPROVED'
-              ).length;
-              const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-              
-              let status = proj.status;
-              if (total > 0) {
-                if (completed === total) {
-                  status = 'completed';
-                } else if (tasks.some(t => t.status === 'PENDING_REVIEW' || t.status === 'REVIEW')) {
-                  status = 'review';
-                } else if (completed > 0 || tasks.some(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED' || t.status === 'REJECTED')) {
-                  status = 'in_progress';
-                }
-              }
-              const imageCount = sampleCount || Number(proj.images || 0);
-              const needsSetup = Number(proj.labels || 0) === 0 || imageCount === 0;
-              return { ...proj, progress, status, images: imageCount, imageCount, taskCount: total, needsSetup };
-            } catch (e) {
-              console.error('Failed to fetch tasks for project', proj.id, e);
-              return { ...proj, progress: 0, images: 0, imageCount: 0, needsSetup: Number(proj.labels || 0) === 0 || !proj.datasetId };
+        setProjects(data.map((raw) => {
+          const proj = normalizeProject(raw);
+          const stats = proj.taskStats || {};
+          const total = Number(stats.total || 0);
+          const completed = Number(stats.completed || 0);
+          let status = proj.status;
+          if (total > 0) {
+            if (completed === total) {
+              status = 'completed';
+            } else if (Number(stats.pendingReview || stats.pending_review || 0) > 0) {
+              status = 'review';
+            } else if (
+              Number(stats.inProgress || stats.in_progress || 0) > 0 ||
+              Number(stats.rejected || 0) > 0 ||
+              Number(stats.assigned || 0) > 0
+            ) {
+              status = 'in_progress';
             }
-          })
-        );
-        setProjects(withProgress);
+          }
+          const imageCount = total || Number(proj.images || 0);
+          return {
+            ...proj,
+            progress: Math.round(Number(stats.completionRate || stats.completion_rate || 0)),
+            status,
+            images: imageCount,
+            imageCount,
+            taskCount: total,
+            needsSetup: Number(proj.labels || 0) === 0 || imageCount === 0,
+          };
+        }));
       }
     } catch (err) {
       console.error('Lỗi lấy dự án:', err);
@@ -181,16 +175,19 @@ export default function Projects() {
     }
   }, []);
 
-  function normalizeArray(value) {
-    if (Array.isArray(value)) return value;
-    if (Array.isArray(value?.data)) return value.data;
-    if (Array.isArray(value?.content)) return value.content;
-    return [];
-  }
-
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return;
+    getUsers()
+      .then((res) => {
+        const list = res.data?.result || [];
+        setManagers(list.filter((item) => item.role === 'MANAGER'));
+      })
+      .catch(() => setManagers([]));
+  }, [user?.role]);
 
   const handleLogout = () => {
     logout();
@@ -203,6 +200,7 @@ export default function Projects() {
     setIsCreateModalOpen(false);
     setProjectName('');
     setDescription('');
+    setSelectedManagerId('');
     setFile(null);
     setFileError('');
     setErrors({});
@@ -276,6 +274,7 @@ export default function Projects() {
       const response = await createProject({
         name: projectName.trim(),
         description: description.trim(),
+        managerId: selectedManagerId || undefined,
         labels: [],
       });
 
@@ -320,6 +319,7 @@ export default function Projects() {
       name: project.name,
       description: project.description || '',
       status: project.status === 'in_progress' ? 'ACTIVE' : project.status === 'completed' ? 'ARCHIVED' : 'DRAFT',
+      managerId: project.managerId || '',
     });
   };
 
@@ -332,6 +332,9 @@ export default function Projects() {
         description: editingProject.description.trim(),
         status: editingProject.status,
       });
+      if (isAdmin && editingProject.managerId) {
+        await updateProjectManager(editingProject.id, editingProject.managerId);
+      }
       setToast({ type: 'success', message: 'Project updated' });
       setEditingProject(null);
       await fetchProjects();
@@ -435,6 +438,25 @@ export default function Projects() {
           rows={4}
         />
       </div>
+
+      {isAdmin && (
+        <label className="form-field">
+          <span className="form-field__label">Manager</span>
+          <select
+            className="form-field__input"
+            value={selectedManagerId}
+            onChange={(event) => setSelectedManagerId(event.target.value)}
+            disabled={isSubmitting}
+          >
+            <option value="">Assign to me / default</option>
+            {managers.map((manager) => (
+              <option key={manager.id} value={manager.id}>
+                {manager.fullName || manager.full_name || manager.email}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="form-field">
         <label className="form-field__label">
@@ -731,6 +753,19 @@ export default function Projects() {
                   <option value="ARCHIVED">Archived</option>
                 </select>
               </label>
+              {isAdmin && (
+                <label className="form-field">
+                  <span className="form-field__label">Manager</span>
+                  <select className="form-field__input" value={editingProject.managerId} onChange={(event) => setEditingProject((prev) => ({ ...prev, managerId: event.target.value }))}>
+                    <option value="">No change</option>
+                    {managers.map((manager) => (
+                      <option key={manager.id} value={manager.id}>
+                        {manager.fullName || manager.full_name || manager.email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="form-actions">
                 <button type="submit" className="create-project-submit-btn">Save changes</button>
                 <button type="button" className="cancel-btn" onClick={() => setEditingProject(null)}>Cancel</button>

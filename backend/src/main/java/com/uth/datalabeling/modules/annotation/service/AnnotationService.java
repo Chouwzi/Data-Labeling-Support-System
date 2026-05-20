@@ -38,6 +38,8 @@ public class AnnotationService {
     private static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_PENDING_REVIEW = "PENDING_REVIEW";
+    private static final String STATUS_READY_FOR_REVIEW = "READY_FOR_REVIEW";
+    private static final String STATUS_REJECTED = "REJECTED";
 
     AnnotationRepository annotationRepository;
     TaskRepository taskRepository;
@@ -71,7 +73,9 @@ public class AnnotationService {
                 ? List.of()
                 : annotationRepository.saveAllAndFlush(annotations);
 
-        task.setStatus(Boolean.TRUE.equals(request.getSubmit()) ? STATUS_PENDING_REVIEW : STATUS_IN_PROGRESS);
+        task.setStatus(Boolean.TRUE.equals(request.getSubmit())
+                ? STATUS_PENDING_REVIEW
+                : (annotations.isEmpty() ? STATUS_IN_PROGRESS : STATUS_READY_FOR_REVIEW));
         taskRepository.save(task);
 
         return savedAnnotations.stream()
@@ -104,7 +108,9 @@ public class AnnotationService {
         String status = task.getStatus();
         if (!STATUS_PENDING.equalsIgnoreCase(status)
                 && !STATUS_ASSIGNED.equalsIgnoreCase(status)
-                && !STATUS_IN_PROGRESS.equalsIgnoreCase(status)) {
+                && !STATUS_IN_PROGRESS.equalsIgnoreCase(status)
+                && !STATUS_READY_FOR_REVIEW.equalsIgnoreCase(status)
+                && !STATUS_REJECTED.equalsIgnoreCase(status)) {
             throw new AppException(ErrorCode.CONFLICT, "Task is not available for annotation");
         }
     }

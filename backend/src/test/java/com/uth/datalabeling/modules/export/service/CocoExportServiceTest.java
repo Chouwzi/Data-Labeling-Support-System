@@ -11,15 +11,28 @@ import com.uth.datalabeling.modules.project.repository.LabelRepository;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.entity.Task;
 import com.uth.datalabeling.modules.task.repository.TaskRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -39,6 +52,8 @@ class CocoExportServiceTest {
     @Mock AnnotationRepository annotationRepository;
 
     @InjectMocks CocoExportService service;
+
+    @TempDir Path tempDir;
 
     UUID projectId;
     Project project;
@@ -118,6 +133,58 @@ class CocoExportServiceTest {
     }
 
     @Test
+    @DisplayName("COCO ZIP package includes annotations, manifest, and local image files")
+    void packageExport_includesJsonManifestAndImages() throws Exception {
+        Path imageFile = tempDir.resolve("sample image.jpg");
+        Files.write(imageFile, new byte[] {1, 2, 3, 4});
+
+        DataSample sample = DataSample.builder()
+                .id(UUID.randomUUID())
+                .imageUrl(imageFile.toString())
+                .metadata(Map.of("width", 640, "height", 480, "fileName", "sample image.jpg"))
+                .build();
+        Task task = makeTask(sample);
+
+        ReflectionTestUtils.setField(service, "uploadDir", tempDir.toString());
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
+        when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
+                .thenReturn(List.of());
+
+        byte[] zipBytes = service.buildExportPackage(projectId);
+
+        assertThat(zipEntryNames(zipBytes))
+                .contains("annotations/coco.json", "export_manifest.json", "images/sample_image.jpg");
+    }
+
+    @Test
+    @DisplayName("COCO ZIP annotation JSON uses image-relative file_name and omits system image_url")
+    void packageExport_cocoJsonUsesImageDirectoryAndNoImageUrl() throws Exception {
+        Path imageFile = tempDir.resolve("sample image.jpg");
+        Files.write(imageFile, new byte[] {1, 2, 3, 4});
+
+        DataSample sample = DataSample.builder()
+                .id(UUID.randomUUID())
+                .imageUrl(imageFile.toString())
+                .metadata(Map.of("width", 640, "height", 480))
+                .build();
+        Task task = makeTask(sample);
+
+        ReflectionTestUtils.setField(service, "uploadDir", tempDir.toString());
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
+        when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
+                .thenReturn(List.of());
+
+        JsonNode cocoJson = readZipJson(service.buildExportPackage(projectId), "annotations/coco.json");
+
+        assertThat(cocoJson.at("/images/0/file_name").asText()).isEqualTo("images/sample_image.jpg");
+        assertThat(cocoJson.at("/images/0/image_url").isMissingNode()).isTrue();
+    }
+
+    @Test
     @DisplayName("Images missing dimensions are skipped — no entry in images or annotations")
     void images_missingDimensions_areSkipped() {
         DataSample sampleNoMeta = DataSample.builder()
@@ -167,6 +234,34 @@ class CocoExportServiceTest {
         assertThat(dto.getAnnotations()).isEmpty();
     }
 
+    @Test
+    @DisplayName("Images missing metadata dimensions are exported when local file dimensions can be read")
+    void images_missingMetadataDimensionsButLocalFileExists_areExported() throws Exception {
+        Path imageFile = tempDir.resolve("existing.png");
+        Files.write(imageFile, pngBytes(7, 5));
+
+        DataSample sample = DataSample.builder()
+                .id(UUID.randomUUID())
+                .imageUrl(imageFile.toString())
+                .metadata(Map.of("fileName", "existing.png"))
+                .build();
+        Task task = makeTask(sample);
+
+        ReflectionTestUtils.setField(service, "uploadDir", tempDir.toString());
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
+        when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED"))
+                .thenReturn(List.of(task));
+        when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
+                .thenReturn(List.of());
+
+        CocoExportDto dto = service.buildExport(projectId);
+
+        assertThat(dto.getImages()).hasSize(1);
+        assertThat(dto.getImages().get(0).getWidth()).isEqualTo(7);
+        assertThat(dto.getImages().get(0).getHeight()).isEqualTo(5);
+    }
+
     // ── Coordinate conversion ──────────────────────────────────────────────
 
     @Test
@@ -210,6 +305,25 @@ class CocoExportServiceTest {
         double area = dto.getAnnotations().get(0).getArea();
         double expectedArea = (0.50 * 640) * (0.50 * 480);
         assertThat(area).isCloseTo(expectedArea, within(0.001));
+    }
+
+    @Test
+    @DisplayName("Bounding boxes include rectangle polygon segmentation for COCO instance compatibility")
+    void annotations_includeRectangleSegmentation() {
+        DataSample sample = makeSample(100, 50);
+        Task task = makeTask(sample);
+        Annotation ann = makeAnnotation(task, label1, 0.10, 0.20, 0.30, 0.40);
+
+        when(projectAccessService.findProjectAndCheckAccess(projectId)).thenReturn(project);
+        when(labelRepository.findByProjectIdAndDeletedAtIsNull(projectId)).thenReturn(List.of(label1));
+        when(taskRepository.findByProjectIdAndStatusWithSample(projectId, "COMPLETED")).thenReturn(List.of(task));
+        when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId())))
+                .thenReturn(List.of(ann));
+
+        CocoExportDto dto = service.buildExport(projectId);
+
+        assertThat(dto.getAnnotations().get(0).getSegmentation())
+                .containsExactly(List.of(10.0, 10.0, 40.0, 10.0, 40.0, 30.0, 10.0, 30.0));
     }
 
     // ── image_id / category_id linkage ─────────────────────────────────────
@@ -319,5 +433,35 @@ class CocoExportServiceTest {
                 .isAiGenerated(false)
                 .build();
         return ann;
+    }
+
+    private List<String> zipEntryNames(byte[] zipBytes) throws Exception {
+        List<String> names = new ArrayList<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                names.add(entry.getName());
+            }
+        }
+        return names;
+    }
+
+    private JsonNode readZipJson(byte[] zipBytes, String entryName) throws Exception {
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (entryName.equals(entry.getName())) {
+                    return new ObjectMapper().readTree(new String(zip.readAllBytes(), StandardCharsets.UTF_8));
+                }
+            }
+        }
+        throw new AssertionError("Missing zip entry: " + entryName);
+    }
+
+    private byte[] pngBytes(int width, int height) throws Exception {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }

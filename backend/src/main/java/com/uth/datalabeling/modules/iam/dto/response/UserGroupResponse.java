@@ -17,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 public class UserGroupResponse {
   UUID id;
   String name;
+  String description;
 
   @JsonProperty("manager_id")
   UUID managerId;

@@ -2,6 +2,7 @@ package com.uth.datalabeling.modules.dataset.service;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
+import com.uth.datalabeling.common.response.PageResponse;
 import com.uth.datalabeling.modules.dataset.dto.request.DatasetRequest;
 import com.uth.datalabeling.modules.dataset.dto.response.DataSampleResponse;
 import com.uth.datalabeling.modules.dataset.dto.response.DatasetResponse;
@@ -17,6 +18,8 @@ import com.uth.datalabeling.modules.annotation.repository.AnnotationRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,8 +57,22 @@ public class DatasetService {
     @Transactional(readOnly = true)
     public List<DatasetResponse> getAllDatasets() {
         return datasetRepository.findAllByDeletedAtIsNull().stream()
-                .map(datasetMapper::toDatasetResponse)
+                .map(this::toDatasetResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<DatasetResponse> getAllDatasets(Pageable pageable) {
+        Page<Dataset> datasetPage = datasetRepository.findAllByDeletedAtIsNull(pageable);
+        return PageResponse.<DatasetResponse>builder()
+                .currentPage(datasetPage.getNumber())
+                .totalPages(datasetPage.getTotalPages())
+                .pageSize(datasetPage.getSize())
+                .totalElements(datasetPage.getTotalElements())
+                .data(datasetPage.getContent().stream()
+                        .map(this::toDatasetResponse)
+                        .collect(Collectors.toList()))
+                .build();
     }
 
     /**
@@ -65,7 +82,7 @@ public class DatasetService {
     public DatasetResponse getDatasetById(UUID id) {
         Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
-        return datasetMapper.toDatasetResponse(dataset);
+        return toDatasetResponse(dataset);
     }
 
     @Transactional
@@ -73,7 +90,7 @@ public class DatasetService {
         Dataset dataset = datasetRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
         datasetMapper.updateDataset(dataset, request);
-        return datasetMapper.toDatasetResponse(datasetRepository.save(dataset));
+        return toDatasetResponse(datasetRepository.save(dataset));
     }
 
     @Transactional
@@ -112,6 +129,22 @@ public class DatasetService {
         return dataset.getDataSamples().stream()
                 .map(datasetMapper::toDataSampleResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<DataSampleResponse> getSamplesByDataset(UUID datasetId, Pageable pageable) {
+        datasetRepository.findByIdAndDeletedAtIsNull(datasetId)
+                .orElseThrow(() -> new AppException(ErrorCode.DATASET_NOT_FOUND));
+        Page<DataSample> samplePage = dataSampleRepository.findAllByDatasetId(datasetId, pageable);
+        return PageResponse.<DataSampleResponse>builder()
+                .currentPage(samplePage.getNumber())
+                .totalPages(samplePage.getTotalPages())
+                .pageSize(samplePage.getSize())
+                .totalElements(samplePage.getTotalElements())
+                .data(samplePage.getContent().stream()
+                        .map(datasetMapper::toDataSampleResponse)
+                        .collect(Collectors.toList()))
+                .build();
     }
 
     @Transactional
@@ -171,5 +204,11 @@ public class DatasetService {
         // For now, just deleting the DB record.
 
         dataSampleRepository.delete(sample);
+    }
+
+    private DatasetResponse toDatasetResponse(Dataset dataset) {
+        DatasetResponse response = datasetMapper.toDatasetResponse(dataset);
+        response.setImageCount(dataSampleRepository.countByDatasetId(dataset.getId()));
+        return response;
     }
 }

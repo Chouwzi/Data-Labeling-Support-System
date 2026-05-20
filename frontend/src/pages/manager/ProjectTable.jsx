@@ -54,6 +54,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
               <th scope="col" className="project-table__th--project">Project</th>
               <th scope="col">Status</th>
               <th scope="col">Progress</th>
+              <th scope="col">Manager</th>
               <th scope="col" className="project-table__th--numeric">Images</th>
               <th scope="col" className="project-table__th--numeric">Labels</th>
               <th scope="col" className="project-table__th--actions">Actions</th>
@@ -155,6 +156,10 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                         />
                       </div>
                     </div>
+                  </td>
+
+                  <td>
+                    <span className="project-table__metric">{project.managerName || 'Unassigned'}</span>
                   </td>
 
                   {/* Images count */}

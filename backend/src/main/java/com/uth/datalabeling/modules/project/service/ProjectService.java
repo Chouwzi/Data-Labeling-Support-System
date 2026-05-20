@@ -73,7 +73,16 @@ public class ProjectService {
 
         // set thông tin hệ thống
         project.setStatus(ProjectStatus.DRAFT);
-        project.setManagerId(currentUser.getId());
+        UUID managerId = projectAccessService.isAdmin(currentUser) ? null : currentUser.getId();
+        if (projectAccessService.isAdmin(currentUser) && request.getManagerId() != null) {
+            User manager = userRepository.findById(request.getManagerId())
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            if (!"MANAGER".equals(manager.getRole())) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Project manager must have MANAGER role");
+            }
+            managerId = manager.getId();
+        }
+        project.setManagerId(managerId);
         project.setCreatedBy(currentUser.getId());
         project.setUpdatedBy(currentUser.getId());
 
@@ -148,6 +157,11 @@ public class ProjectService {
         }
         Project project = projectRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        if (request.getManagerId() == null) {
+            project.setManagerId(null);
+            project.setUpdatedBy(currentUser.getId());
+            return toProjectResponseWithActiveLabels(projectRepository.saveAndFlush(project));
+        }
         User manager = userRepository.findById(request.getManagerId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         if (!"MANAGER".equals(manager.getRole())) {
@@ -319,10 +333,11 @@ public class ProjectService {
         long pending = counts.getOrDefault("PENDING", 0L);
         long assigned = counts.getOrDefault("ASSIGNED", 0L);
         long inProgress = counts.getOrDefault("IN_PROGRESS", 0L);
+        long readyForReview = counts.getOrDefault("READY_FOR_REVIEW", 0L);
         long pendingReview = counts.getOrDefault("PENDING_REVIEW", 0L);
         long completed = counts.getOrDefault("COMPLETED", 0L);
         long rejected = counts.getOrDefault("REJECTED", 0L);
-        long total = pending + assigned + inProgress + pendingReview + completed + rejected;
+        long total = pending + assigned + inProgress + readyForReview + pendingReview + completed + rejected;
         long reviewed = completed + rejected;
         return ProjectTaskStatsResponse.builder()
                 .total(total)

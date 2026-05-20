@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import ReviewerSidebar from '@/components/reviewer/ReviewerSidebar';
 import Topbar from '@/components/common/Topbar';
@@ -33,6 +33,8 @@ export default function ReviewerDashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const selectedProjectId = searchParams.get('projectId') || null;
   
   // Custom filter states for Completed Stats tab
   const [selectedStatus, setSelectedStatus] = useState('ALL');
@@ -50,10 +52,12 @@ export default function ReviewerDashboard() {
   } else if (!isDashboard) {
     if (isProjectsTab) {
       pageTitle = 'Assigned Review Projects';
-      pageSubtitle = 'Projects where you are part of the reviewer pool';
+      pageSubtitle = 'Projects available through your manager group';
     } else {
-    pageTitle = 'Pending Reviews';
-    pageSubtitle = 'Annotations currently waiting for your verification';
+      pageTitle = selectedProjectId ? 'Project Review Queue' : 'Pending Reviews';
+      pageSubtitle = selectedProjectId
+        ? 'Annotations waiting for verification in this project'
+        : 'Annotations currently waiting for your verification';
     }
   }
 
@@ -62,7 +66,7 @@ export default function ReviewerDashboard() {
       setLoading(true);
       if (isCompletedTab) {
         const [historyRes, statsRes] = await Promise.all([
-          getReviewHistory({ page: 0, size: 100 }),
+          getReviewHistory({ page: 0, size: 24 }),
           getReviewStats({ range: '30d' }).catch(() => null),
         ]);
         const data = historyRes.data?.result?.data || historyRes.data?.result?.content || historyRes.data?.result || [];
@@ -70,8 +74,8 @@ export default function ReviewerDashboard() {
         setReviewStats(statsRes?.data?.result || null);
       } else {
         const [queueRes, statsRes, projectsRes] = await Promise.all([
-          getReviewQueueImages(),
-          getReviewStats({ range: 'today' }).catch(() => null),
+          getReviewQueueImages(selectedProjectId),
+          getReviewStats({ projectId: selectedProjectId, range: 'today' }).catch(() => null),
           getMyProjects({ role: 'REVIEWER' }).catch(() => ({ data: { result: { data: [] } } })),
         ]);
         const res = queueRes;
@@ -90,7 +94,7 @@ export default function ReviewerDashboard() {
 
   useEffect(() => {
     fetchReviews();
-  }, [isCompletedTab]);
+  }, [isCompletedTab, selectedProjectId]);
 
   const handleLogout = () => {
     logout();
@@ -209,21 +213,37 @@ export default function ReviewerDashboard() {
           {/* STATS VIEW (Completed Tab) */}
           {/* ========================================================= */}
           {isProjectsTab ? (
-            <div className="review-grid">
+            <div className="reviewer-projects-grid">
               {projects.length === 0 ? (
                 <div className="empty-state">
                   <ClipboardCheck size={44} />
                   <p>No review projects assigned.</p>
                 </div>
               ) : projects.map((project) => (
-                <article key={project.id} className="review-card">
-                  <div className="review-card__content">
-                    <h3>{project.name}</h3>
-                    <p>{project.description || 'No description provided.'}</p>
-                    <div className="review-card__meta">
-                      <span>Manager: {project.manager_name || project.managerName || 'Unassigned'}</span>
-                      <span>Pending: {project.task_stats?.pendingReview || project.taskStats?.pendingReview || 0}</span>
+                <article key={project.id} className="reviewer-project-card">
+                  <div className="reviewer-project-card__header">
+                    <div>
+                      <h3>{project.name}</h3>
+                      <p>{project.description || 'No description provided.'}</p>
                     </div>
+                    <span className="reviewer-project-card__badge">
+                      {project.task_stats?.pendingReview || project.taskStats?.pendingReview || 0} pending
+                    </span>
+                  </div>
+                  <div className="reviewer-project-card__meta">
+                    <span>Manager</span>
+                    <strong>{project.manager_name || project.managerName || 'Unassigned'}</strong>
+                    <span>Status</span>
+                    <strong>{project.status || 'Active'}</strong>
+                  </div>
+                  <div className="reviewer-project-card__actions">
+                    <button
+                      type="button"
+                      className="btn btn--primary"
+                      onClick={() => navigate(`/reviewer/tasks?projectId=${project.id}`)}
+                    >
+                      Open review queue
+                    </button>
                     {project.guideline_url || project.guidelineUrl ? (
                       <a className="action-btn" href={project.guideline_url || project.guidelineUrl} target="_blank" rel="noreferrer">Guideline</a>
                     ) : null}
@@ -580,7 +600,7 @@ export default function ReviewerDashboard() {
                           </div>
                           <button
                             className="btn btn--primary btn--full"
-                            onClick={() => navigate(`/reviewer/workspace/${taskId}`)}
+                            onClick={() => navigate(`/reviewer/workspace/${taskId}${selectedProjectId ? `?projectId=${selectedProjectId}` : ''}`)}
                           >
                             Review Now
                           </button>

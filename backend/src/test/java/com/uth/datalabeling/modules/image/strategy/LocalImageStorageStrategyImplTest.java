@@ -7,6 +7,9 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -41,6 +44,21 @@ public class LocalImageStorageStrategyImplTest {
     }
 
     @Test
+    void upload_ValidImage_ReturnsWidthAndHeightForCocoExport() throws Exception {
+        LocalImageStorageStrategyImpl strategy = new LocalImageStorageStrategyImpl();
+        ReflectionTestUtils.setField(strategy, "uploadDir", tempDir.toString());
+        ReflectionTestUtils.setField(strategy, "activeStrategy", "local");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "test.png", "image/png", pngBytes(3, 2));
+
+        Map<String, Object> result = strategy.upload(file);
+
+        assertEquals(3, result.get("width"));
+        assertEquals(2, result.get("height"));
+    }
+
+    @Test
     void upload_PathTraversal_ThrowsException() {
         LocalImageStorageStrategyImpl strategy = new LocalImageStorageStrategyImpl();
         ReflectionTestUtils.setField(strategy, "uploadDir", tempDir.toString());
@@ -60,5 +78,12 @@ public class LocalImageStorageStrategyImplTest {
 
         ReflectionTestUtils.setField(strategy, "activeStrategy", "cloudinary");
         assertTrue(!strategy.isPrimary());
+    }
+
+    private byte[] pngBytes(int width, int height) throws Exception {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }

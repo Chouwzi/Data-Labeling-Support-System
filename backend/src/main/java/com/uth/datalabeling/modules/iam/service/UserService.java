@@ -118,6 +118,7 @@ public class UserService {
     // Lưu mật khẩu cũ đề phòng mapper ghi đè null
     String oldPassword = user.getPassword();
     enforceUserWriteScope(user, request.getRole());
+    enforceManagerRoleOnlyUpdate(user, request);
 
     userMapper.updateUser(user, request);
     user.setGroup(resolveGroupForWrite(request.getGroupId(), request.getRole()));
@@ -171,6 +172,20 @@ public class UserService {
       throw new AppException(ErrorCode.FORBIDDEN);
     }
     if (!"ANNOTATOR".equals(targetRole) && !"REVIEWER".equals(targetRole)) {
+      throw new AppException(ErrorCode.FORBIDDEN);
+    }
+  }
+
+  private void enforceManagerRoleOnlyUpdate(User target, UserUpdateRequest request) {
+    User currentUser = projectAccessService.getCurrentUser();
+    if (projectAccessService.isAdmin(currentUser)) {
+      return;
+    }
+    UUID targetGroupId = target.getGroup() != null ? target.getGroup().getId() : null;
+    if (!target.getEmail().equals(request.getEmail())
+        || !target.getFullName().equals(request.getFullName())
+        || (request.getActive() != null && target.isActive() != request.getActive())
+        || !java.util.Objects.equals(targetGroupId, request.getGroupId())) {
       throw new AppException(ErrorCode.FORBIDDEN);
     }
   }

@@ -84,6 +84,22 @@ class CocoExportControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    @DisplayName("ADMIN can export COCO package → 200 + ZIP content type + attachment header")
+    void exportCocoPackage_asAdmin_returnsZipDownload() throws Exception {
+        UUID projectId = UUID.randomUUID();
+        when(cocoExportService.buildExportPackage(projectId)).thenReturn("zip-bytes".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        mockMvc.perform(get("/projects/{id}/export/coco.zip", projectId))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("attachment")))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString(".zip")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Response body is valid JSON containing COCO keys")
     void exportCoco_responseBody_containsCocoStructure() throws Exception {
         UUID projectId = UUID.randomUUID();

@@ -329,6 +329,14 @@ function App() {
         }
       />
       <Route
+        path="/reviewer/tasks"
+        element={
+          <ProtectedRoute allowedRoles={['REVIEWER']}>
+            <ReviewerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/reviewer/workspace/:id"
         element={
           <ProtectedRoute allowedRoles={['REVIEWER']}>

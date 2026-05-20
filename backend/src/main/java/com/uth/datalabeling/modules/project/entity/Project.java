@@ -38,7 +38,7 @@ public class Project {
 
     String guidelineUrl; // Link tài liệu hướng dẫn
 
-    @Column(nullable = false)
+    @Column(name = "manager_id")
     UUID managerId; // ID của quản lý dự án
 
     @ManyToMany(fetch = FetchType.LAZY)

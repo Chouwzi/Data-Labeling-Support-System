@@ -56,6 +56,17 @@ function normalizeArray(value) {
   return [];
 }
 
+function normalizePage(value) {
+  const data = normalizeArray(value);
+  return {
+    data,
+    currentPage: Number(value?.currentPage ?? value?.current_page ?? 0),
+    totalPages: Number(value?.totalPages ?? value?.total_pages ?? 1),
+    pageSize: Number(value?.pageSize ?? value?.page_size ?? SAMPLE_PAGE_SIZE),
+    totalElements: Number(value?.totalElements ?? value?.total_elements ?? data.length),
+  };
+}
+
 function normalizeDataset(raw) {
   return {
     id: raw?.id,
@@ -459,6 +470,12 @@ function DatasetDetail() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dataset, setDataset] = useState(null);
   const [samples, setSamples] = useState([]);
+  const [sampleMeta, setSampleMeta] = useState({
+    currentPage: 0,
+    totalPages: 1,
+    pageSize: SAMPLE_PAGE_SIZE,
+    totalElements: 0,
+  });
   const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSampleIds, setSelectedSampleIds] = useState([]);
@@ -470,17 +487,19 @@ function DatasetDetail() {
   const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
 
-  const loadDetail = useCallback(async () => {
+  const loadDetail = useCallback(async (page = samplePage) => {
     setLoading(true);
     try {
       const [datasetRes, samplesRes, projectsRes, configRes] = await Promise.all([
         getDataset(datasetId),
-        getDatasetSamples(datasetId),
+        getDatasetSamples(datasetId, { page: Math.max(0, page - 1), size: SAMPLE_PAGE_SIZE }),
         getProjects(),
         getSystemConfig(),
       ]);
+      const samplePageData = normalizePage(resultData(samplesRes));
       setDataset(normalizeDataset(resultData(datasetRes)));
-      setSamples(normalizeArray(resultData(samplesRes)).map(normalizeSample));
+      setSamples(samplePageData.data.map(normalizeSample));
+      setSampleMeta(samplePageData);
       setProjects(normalizeArray(resultData(projectsRes)).map(normalizeProject));
       setUploadPolicy(normalizeUploadPolicy(configRes));
     } catch (error) {
@@ -489,21 +508,23 @@ function DatasetDetail() {
     } finally {
       setLoading(false);
     }
-  }, [datasetId]);
+  }, [datasetId, samplePage]);
 
   useEffect(() => {
-    loadDetail();
-  }, [loadDetail]);
+    loadDetail(samplePage);
+  }, [loadDetail, samplePage]);
 
   const linkedProjects = projects.filter((project) => project.datasetId === datasetId);
   const filteredSamples = samples.filter((sample) => sample.fileName.toLowerCase().includes(searchQuery.toLowerCase()));
   const selectedSamples = samples.filter((sample) => selectedSampleIds.includes(sample.id));
-  const totalSamplePages = Math.max(1, Math.ceil(filteredSamples.length / SAMPLE_PAGE_SIZE));
-  const pagedSamples = filteredSamples.slice((samplePage - 1) * SAMPLE_PAGE_SIZE, samplePage * SAMPLE_PAGE_SIZE);
+  const totalSamplePages = Math.max(1, sampleMeta.totalPages || 1);
+  const pagedSamples = filteredSamples;
 
   useEffect(() => {
-    setSamplePage(1);
-  }, [searchQuery, samples.length]);
+    if (!searchQuery.trim()) {
+      setSamplePage((page) => Math.min(page, totalSamplePages));
+    }
+  }, [searchQuery, totalSamplePages]);
 
   const manifest = (items = samples) => ({
     dataset: {
@@ -512,7 +533,7 @@ function DatasetDetail() {
       description: dataset?.description,
     },
     summary: {
-      images: items.length,
+      images: searchQuery.trim() ? items.length : sampleMeta.totalElements,
       linkedProjects: linkedProjects.map((project) => ({ id: project.id, name: project.name })),
       exportedAt: new Date().toISOString(),
     },
@@ -542,7 +563,7 @@ function DatasetDetail() {
         await uploadSamples(datasetId, file);
       }
       setToast({ type: 'success', message: `${validFiles.length} image${validFiles.length === 1 ? '' : 's'} uploaded` });
-      await loadDetail();
+      await loadDetail(samplePage);
     } catch (error) {
       console.error('Dataset upload failed:', error);
       setToast({ type: 'error', message: apiErrorMessage(error, 'Upload failed') });
@@ -568,7 +589,7 @@ function DatasetDetail() {
       }
       setToast({ type: 'success', message: `Deleted ${selectedSampleIds.length} images` });
       setSelectedSampleIds([]);
-      await loadDetail();
+      await loadDetail(samplePage);
     } catch (error) {
       console.error('Failed to delete images:', error);
       setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to delete some images') });
@@ -585,7 +606,7 @@ function DatasetDetail() {
       await deleteDatasetSample(datasetId, sampleId);
       setToast({ type: 'success', message: `Deleted image` });
       setSelectedSampleIds(prev => prev.filter(id => id !== sampleId));
-      await loadDetail();
+      await loadDetail(samplePage);
     } catch (error) {
       console.error('Failed to delete image:', error);
       setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to delete image') });
@@ -640,14 +661,14 @@ function DatasetDetail() {
                 <button type="button" className="project-detail-secondary-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                   <Upload size={16} /> {uploading ? 'Uploading...' : 'Add images'}
                 </button>
-                <button type="button" className="project-detail-secondary-btn" onClick={() => downloadJson(`dataset-${datasetId}-manifest.json`, manifest(samples))} disabled={samples.length === 0}>
+                <button type="button" className="project-detail-secondary-btn" onClick={() => downloadJson(`dataset-${datasetId}-manifest.json`, manifest(samples))} disabled={sampleMeta.totalElements === 0}>
                   <Download size={16} /> Download manifest
                 </button>
               </div>
             </header>
 
             <section className="dataset-kpi-grid" aria-label="Dataset detail statistics">
-              <div className="dataset-kpi"><span>Images</span><strong>{samples.length}</strong></div>
+              <div className="dataset-kpi"><span>Images</span><strong>{sampleMeta.totalElements}</strong></div>
               <div className="dataset-kpi"><span>Selected</span><strong>{selectedSamples.length}</strong></div>
               <div className="dataset-kpi"><span>Linked projects</span><strong>{linkedProjects.length}</strong></div>
               <div className="dataset-kpi"><span>Created</span><strong>{formatDate(dataset?.createdAt)}</strong></div>
@@ -673,7 +694,7 @@ function DatasetDetail() {
               <div className="project-detail-section-header">
                 <div>
                   <h2>Dataset samples</h2>
-                  <p>{filteredSamples.length} visible, {selectedSamples.length} selected</p>
+                  <p>Showing {filteredSamples.length} of {sampleMeta.totalElements} images, {selectedSamples.length} selected</p>
                 </div>
                 <button type="button" className="project-detail-secondary-btn" onClick={() => downloadJson(`dataset-${datasetId}-selected.json`, manifest(selectedSamples))} disabled={selectedSamples.length === 0}>
                   <Download size={16} /> Export selected
@@ -697,7 +718,7 @@ function DatasetDetail() {
                 </button>
               </div>
 
-              {samples.length === 0 ? (
+              {sampleMeta.totalElements === 0 ? (
                 <div className="project-detail-empty-state">
                   <ImageIcon size={30} />
                   <strong>No images uploaded yet.</strong>
@@ -737,11 +758,11 @@ function DatasetDetail() {
                   ))}
                 </div>
               )}
-              {filteredSamples.length > SAMPLE_PAGE_SIZE && (
+              {totalSamplePages > 1 && (
                 <div className="dataset-pagination">
-                  <span>Page {samplePage} of {totalSamplePages}</span>
-                  <button type="button" onClick={() => setSamplePage((page) => Math.max(1, page - 1))} disabled={samplePage === 1}>Previous</button>
-                  <button type="button" onClick={() => setSamplePage((page) => Math.min(totalSamplePages, page + 1))} disabled={samplePage === totalSamplePages}>Next</button>
+                  <span>Page {samplePage} of {totalSamplePages} · {sampleMeta.totalElements} total images</span>
+                  <button type="button" onClick={() => setSamplePage((page) => Math.max(1, page - 1))} disabled={samplePage === 1 || loading}>Previous</button>
+                  <button type="button" onClick={() => setSamplePage((page) => Math.min(totalSamplePages, page + 1))} disabled={samplePage === totalSamplePages || loading}>Next</button>
                 </div>
               )}
             </section>

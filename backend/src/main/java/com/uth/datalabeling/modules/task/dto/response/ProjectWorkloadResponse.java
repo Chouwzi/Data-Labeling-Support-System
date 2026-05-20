@@ -25,4 +25,7 @@ public class ProjectWorkloadResponse {
 
   @JsonProperty("annotators")
   List<AnnotatorWorkloadResponse> annotators;
+
+  @JsonProperty("reviewers")
+  List<ReviewerWorkloadResponse> reviewers;
 }

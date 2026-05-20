@@ -65,12 +65,26 @@ public class PerformanceService {
         .collect(Collectors.groupingBy(task -> task.getStatus() == null ? "" : task.getStatus().toUpperCase(), Collectors.counting()));
     long completed = counts.getOrDefault("COMPLETED", 0L);
     long rejected = counts.getOrDefault("REJECTED", 0L);
-    long reviewed = "REVIEWER".equals(user.getRole()) ? reviewRepository.countByReviewerId(user.getId()) : completed + rejected;
+    long reviewed = "REVIEWER".equals(user.getRole())
+        ? (projectId == null
+            ? reviewRepository.countByReviewerId(user.getId())
+            : reviewRepository.countByReviewerIdAndTaskProjectId(user.getId(), projectId))
+        : completed + rejected;
     long pendingToReview = "REVIEWER".equals(user.getRole())
-        ? taskRepository.countReviewQueueImages(projectId, null, user.getId(), "PENDING_REVIEW")
+        ? (user.getGroup() == null
+            ? 0L
+            : taskRepository.countReviewQueueImages(projectId, null, user.getGroup().getId(), "PENDING_REVIEW"))
         : counts.getOrDefault("PENDING_REVIEW", 0L);
-    long approved = "REVIEWER".equals(user.getRole()) ? reviewRepository.countByReviewerIdAndActionIgnoreCase(user.getId(), "APPROVED") : completed;
-    long reviewRejected = "REVIEWER".equals(user.getRole()) ? reviewRepository.countByReviewerIdAndActionIgnoreCase(user.getId(), "REJECTED") : rejected;
+    long approved = "REVIEWER".equals(user.getRole())
+        ? (projectId == null
+            ? reviewRepository.countByReviewerIdAndActionIgnoreCase(user.getId(), "APPROVED")
+            : reviewRepository.countByReviewerIdAndTaskProjectIdAndActionIgnoreCase(user.getId(), projectId, "APPROVED"))
+        : completed;
+    long reviewRejected = "REVIEWER".equals(user.getRole())
+        ? (projectId == null
+            ? reviewRepository.countByReviewerIdAndActionIgnoreCase(user.getId(), "REJECTED")
+            : reviewRepository.countByReviewerIdAndTaskProjectIdAndActionIgnoreCase(user.getId(), projectId, "REJECTED"))
+        : rejected;
 
     return UserPerformanceResponse.builder()
         .userId(user.getId())

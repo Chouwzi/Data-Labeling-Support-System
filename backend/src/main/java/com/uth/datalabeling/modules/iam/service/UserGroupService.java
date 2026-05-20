@@ -58,6 +58,7 @@ public class UserGroupService {
     User manager = resolveManager(request.getManagerId());
     UserGroup group = UserGroup.builder()
         .name(request.getName().trim())
+        .description(normalizeDescription(request.getDescription()))
         .manager(manager)
         .build();
     return toResponse(groupRepository.save(group));
@@ -70,6 +71,7 @@ public class UserGroupService {
       throw new AppException(ErrorCode.CONFLICT, "Tên group đã tồn tại");
     }
     group.setName(request.getName().trim());
+    group.setDescription(normalizeDescription(request.getDescription()));
     if (projectAccessService.isAdmin(projectAccessService.getCurrentUser())) {
       group.setManager(resolveManager(request.getManagerId()));
     }
@@ -115,9 +117,14 @@ public class UserGroupService {
     return UserGroupResponse.builder()
         .id(group.getId())
         .name(group.getName())
+        .description(group.getDescription())
         .managerId(manager != null ? manager.getId() : null)
         .managerName(manager != null ? manager.getFullName() : null)
         .memberCount(userRepository.countByGroupId(group.getId()))
         .build();
+  }
+
+  private String normalizeDescription(String description) {
+    return description == null || description.isBlank() ? null : description.trim();
   }
 }

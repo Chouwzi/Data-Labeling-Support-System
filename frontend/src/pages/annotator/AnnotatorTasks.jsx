@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, 
   Clock, 
-  CheckCircle2, 
   AlertCircle, 
-  ExternalLink,
-  MoreVertical,
+  Send,
   LayoutGrid,
   List as ListIcon,
-  Info
 } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
-import { getMyAssignedImages } from '@/services/api';
+import { getMyAssignedImages, getProject, submitReadyImages } from '@/services/api';
 import Topbar from '@/components/common/Topbar';
 import AnnotatorSidebar from '@/components/annotator/AnnotatorSidebar';
 import '@/styles/Dashboard.css';
@@ -20,6 +17,7 @@ import '@/styles/ManagerDashboard.css';
 
 const TASK_STATUSES = [
   { id: 'unlabeled', label: 'To Label', color: '#f59e0b', statuses: ['PENDING', 'ASSIGNED', 'IN_PROGRESS'] },
+  { id: 'ready', label: 'Ready', color: '#3b82f6', statuses: ['READY_FOR_REVIEW'] },
   { id: 'submitted', label: 'Submitted', color: '#10b981', statuses: ['PENDING_REVIEW', 'COMPLETED', 'APPROVED'] },
   { id: 'rework', label: 'Rework', color: '#ef4444', statuses: ['REJECTED'] },
 ];
@@ -35,6 +33,8 @@ export default function AnnotatorTasks() {
   const [viewMode, setViewMode] = useState('grid');
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmittingReady, setIsSubmittingReady] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
   const [projectInfo, setProjectInfo] = useState({ name: 'Loading...', id: projectId });
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
@@ -61,15 +61,18 @@ export default function AnnotatorTasks() {
     return `/api/v1/uploads/${fileName}`; 
   };
 
-  useEffect(() => {
-    const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
       try {
         setIsLoading(true);
-        const res = await getMyAssignedImages({ 
+        const [res, projectRes] = await Promise.all([
+          getMyAssignedImages({ 
           projectId: projectId, 
           page: 0,
-          size: 1000
-        });
+          size: 24
+          }),
+          getProject(projectId).catch(() => ({ data: { result: null } })),
+        ]);
+        const project = projectRes.data?.result || null;
         
         const resultData = res.data?.result?.data || res.data?.result || [];
         const rawData = Array.isArray(resultData) ? resultData : [];
@@ -77,8 +80,10 @@ export default function AnnotatorTasks() {
         if (rawData.length > 0) {
           const firstTask = rawData[0];
           setProjectInfo({
-            name: firstTask.project_name || firstTask.projectName || 'My Project',
-            id: firstTask.project_id || firstTask.projectId || projectId
+            name: project?.name || firstTask.project_name || firstTask.projectName || 'My Project',
+            id: firstTask.project_id || firstTask.projectId || projectId,
+            managerName: project?.manager_name || project?.managerName || 'Unassigned manager',
+            description: project?.description || 'No project description yet.'
           });
         }
         
@@ -90,7 +95,10 @@ export default function AnnotatorTasks() {
             ? new Date(item.assigned_at || item.assignedAt || item.updated_at).toLocaleDateString() 
             : 'N/A',
           size: item.size_kb ? `${(item.size_kb / 1024).toFixed(1)} MB` : 'N/A',
-          imageUrl: fixImageUrl(item.image_url || item.imageUrl)
+          imageUrl: fixImageUrl(item.image_url || item.imageUrl),
+          annotations: item.annotations || [],
+          reviewerComment: item.reviewer_comment || item.reviewerComment,
+          reviewerCategory: item.reviewer_category || item.reviewerCategory,
         }));
 
         setTasks(mappedTasks);
@@ -100,10 +108,30 @@ export default function AnnotatorTasks() {
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchTasks();
   }, [projectId]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const readyCount = tasks.filter((task) => task.status?.toUpperCase() === 'READY_FOR_REVIEW').length;
+
+  const handleSubmitReady = async () => {
+    try {
+      setIsSubmittingReady(true);
+      setSubmitMessage('');
+      const res = await submitReadyImages(projectId);
+      const result = res.data?.result || {};
+      setSubmitMessage(`Sent ${result.submitted_count ?? result.submittedCount ?? 0} image(s) to review.`);
+      await fetchTasks();
+      setStatusFilter('submitted');
+    } catch (err) {
+      console.error('Failed to submit ready images:', err);
+      setSubmitMessage('Could not send ready images to review.');
+    } finally {
+      setIsSubmittingReady(false);
+    }
+  };
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -120,6 +148,28 @@ export default function AnnotatorTasks() {
       color: s?.color,
       borderColor: `${s?.color}30`
     };
+  };
+
+  const renderAnnotationOverlay = (annotations = []) => {
+    if (!annotations.length) return null;
+    return (
+      <svg className="task-bbox-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        {annotations.map((annotation, index) => {
+          const geometry = annotation.geometry || {};
+          const color = annotation.color_hex || annotation.colorHex || '#2563eb';
+          const x = Number(geometry.x || 0) * 100;
+          const y = Number(geometry.y || 0) * 100;
+          const width = Number(geometry.width || 0) * 100;
+          const height = Number(geometry.height || 0) * 100;
+          if (width <= 0 || height <= 0) return null;
+          return (
+            <g key={annotation.id || index}>
+              <rect x={x} y={y} width={width} height={height} fill="none" stroke={color} strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
+            </g>
+          );
+        })}
+      </svg>
+    );
   };
 
   return (
@@ -146,7 +196,8 @@ export default function AnnotatorTasks() {
               </button>
               <div className="project-title-area">
                 <h2 className="project-name">{projectInfo.name}</h2>
-                <span className="project-id">Project ID: {projectInfo.id}</span>
+                <span className="project-id">Manager: {projectInfo.managerName || 'Unassigned manager'}</span>
+                <p className="project-id">{projectInfo.description || 'No project description yet.'}</p>
               </div>
             </div>
 
@@ -165,6 +216,17 @@ export default function AnnotatorTasks() {
                 </div>
 
                 <div className="view-switch">
+                  {statusFilter === 'ready' && (
+                    <button
+                      className="bulk-review-btn"
+                      type="button"
+                      disabled={readyCount === 0 || isSubmittingReady}
+                      onClick={handleSubmitReady}
+                    >
+                      <Send size={16} />
+                      <span>{isSubmittingReady ? 'Sending...' : `Send all ready (${readyCount})`}</span>
+                    </button>
+                  )}
                   <button 
                     className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
                     onClick={() => setViewMode('grid')}
@@ -181,6 +243,7 @@ export default function AnnotatorTasks() {
                   </button>
                 </div>
               </div>
+              {submitMessage && <div className="tasks-inline-message">{submitMessage}</div>}
             </div>
 
             {isLoading ? (
@@ -196,7 +259,19 @@ export default function AnnotatorTasks() {
             ) : (
               <div className={viewMode === 'grid' ? 'tasks-grid' : 'tasks-list'}>
                 {filteredTasks.map(task => (
-                  <div key={task.id} className="task-item">
+                  <div
+                    key={task.id}
+                    className="task-item"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/annotator/projects/${projectId}/workspace/${task.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(`/annotator/projects/${projectId}/workspace/${task.id}`);
+                      }
+                    }}
+                  >
                     <div className="task-preview">
                       {task.imageUrl ? (
                         <img 
@@ -211,6 +286,7 @@ export default function AnnotatorTasks() {
                           }}
                         />
                       ) : null}
+                      {renderAnnotationOverlay(task.annotations)}
                       <div className="placeholder-img" style={{ display: task.imageUrl ? 'none' : 'flex' }}>
                         <LayoutGrid size={24} opacity={0.2} />
                       </div>
@@ -234,21 +310,14 @@ export default function AnnotatorTasks() {
 
                       <div className="task-meta">
                         <div className="meta-item"><Clock size={12} /> <span>{task.lastModified}</span></div>
-                        <div className="meta-item"><span>{task.size}</span></div>
+                        <div className="meta-item"><span>{task.annotations.length} box(es)</span></div>
                       </div>
-
-                      <div className="task-actions">
-                        <button 
-                          className="action-btn action-btn--primary"
-                          onClick={() => navigate(`/annotator/projects/${projectId}/workspace/${task.id}`)}
-                        >
-                          <ExternalLink size={14} />
-                          <span>{task.status === 'REJECTED' ? 'Fix annotations' : task.status === 'PENDING_REVIEW' ? 'View submission' : task.status === 'COMPLETED' || task.status === 'APPROVED' ? 'View result' : 'Label now'}</span>
-                        </button>
-                        <button className="action-btn action-btn--icon" title="View details">
-                          <Info size={16} />
-                        </button>
-                      </div>
+                      {task.status === 'REJECTED' && (task.reviewerComment || task.reviewerCategory) && (
+                        <div className="rework-note">
+                          <strong>{task.reviewerCategory || 'Reviewer note'}</strong>
+                          <span>{task.reviewerComment || 'Please review the marked issue.'}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -266,6 +335,7 @@ export default function AnnotatorTasks() {
         .project-title-area .project-name { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 0; }
         .project-title-area .project-id { font-size: 0.85rem; color: #64748b; font-family: monospace; }
         .tasks-filter-bar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .tasks-inline-message { width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: #eefdf6; color: #047857; border: 1px solid #bbf7d0; font-size: 0.85rem; font-weight: 700; }
         .search-box { position: relative; flex: 1; min-width: 300px; }
         .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
         .search-box input { width: 100%; padding: 0.65rem 1rem 0.65rem 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; transition: all 0.2s; }
@@ -275,6 +345,8 @@ export default function AnnotatorTasks() {
         .filter-tab { padding: 0.4rem 1rem; border: none; background: transparent; border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: #64748b; transition: all 0.2s; cursor: pointer; }
         .filter-tab.active { background: white; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .view-switch { display: flex; gap: 0.25rem; }
+        .bulk-review-btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.85rem; border: 1px solid #0f766e; border-radius: 8px; background: #0f766e; color: #ffffff; font-weight: 800; cursor: pointer; }
+        .bulk-review-btn:disabled { opacity: 0.55; cursor: not-allowed; }
         .view-btn { padding: 0.5rem; background: white; border: 1px solid #e2e8f0; border-radius: 6px; color: #64748b; cursor: pointer; }
         .view-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
         .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
@@ -292,6 +364,7 @@ export default function AnnotatorTasks() {
         .task-item:hover { transform: translateY(-4px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .task-preview { height: 140px; background: #f8fafc; position: relative; display: flex; align-items: center; justify-content: center; }
         .task-img-preview { width: 100%; height: 100%; object-fit: cover; }
+        .task-bbox-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
         .task-id-badge { position: absolute; top: 8px; left: 8px; background: rgba(15, 23, 42, 0.8); color: white; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-family: monospace; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .task-status-preview { position: absolute; top: 8px; right: 8px; padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; z-index: 10; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); background-color: white !important; }
         .task-content { padding: 1.25rem; }
@@ -303,6 +376,8 @@ export default function AnnotatorTasks() {
         .id-value { font-size: 0.75rem; color: #64748b; font-family: 'JetBrains Mono', 'Fira Code', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .task-meta { display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 0.75rem; margin-bottom: 1rem; border-top: 1px solid #f8fafc; pt: 0.5rem; }
         .meta-item { display: flex; align-items: center; gap: 0.4rem; }
+        .rework-note { display: grid; gap: 0.25rem; padding: 0.55rem 0.65rem; border-radius: 8px; background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; font-size: 0.75rem; line-height: 1.35; }
+        .rework-note strong { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; }
         .task-actions { display: flex; gap: 0.5rem; }
         .action-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; border-radius: 6px; transition: all 0.2s; cursor: pointer; }
         .action-btn--primary { flex: 1; background: #10b981; color: white; border: none; font-weight: 500; }

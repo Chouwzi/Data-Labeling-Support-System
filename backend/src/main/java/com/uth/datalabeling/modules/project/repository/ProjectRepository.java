@@ -37,8 +37,11 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 
     @Query("""
             SELECT DISTINCT p FROM Project p
-            JOIN p.reviewers reviewer
-            WHERE reviewer.id = :reviewerId
+            JOIN User reviewer ON reviewer.id = :reviewerId
+            LEFT JOIN User manager ON manager.id = p.managerId
+            WHERE reviewer.group IS NOT NULL
+              AND manager.group IS NOT NULL
+              AND reviewer.group.id = manager.group.id
               AND p.deletedAt IS NULL
             """)
     Page<Project> findAssignedProjectsForReviewer(@Param("reviewerId") UUID reviewerId, Pageable pageable);

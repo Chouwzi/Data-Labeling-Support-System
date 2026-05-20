@@ -3364,6 +3364,45 @@
   }
 }
 
+.project-ownership-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #d7e0e8);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.project-ownership-select {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.project-ownership-select span {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.project-ownership-select select {
+  min-height: 42px;
+  border: 1px solid var(--color-border, #d7e0e8);
+  border-radius: 0.65rem;
+  background: #ffffff;
+  padding: 0 0.85rem;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .project-ownership-card {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* =============================================
    RESPONSIVE
    ============================================= */

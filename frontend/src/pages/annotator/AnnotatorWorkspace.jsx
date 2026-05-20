@@ -35,6 +35,7 @@ const assignedQueueCache = new Map();
 const bucketForStatus = (status) => {
   const value = status?.toUpperCase();
   if (value === 'REJECTED') return 'rework';
+  if (value === 'READY_FOR_REVIEW') return 'ready';
   if (['PENDING_REVIEW', 'COMPLETED', 'APPROVED'].includes(value)) return 'submitted';
   return 'unlabeled';
 };
@@ -57,6 +58,7 @@ export default function AnnotatorWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
   const [queue, setQueue] = useState([]);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
 
   const [workspaceSettings, setWorkspaceSettings] = useState({
     strokeWidth: 'medium',
@@ -80,18 +82,6 @@ export default function AnnotatorWorkspace() {
       }
     }
   }, []);
-
-  const getStrokeWidth = () => {
-    const base = workspaceSettings.strokeWidth === 'thin' ? 1 : (workspaceSettings.strokeWidth === 'thick' ? 3.5 : 2);
-    return base / zoomLevel;
-  };
-
-  const getStrokeDasharray = (ann) => {
-    if (!isValidAnnotation(ann)) {
-      return `${5 / zoomLevel},${5 / zoomLevel}`;
-    }
-    return workspaceSettings.borderStyle === 'dashed' ? `${6 / zoomLevel},${4 / zoomLevel}` : 'none';
-  };
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -120,7 +110,7 @@ export default function AnnotatorWorkspace() {
     status: 'PENDING'
   });
 
-  const isLocked = taskData.status && !['PENDING', 'ASSIGNED', 'IN_PROGRESS'].includes(taskData.status.toUpperCase());
+  const isLocked = taskData.status && !['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'REJECTED'].includes(taskData.status.toUpperCase());
   const currentQueueIndex = queue.findIndex((item) => item.id === taskId);
   const previousTask = currentQueueIndex > 0 ? queue[currentQueueIndex - 1] : null;
   const nextTask = currentQueueIndex >= 0 && currentQueueIndex < queue.length - 1 ? queue[currentQueueIndex + 1] : null;
@@ -175,6 +165,7 @@ export default function AnnotatorWorkspace() {
           setSelectedLabelId(label.id);
           // If a box is selected, update its label too
           if (selectedBoxId) {
+            setHasUserEdited(true);
             setAnnotations(prev => prev.map(ann =>
               ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
             ));
@@ -182,7 +173,10 @@ export default function AnnotatorWorkspace() {
         }
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedBoxId) setAnnotations(prev => prev.filter(ann => ann.id !== selectedBoxId));
+        if (selectedBoxId) {
+          setHasUserEdited(true);
+          setAnnotations(prev => prev.filter(ann => ann.id !== selectedBoxId));
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -196,6 +190,7 @@ export default function AnnotatorWorkspace() {
       try {
         setIsLoading(true);
         setAnnotations([]);
+        setHasUserEdited(false);
         setSelectedBoxId(null);
         setImageLoaded(false);
         setImageSize({ width: 0, height: 0 });
@@ -214,7 +209,7 @@ export default function AnnotatorWorkspace() {
             }),
           cachedQueue
             ? Promise.resolve(cachedQueue)
-            : getMyAssignedImages({ projectId, size: 1000 }).then((response) => {
+            : getMyAssignedImages({ projectId, size: 24 }).then((response) => {
               const resultData = response.data?.result?.data || response.data?.result || [];
               const rawImages = Array.isArray(resultData) ? resultData : [];
               assignedQueueCache.set(projectId, rawImages);
@@ -358,6 +353,7 @@ export default function AnnotatorWorkspace() {
   const handleMouseUp = () => {
     if (dragState) {
       setDragState(null);
+      setHasUserEdited(true);
       return;
     }
     if (!isDrawing || !currentBox) return;
@@ -371,6 +367,7 @@ export default function AnnotatorWorkspace() {
         height: Math.abs(currentBox.height)
       };
       setAnnotations([...annotations, newBox]);
+      setHasUserEdited(true);
       setSelectedBoxId(newBox.id);
     }
     setIsDrawing(false);
@@ -429,6 +426,11 @@ export default function AnnotatorWorkspace() {
       });
 
       await saveTaskAnnotations(taskId, mappedAnnotations, submit);
+      setHasUserEdited(false);
+      if (!submit && mappedAnnotations.length > 0) {
+        setTaskData((prev) => ({ ...prev, status: 'READY_FOR_REVIEW' }));
+        assignedQueueCache.delete(projectId);
+      }
       if (submit) {
         assignedQueueCache.delete(projectId);
         showToast('Sent for review.', 'success');
@@ -448,18 +450,18 @@ export default function AnnotatorWorkspace() {
   };
 
   useEffect(() => {
-    if (workspaceSettings.autoSave && taskId && annotations.length > 0 && !isLocked) {
-      const interval = setInterval(() => {
-        handleSave(false, true); // save silently
-      }, 120000); // every 2 minutes
-      return () => clearInterval(interval);
+    if (workspaceSettings.autoSave && taskId && annotations.length > 0 && !isLocked && hasUserEdited) {
+      const timer = setTimeout(() => {
+        handleSave(false, true);
+      }, 800);
+      return () => clearTimeout(timer);
     }
-  }, [workspaceSettings.autoSave, annotations, taskId, isLocked]);
+  }, [workspaceSettings.autoSave, annotations, taskId, isLocked, hasUserEdited]);
 
   const navigateToTask = async (targetTaskId) => {
     if (!targetTaskId || targetTaskId === taskId) return;
-    if (!isLocked) {
-      handleSave(false, true);
+    if (!isLocked && hasUserEdited) {
+      await handleSave(false, true);
     }
     navigate(`/annotator/projects/${projectId}/workspace/${targetTaskId}`);
   };
@@ -529,7 +531,7 @@ export default function AnnotatorWorkspace() {
                 {isLocked && (
                   <div className="workspace-locked-badge">
                     <span className="locked-dot"></span>
-                    <span>Completed (Read-Only)</span>
+                    <span>Submitted (Read-Only)</span>
                   </div>
                 )}
                 <div className="toolbar-divider" />
@@ -574,17 +576,20 @@ export default function AnnotatorWorkspace() {
                   </button>
                   <button
                     className="btn btn--secondary"
-                    onClick={() => setAnnotations([])}
+                    onClick={() => {
+                      setHasUserEdited(true);
+                      setAnnotations([]);
+                    }}
                     disabled={isLocked}
                   >
                     <RotateCcw size={16} style={{ marginRight: '8px' }} /> Reset
                   </button>
                   <button
                     className="btn btn--primary"
-                    onClick={() => handleSave(true)}
+                    onClick={() => handleSave(false)}
                     disabled={isLocked || annotations.length === 0}
                   >
-                    <Send size={16} style={{ marginRight: '8px' }} /> Send for review
+                    <Send size={16} style={{ marginRight: '8px' }} /> Save ready
                   </button>
                 </div>
               </div>
@@ -698,6 +703,7 @@ export default function AnnotatorWorkspace() {
                             if (isLocked) return;
                             setSelectedLabelId(label.id);
                             if (selectedBoxId) {
+                              setHasUserEdited(true);
                               setAnnotations(prev => prev.map(ann =>
                                 ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
                               ));
@@ -747,6 +753,7 @@ export default function AnnotatorWorkspace() {
                                   className="delete-ann-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setHasUserEdited(true);
                                     setAnnotations(prev => prev.filter(a => a.id !== ann.id));
                                     if (selectedBoxId === ann.id) setSelectedBoxId(null);
                                   }}

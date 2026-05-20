@@ -6,6 +6,8 @@ import com.uth.datalabeling.modules.dataset.entity.Dataset;
 import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
 import com.uth.datalabeling.modules.iam.entity.User;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
+import com.uth.datalabeling.modules.annotation.repository.AnnotationRepository;
+import com.uth.datalabeling.modules.review.repository.ReviewRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import com.uth.datalabeling.modules.task.dto.request.TaskAssignRequest;
@@ -53,6 +55,12 @@ public class TaskServiceTest {
 
     @Mock
     private ProjectAccessService projectAccessService;
+
+    @Mock
+    private AnnotationRepository annotationRepository;
+
+    @Mock
+    private ReviewRepository reviewRepository;
 
     @InjectMocks
     private TaskService taskService;
@@ -235,6 +243,8 @@ public class TaskServiceTest {
         when(projectAccessService.getCurrentUser()).thenReturn(annotator);
         when(taskRepository.findAssignedImagesForAnnotator(eq(annotatorId), eq(projectId), eq("ASSIGNED"), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(task), pageable, 1));
+        when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(taskId))).thenReturn(List.of());
+        when(reviewRepository.findTopByTaskIdAndActionIgnoreCaseOrderByCreatedAtDesc(taskId, "REJECTED")).thenReturn(Optional.empty());
 
         PageResponse<AssignedImageResponse> result = taskService.getMyAssignedImages(projectId, " assigned ", pageable);
 
@@ -275,10 +285,40 @@ public class TaskServiceTest {
         when(projectAccessService.getCurrentUser()).thenReturn(annotator);
         when(taskRepository.findAssignedImagesForAnnotator(eq(annotatorId), eq(null), eq(null), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(task), pageable, 1));
+        when(annotationRepository.findByTaskIdInOrderByTaskIdAscCreatedAtAsc(List.of(task.getId()))).thenReturn(List.of());
+        when(reviewRepository.findTopByTaskIdAndActionIgnoreCaseOrderByCreatedAtDesc(task.getId(), "REJECTED")).thenReturn(Optional.empty());
 
         PageResponse<AssignedImageResponse> result = taskService.getMyAssignedImages(null, null, pageable);
 
         assertEquals(createdAt, result.getData().get(0).getAssignedAt());
         verify(taskRepository).findAssignedImagesForAnnotator(annotatorId, null, null, pageable);
+    }
+
+    @Test
+    void submitReadyImages_OnlySubmitsCurrentAnnotatorReadyTasksInProject() {
+        UUID annotatorId = UUID.randomUUID();
+        User annotator = User.builder().id(annotatorId).role("ANNOTATOR").build();
+        Task readyTask = Task.builder()
+                .id(UUID.randomUUID())
+                .project(project)
+                .sample(sample)
+                .annotator(annotator)
+                .status("READY_FOR_REVIEW")
+                .build();
+
+        when(projectAccessService.getCurrentUser()).thenReturn(annotator);
+        when(projectAccessService.findProjectAndCheckReadAccess(projectId)).thenReturn(project);
+        when(taskRepository.findReadyForReviewByProjectIdAndAnnotatorId(projectId, annotatorId))
+                .thenReturn(List.of(readyTask));
+        when(taskRepository.findAssignedImagesForAnnotator(eq(annotatorId), eq(projectId), eq(null), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(readyTask), Pageable.unpaged(), 1));
+        when(taskRepository.saveAll(List.of(readyTask))).thenReturn(List.of(readyTask));
+
+        var result = taskService.submitReadyImages(projectId);
+
+        assertEquals("PENDING_REVIEW", readyTask.getStatus());
+        assertEquals(1, result.getSubmittedCount());
+        assertEquals(0, result.getSkippedCount());
+        verify(taskRepository).saveAll(List.of(readyTask));
     }
 }
