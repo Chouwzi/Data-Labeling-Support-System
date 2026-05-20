@@ -17,4 +17,6 @@ public interface DatasetRepository extends JpaRepository<Dataset, UUID> {
     Page<Dataset> findAllByDeletedAtIsNull(Pageable pageable);
 
     Optional<Dataset> findByIdAndDeletedAtIsNull(UUID id);
+
+    long countByDeletedAtIsNull();
 }

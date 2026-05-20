@@ -21,4 +21,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   List<User> findAllByRoleAndGroupId(String role, UUID groupId);
 
   long countByGroupId(UUID groupId);
+
+  long countByActiveTrue();
+
+  long countByRole(String role);
 }

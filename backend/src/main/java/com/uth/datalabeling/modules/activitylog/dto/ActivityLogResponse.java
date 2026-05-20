@@ -21,6 +21,12 @@ public class ActivityLogResponse {
 
     private UUID userId;
 
+    private String userEmail;
+
+    private String userFullName;
+
+    private String userRole;
+
     private Long durationMs;
 
     private UUID entityId;

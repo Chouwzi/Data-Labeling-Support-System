@@ -21,7 +21,7 @@ public class PerformanceController {
   PerformanceService performanceService;
 
   @GetMapping("/admin/users/performance")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
   public ApiResponse<List<UserPerformanceResponse>> getAdminUserPerformance() {
     return ApiResponse.<List<UserPerformanceResponse>>builder()
         .result(performanceService.getVisibleUserPerformance())

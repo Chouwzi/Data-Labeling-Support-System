@@ -245,7 +245,7 @@
   object-fit: cover;
 }
 
-.status-badge {
+.review-card .status-badge {
   position: absolute;
   top: 12px;
   right: 12px;

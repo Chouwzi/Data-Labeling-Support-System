@@ -37,6 +37,23 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
                         "FROM Task t WHERE t.project.id = :projectId GROUP BY t.status")
         List<TaskStatusCountDTO> countTasksByStatus(@Param("projectId") UUID projectId);
 
+        @Query("SELECT new com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO(t.status, COUNT(t)) " +
+                        "FROM Task t GROUP BY t.status")
+        List<TaskStatusCountDTO> countTasksByStatus();
+
+        @Query("SELECT new com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO(t.status, COUNT(t)) " +
+                        "FROM Task t WHERE t.project.managerId = :managerId AND t.project.deletedAt IS NULL GROUP BY t.status")
+        List<TaskStatusCountDTO> countTasksByManagerId(@Param("managerId") UUID managerId);
+
+        @Query("""
+                        SELECT t FROM Task t
+                        JOIN FETCH t.project
+                        LEFT JOIN FETCH t.annotator
+                        WHERE t.project.managerId = :managerId
+                          AND t.project.deletedAt IS NULL
+                        """)
+        List<Task> findByManagerIdWithAnnotator(@Param("managerId") UUID managerId);
+
         @Query("""
                         SELECT t FROM Task t
                         WHERE t.annotator.id = :annotatorId

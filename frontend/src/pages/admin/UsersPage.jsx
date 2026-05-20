@@ -61,7 +61,7 @@ export default function UsersPage() {
         const [res, groupsRes, performanceRes] = await Promise.all([
           getUsers(),
           getGroups().catch(() => ({ data: { result: [] } })),
-          isManager ? Promise.resolve({ data: { result: [] } }) : getAdminUserPerformance().catch(() => ({ data: { result: [] } })),
+          getAdminUserPerformance().catch(() => ({ data: { result: [] } })),
         ]);
         setUsers(res.data.result || []);
         setGroups(groupsRes.data.result || []);
@@ -470,6 +470,7 @@ export default function UsersPage() {
                   {filteredUsers.map((u) => {
                     const isActive = u.active === true || u.active === 'active';
                     const perf = performanceByUserId[u.id] || {};
+                    const isCurrentManager = isManager && String(u.id) === String(user?.userId);
                     return (
                       <tr key={u.id}>
                         <td>
@@ -516,10 +517,17 @@ export default function UsersPage() {
                                 Name
                               </button>
                             )}
-                            <button type="button" onClick={() => handleEditRole(u)}>
-                              <Edit2 size={14} />
-                              Role
-                            </button>
+                            {isCurrentManager ? (
+                              <button type="button" disabled title="Managers cannot edit their own role">
+                                <Edit2 size={14} />
+                                Own role
+                              </button>
+                            ) : (
+                              <button type="button" onClick={() => handleEditRole(u)}>
+                                <Edit2 size={14} />
+                                Role
+                              </button>
+                            )}
                             {!isManager && (
                               <button
                                 type="button"

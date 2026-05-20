@@ -117,6 +117,7 @@ public class UserService {
 
     // Lưu mật khẩu cũ đề phòng mapper ghi đè null
     String oldPassword = user.getPassword();
+    enforceManagerCannotChangeOwnRole(user, request);
     enforceUserWriteScope(user, request.getRole());
     enforceManagerRoleOnlyUpdate(user, request);
 
@@ -172,6 +173,18 @@ public class UserService {
       throw new AppException(ErrorCode.FORBIDDEN);
     }
     if (!"ANNOTATOR".equals(targetRole) && !"REVIEWER".equals(targetRole)) {
+      throw new AppException(ErrorCode.FORBIDDEN);
+    }
+  }
+
+  private void enforceManagerCannotChangeOwnRole(User target, UserUpdateRequest request) {
+    User currentUser = projectAccessService.getCurrentUser();
+    if (projectAccessService.isAdmin(currentUser)) {
+      return;
+    }
+    if (currentUser.getId() != null
+        && currentUser.getId().equals(target.getId())
+        && !java.util.Objects.equals(target.getRole(), request.getRole())) {
       throw new AppException(ErrorCode.FORBIDDEN);
     }
   }

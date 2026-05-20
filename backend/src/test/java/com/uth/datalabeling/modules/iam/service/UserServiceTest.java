@@ -2,10 +2,14 @@ package com.uth.datalabeling.modules.iam.service;
 
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.modules.iam.dto.request.UserCreationRequest;
+import com.uth.datalabeling.modules.iam.dto.request.UserUpdateRequest;
 import com.uth.datalabeling.modules.iam.dto.response.UserResponse;
 import com.uth.datalabeling.modules.iam.entity.User;
+import com.uth.datalabeling.modules.iam.entity.UserGroup;
 import com.uth.datalabeling.modules.iam.mapper.UserMapper;
+import com.uth.datalabeling.modules.iam.repository.UserGroupRepository;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
+import com.uth.datalabeling.modules.project.service.ProjectAccessService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +36,13 @@ public class UserServiceTest {
     private UserMapper userMapper;
 
     @Mock
+    private UserGroupRepository userGroupRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ProjectAccessService projectAccessService;
 
     @InjectMocks
     private UserService userService;
@@ -99,5 +109,34 @@ public class UserServiceTest {
 
         assertNotNull(result);
         assertEquals(userId, result.getId());
+    }
+
+    @Test
+    void updateUser_ManagerChangingOwnRole_ThrowsForbidden() {
+        UUID groupId = UUID.randomUUID();
+        UserGroup group = UserGroup.builder().id(groupId).name("Team A").build();
+        User manager = User.builder()
+                .id(userId)
+                .email("manager@example.com")
+                .fullName("Manager One")
+                .role("MANAGER")
+                .password("password")
+                .active(true)
+                .group(group)
+                .build();
+        UserUpdateRequest request = UserUpdateRequest.builder()
+                .email("manager@example.com")
+                .fullName("Manager One")
+                .role("ANNOTATOR")
+                .active(true)
+                .groupId(groupId)
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(manager));
+        when(projectAccessService.getCurrentUser()).thenReturn(manager);
+        when(projectAccessService.isAdmin(manager)).thenReturn(false);
+
+        assertThrows(AppException.class, () -> userService.updateUser(userId, request));
+        verify(userRepository, never()).save(any());
     }
 }

@@ -62,10 +62,11 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
           </thead>
           <tbody>
             {paginated.map((project) => {
-              const status = statusColors[project.status] || {
+              const statusKey = normalizeStatusKey(project.status);
+              const status = statusColors[statusKey] || statusColors.initialized || {
                 bg: '#dcfce7',
                 text: '#15803d',
-                label: project.status || 'Initialized',
+                label: formatStatusLabel(statusKey),
               };
               const progress = Number(project.progress || 0);
 
@@ -127,12 +128,16 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
 
                   {/* Status Badge */}
                   <td>
-                    <span className="status-badge status-badge--pill project-table__status" style={{ backgroundColor: status.bg, color: status.text }}>
+                    <span
+                      className="status-badge status-badge--pill project-table__status"
+                      style={{ backgroundColor: status.bg, color: status.text }}
+                      aria-label={`Project status: ${status.label}`}
+                    >
                       <span
-                        className={`status-badge__dot status-badge__dot--${project.status}`}
+                        className={`status-badge__dot status-badge__dot--${statusKey}`}
                         aria-hidden="true"
                       />
-                      {status.label}
+                      <span className="project-table__status-label">{status.label}</span>
                     </span>
                   </td>
 
@@ -151,7 +156,7 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
                         aria-valuemax={100}
                       >
                         <div
-                          className={`project-progress__fill project-progress__fill--${project.status?.toLowerCase() || 'draft'}`}
+                          className={`project-progress__fill project-progress__fill--${statusKey}`}
                           style={{ width: `${progress}%` }}
                         />
                       </div>
@@ -318,4 +323,25 @@ export default function ProjectTable({ projects = [], statusColors = {}, totalPr
       )}
     </div>
   );
+}
+
+function normalizeStatusKey(status) {
+  const value = String(status || 'initialized')
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, '_')
+    .replace(/\s+/g, '_');
+
+  if (value === 'active') return 'in_progress';
+  if (value === 'draft' || value === 'pending') return 'initialized';
+  if (value === 'archived' || value === 'done') return 'completed';
+  if (value === 'pending_review' || value === 'ready_for_review') return 'review';
+  return value || 'initialized';
+}
+
+function formatStatusLabel(status) {
+  return normalizeStatusKey(status)
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }

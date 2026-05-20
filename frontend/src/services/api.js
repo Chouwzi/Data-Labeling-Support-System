@@ -142,6 +142,41 @@ export const getLogs = (page = 0, size = 20) =>
   });
 
 // =====================
+// Role Dashboards
+// =====================
+const toCamelCase = (key) =>
+  key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+
+const normalizeKeys = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeKeys);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value).reduce((acc, [key, entryValue]) => {
+      acc[toCamelCase(key)] = normalizeKeys(entryValue);
+      return acc;
+    }, {});
+  }
+
+  return value;
+};
+
+const normalizeApiResult = (response) => ({
+  ...response,
+  data: {
+    ...response.data,
+    result: normalizeKeys(response.data?.result),
+  },
+});
+
+export const getManagerDashboard = () =>
+  api.get('/dashboard/manager').then(normalizeApiResult);
+
+export const getAdminDashboard = () =>
+  api.get('/dashboard/admin').then(normalizeApiResult);
+
+// =====================
 // Projects
 // =====================
 export const getProjects = (params = {}) => api.get('/projects', { params: { page: 0, size: 24, ...params } });

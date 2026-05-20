@@ -21,6 +21,7 @@ const ActivityLog = () => {
   const [size] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
     
   
@@ -106,13 +107,12 @@ const handlePageChange = (newPage) => {
 
   const normalizedLogs = useMemo(() => logs.map((log, index) => {
     const userId = log.userId || log.user_id;
+    const userEmail = log.userEmail || log.user_email;
+    const userFullName = log.userFullName || log.user_full_name;
+    const userRole = log.userRole || log.user_role || 'SYSTEM';
     const currentUserId = localStorage.getItem('userId');
     const currentEmail = localStorage.getItem('email');
-    const actor = userId
-      ? userId === currentUserId && currentEmail
-        ? currentEmail
-        : `User ${userId.toString().substring(0, 8)}...`
-      : 'System';
+    const actor = resolveActor({ userId, userEmail, currentUserId, currentEmail });
     const action = log.action || 'UNKNOWN';
     const endpoint = log.endpoint || '';
     const target = log.entityType || log.entity_type || endpoint.replace('/api/v1/', '') || 'N/A';
@@ -121,6 +121,8 @@ const handlePageChange = (newPage) => {
     return {
       id: log.id || `${createdAt || ''}-${index}`,
       actor,
+      actorTitle: userFullName ? `${userFullName} (${actor})` : actor,
+      userRole,
       action,
       endpoint,
       target,
@@ -134,14 +136,20 @@ const handlePageChange = (newPage) => {
     [normalizedLogs]
   );
 
+  const availableRoles = useMemo(
+    () => Array.from(new Set(normalizedLogs.map((log) => log.userRole).filter(Boolean))).sort(),
+    [normalizedLogs]
+  );
+
   const filteredLogs = useMemo(() => normalizedLogs.filter((log) => {
     const statusText = getStatusText(log.status);
-    const haystack = `${log.actor} ${log.action} ${log.target} ${log.endpoint}`.toLowerCase();
+    const haystack = `${log.actor} ${log.userRole} ${log.action} ${log.target} ${log.endpoint}`.toLowerCase();
     const matchesSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
     const matchesAction = !actionFilter || log.action === actionFilter;
+    const matchesRole = !roleFilter || log.userRole === roleFilter;
     const matchesStatus = !statusFilter || statusText === statusFilter;
-    return matchesSearch && matchesAction && matchesStatus;
-  }), [normalizedLogs, searchQuery, actionFilter, statusFilter]);
+    return matchesSearch && matchesAction && matchesRole && matchesStatus;
+  }), [normalizedLogs, searchQuery, actionFilter, roleFilter, statusFilter]);
 
   return (
     <div className="admin-layout">
@@ -211,13 +219,27 @@ const handlePageChange = (newPage) => {
                     <option value="INFO">Info</option>
                   </select>
                 </label>
-                {(searchQuery || actionFilter || statusFilter) && (
+                <label className="log-filter">
+                  <span>Role</span>
+                  <select
+                    aria-label="Role filter"
+                    value={roleFilter}
+                    onChange={(event) => setRoleFilter(event.target.value)}
+                  >
+                    <option value="">All roles</option>
+                    {availableRoles.map((role) => (
+                      <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </label>
+                {(searchQuery || actionFilter || roleFilter || statusFilter) && (
                   <button
                     type="button"
                     className="log-clear-btn"
                     onClick={() => {
                       setSearchQuery('');
                       setActionFilter('');
+                      setRoleFilter('');
                       setStatusFilter('');
                     }}
                   >
@@ -240,7 +262,7 @@ const handlePageChange = (newPage) => {
                     return (
                       <tr key={log.id}>
                         <td className="log-table__cell--timestamp">{formatTimestamp(log.createdAt)}</td>
-                        <td><span className="log-user">{log.actor}</span></td>
+                        <td><span className="log-user" title={log.actorTitle}>{log.actor}</span></td>
                         <td><span className="action-tag">{log.action.replace(/_/g, ' ')}</span></td>
                         <td className="log-table__cell--muted" title={log.endpoint}>{log.target}</td>
                         <td><span className={`log-status ${getStatusClass(log.status)}`}>{getStatusText(log.status)}</span></td>
@@ -268,3 +290,10 @@ const handlePageChange = (newPage) => {
 };
 
 export default ActivityLog;
+
+function resolveActor({ userId, userEmail, currentUserId, currentEmail }) {
+  if (userEmail) return userEmail;
+  if (!userId) return 'System';
+  if (userId === currentUserId && currentEmail) return currentEmail;
+  return `User ${userId.toString().substring(0, 8)}...`;
+}

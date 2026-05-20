@@ -3,6 +3,8 @@ package com.uth.datalabeling.modules.activitylog.service;
 import com.uth.datalabeling.modules.activitylog.dto.ActivityLogResponse;
 import com.uth.datalabeling.modules.activitylog.entity.ActivityLog;
 import com.uth.datalabeling.modules.activitylog.repository.ActivityLogRepository;
+import com.uth.datalabeling.modules.iam.entity.User;
+import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -26,12 +28,14 @@ import static org.mockito.Mockito.when;
 class ActivityLogServiceTest {
 
   private ActivityLogRepository repository;
+  private UserRepository userRepository;
   private ActivityLogService service;
 
   @BeforeEach
   void setUp() {
     repository = mock(ActivityLogRepository.class);
-    service = new ActivityLogService(repository);
+    userRepository = mock(UserRepository.class);
+    service = new ActivityLogService(repository, userRepository);
   }
 
   @Test
@@ -53,6 +57,12 @@ class ActivityLogServiceTest {
         .build();
 
     when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(log)));
+    when(userRepository.findAllById(List.of(userId))).thenReturn(List.of(User.builder()
+        .id(userId)
+        .email("manager@example.com")
+        .fullName("Manager One")
+        .role("MANAGER")
+        .build()));
 
     List<ActivityLogResponse> responses = service.getLogs(1, 20);
 
@@ -67,6 +77,9 @@ class ActivityLogServiceTest {
     assertEquals(1, responses.size());
     ActivityLogResponse response = responses.get(0);
     assertEquals(userId, response.getUserId());
+    assertEquals("manager@example.com", response.getUserEmail());
+    assertEquals("Manager One", response.getUserFullName());
+    assertEquals("MANAGER", response.getUserRole());
     assertEquals("VIEW_AUDIT_LOGS", response.getAction());
     assertEquals("/api/v1/audit-logs", response.getEndpoint());
     assertEquals("GET", response.getMethod());
