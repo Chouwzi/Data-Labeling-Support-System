@@ -150,12 +150,3 @@ cd frontend
 npm run lint
 npm run build
 ```
-
-## Current Documentation Source of Truth
-
-When implementation and documentation disagree, use the following source order:
-
-1. Backend controllers, services, entities, and migrations.
-2. Frontend route/page implementation.
-3. Repository documentation.
-4. Confluence project report.
