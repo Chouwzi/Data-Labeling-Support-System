@@ -1,310 +1,255 @@
-# Data Labeling Support System documentation
-## Summary
+# Data Labeling Support System Database Schema
 
-- [Introduction](#introduction)
-- [Database Type](#database-type)
-- [Table Structure](#table-structure)
-	- [labels](#labels)
-	- [annotations](#annotations)
-	- [tasks](#tasks)
-	- [users](#users)
-	- [projects](#projects)
-	- [reviews](#reviews)
-	- [audit_logs](#audit_logs)
-	- [system_configs](#system_configs)
-	- [defect_categories](#defect_categories)
-	- [datasets](#datasets)
-	- [data_samples](#data_samples)
-- [Relationships](#relationships)
-- [Database Diagram](#database-diagram)
+This document summarizes the current logical schema implemented by the backend
+entities and migration scripts under `backend/src/main/resources/db/migration`.
+The application uses PostgreSQL and several JSONB columns for flexible metadata.
 
-## Introduction
+## Schema Notes
 
-## Database type
+- Most domain identifiers are UUID values.
+- Project and dataset deletion is soft-delete based through `deleted_at`.
+- Annotation geometry is stored as normalized bounding-box ratios in JSONB:
+  `{ "x": number, "y": number, "width": number, "height": number }`.
+- Runtime configuration currently maps to the singleton
+  `system_configuration` table, not the older `system_configs` key/value model.
+- Audit records are stored in `activity_logs`, not `audit_logs`.
 
-- **Database system:** PostgreSQL
-## Table structure
+## Table Summary
 
-### labels
+| Table | Purpose |
+| --- | --- |
+| `users` | User accounts, credentials, role, active flag, and optional group membership. |
+| `groups` | Work groups managed by managers; used to scope annotator/reviewer visibility. |
+| `datasets` | Dataset records created by users. |
+| `data_samples` | Image samples attached to datasets, including URL/path and metadata. |
+| `projects` | Labeling projects with manager, dataset, status, audit fields, and soft delete. |
+| `project_reviewers` | Many-to-many reviewer assignment for projects. |
+| `labels` | Project-local annotation labels and display colors. |
+| `tasks` | Annotation work items generated from project dataset samples. |
+| `annotations` | Bounding-box annotations saved for tasks. |
+| `defect_categories` | Rejection reason taxonomy. |
+| `reviews` | Reviewer approve/reject actions for tasks. |
+| `activity_logs` | Audited API activity, endpoint, method, status, and before/after payloads. |
+| `system_configuration` | Singleton application settings row. |
+| `project_files` | Guideline or supporting files uploaded for a project. |
+| `file_metadata` | Uploaded file metadata shared by image/file storage features. |
 
-| Name           | Type         | Settings                | References | Note |
-| -------------- | ------------ | ----------------------- | ---------- | ---- |
-| **id**         | UUID         | 🔑 PK, not null, unique |            |      |
-| **project_id** | UUID         | not null                |            |      |
-| **name**       | VARCHAR(100) | not null                |            |      |
-| **color_hex**  | VARCHAR(7)   | not null                |            |      | 
+## Core Tables
 
+### `users`
 
-### annotations
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `email` | VARCHAR | Unique login identity |
+| `full_name` | VARCHAR | Display name |
+| `password` / `password_hash` | VARCHAR | Encoded credential, depending on entity/migration evolution |
+| `role` | VARCHAR | `ADMIN`, `MANAGER`, `ANNOTATOR`, or `REVIEWER` |
+| `is_active` | BOOLEAN | Active/deactivated account state |
+| `group_id` | UUID | Optional reference to `groups.id` |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
 
-| Name                | Type      | Settings                | References | Note |
-| ------------------- | --------- | ----------------------- | ---------- | ---- |
-| **id**              | UUID      | 🔑 PK, not null, unique |            |      |
-| **task_id**         | UUID      | not null                |            |      |
-| **label_id**        | UUID      | not null                |            |      |
-| **created_by**      | UUID      | null                    |            |      |
-| **geometry**        | JSONB     | not null                |            |      |
-| **is_ai_generated** | BOOLEAN   | null, default: FALSE    |            |      |
-| **created_at**      | TIMESTAMP | null                    |            |      |
-| **updated_at**      | TIMESTAMP | null                    |            |      | 
+### `groups`
 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `name` | TEXT | Unique group name |
+| `description` | TEXT | Optional group description |
+| `manager_id` | UUID | Optional reference to `users.id` |
+| `created_at`, `updated_at` | TIMESTAMPTZ | Audit timestamps |
 
-### tasks
+### `datasets`
 
-| Name             | Type        | Settings                | References | Note                                    |
-| ---------------- | ----------- | ----------------------- | ---------- | --------------------------------------- |
-| **id**           | UUID        | 🔑 PK, not null, unique |            |                                         |
-| **project_id**   | UUID        | not null                |            |                                         |
-| **annotator_id** | UUID        | null                    |            | Nhân sự được phân bổ thực hiện gắn nhãn |
-| **status**       | VARCHAR(50) | null, default: PENDING  |            |                                         |
-| **created_at**   | TIMESTAMP   | null                    |            |                                         |
-| **updated_at**   | TIMESTAMP   | null                    |            |                                         |
-| **sample_id**    | UUID        | null                    |            |                                         | 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `name` | VARCHAR/TEXT | Dataset name |
+| `description` | TEXT | Optional description |
+| `creator_id` | UUID | Optional reference to `users.id` |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
+| `deleted_at` | TIMESTAMPTZ | Soft delete marker |
 
+### `data_samples`
 
-### users
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `dataset_id` | UUID | Reference to `datasets.id` |
+| `image_url` | TEXT/VARCHAR | Local path, served upload path, or external URL |
+| `metadata` | JSONB | File name, size, format, width, height, and optional metadata |
+| `created_at` | TIMESTAMP | Creation timestamp |
 
-| Name              | Type         | Settings                 | References | Note                                                    |
-| ----------------- | ------------ | ------------------------ | ---------- | ------------------------------------------------------- |
-| **id**            | UUID         | 🔑 PK, not null, unique  |            |                                                         |
-| **email**         | VARCHAR(255) | not null, unique         |            |                                                         |
-| **full_name**     | VARCHAR(255) | not null                 |            |                                                         |
-| **password_hash** | VARCHAR(255) | not null                 |            |                                                         |
-| **role**          | VARCHAR(50)  | not null                 |            |                                                         |
-| **is_active**     | BOOLEAN      | not null, default: TRUE  |            | Mục đích là vô hiệu hóa thay vì xóa vĩnh viễn tài khoản |
-| **created_at**    | TIMESTAMP    | not null, default: NOW() |            |                                                         | 
+### `projects`
 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `name` | TEXT | Unique among non-deleted projects |
+| `description` | TEXT | Optional project description |
+| `guideline_url` | TEXT | Optional guideline link |
+| `status` | VARCHAR | `DRAFT`, `ACTIVE`, or `ARCHIVED` |
+| `manager_id` | UUID | Nullable manager reference |
+| `dataset_id` | UUID | Optional reference to `datasets.id` |
+| `version` | BIGINT | Optimistic locking field |
+| `created_by`, `updated_by` | UUID | Audit users |
+| `created_at`, `updated_at` | TIMESTAMPTZ | Audit timestamps |
+| `deleted_at` | TIMESTAMPTZ | Soft delete marker |
 
-### projects
+### `project_reviewers`
 
-| Name              | Type         | Settings                       | References | Note |
-| ----------------- | ------------ | ------------------------------ | ---------- | ---- |
-| **id**            | UUID         | 🔑 PK, not null, unique        |            |      |
-| **name**          | VARCHAR(255) | not null                       |            |      |
-| **description**   | TEXT         | null                           |            |      |
-| **guideline_url** | VARCHAR(500) | null                           |            |      |
-| **status**        | VARCHAR(50)  | not null, default: INITIALIZED |            |      |
-| **manager_id**    | UUID         | null                           |            |      |
-| **created_at**    | TIMESTAMPTZ  | null                           |            |      |
-| **updated_at**    | TIMESTAMPTZ  | null                           |            |      |
-| **dataset_id**    | UUID         | null                           |            |      |
-| **deleted_at**    | TIMESTAMPTZ  | null                           |            |      | 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `project_id` | UUID | Reference to `projects.id`, part of primary key |
+| `reviewer_id` | UUID | Reference to `users.id`, part of primary key |
 
+### `labels`
 
-### reviews
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `project_id` | UUID | Reference to `projects.id` |
+| `name` | TEXT | Unique per active project label set |
+| `color_hex` | VARCHAR(7) | Hex display color |
+| `created_at`, `updated_at` | TIMESTAMPTZ | Audit timestamps |
+| `deleted_at` | TIMESTAMPTZ | Soft delete marker |
 
-| Name                   | Type        | Settings                | References | Note                                                               |
-| ---------------------- | ----------- | ----------------------- | ---------- | ------------------------------------------------------------------ |
-| **id**                 | UUID        | 🔑 PK, not null, unique |            |                                                                    |
-| **task_id**            | UUID        | not null                |            |                                                                    |
-| **reviewer_id**        | UUID        | not null                |            |                                                                    |
-| **defect_category_id** | UUID        | null                    |            | Danh mục loại bỏ nếu nhãn không đạt tiêu chuẩn (Null là thông qua) |
-| **comments**           | TEXT        | null                    |            |                                                                    |
-| **action**             | VARCHAR(50) | not null                |            | Hành động cuối cùng mang giá trị APPROVED hoặc REJECTED.           |
-| **created_at**         | TIMESTAMP   | null                    |            |                                                                    |
-| **updated_at**         | TIMESTAMP   | null                    |            |                                                                    | 
+### `tasks`
 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `project_id` | UUID | Reference to `projects.id` |
+| `sample_id` | UUID | Reference to `data_samples.id` |
+| `annotator_id` | UUID | Optional assigned annotator |
+| `status` | VARCHAR | Task lifecycle state |
+| `assigned_at` | TIMESTAMP | Assignment timestamp |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
 
-### audit_logs
+Task status values used by the application:
 
-| Name            | Type         | Settings                 | References | Note                                                          |
-| --------------- | ------------ | ------------------------ | ---------- | ------------------------------------------------------------- |
-| **id**          | BIGSERIAL    | 🔑 PK, not null, unique  |            |                                                               |
-| **user_id**     | UUID         | not null                 |            |                                                               |
-| **action**      | VARCHAR(50)  | not null                 |            |                                                               |
-| **entity_type** | VARCHAR(100) | not null                 |            | Tên thực thể dữ liệu bị tác động (USER_ACCOUNT, PROJECT, ...) |
-| **entity_id**   | UUID         | not null                 |            | Khóa chính của bản ghi trong bảng thực thể tương ứng          |
-| **old_values**  | JSONB        | null                     |            |                                                               |
-| **new_values**  | JSONB        | null                     |            |                                                               |
-| **ip_address**  | VARCHAR(45)  | not null                 |            |                                                               |
-| **created_at**  | TIMESTAMP    | not null, default: NOW() |            |                                                               | 
+| Status | Meaning |
+| --- | --- |
+| `PENDING` | Generated but not assigned. |
+| `ASSIGNED` | Assigned to an annotator. |
+| `IN_PROGRESS` | Annotator opened/saved work without annotations or still working. |
+| `READY_FOR_REVIEW` | Annotator saved annotations but has not bulk-submitted. |
+| `PENDING_REVIEW` | Submitted to reviewer queue. |
+| `COMPLETED` | Approved by reviewer. |
+| `REJECTED` | Rejected and returned for correction. |
 
+### `annotations`
 
-### system_configs
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `task_id` | UUID | Reference to `tasks.id` |
+| `label_id` | UUID | Reference to `labels.id` |
+| `created_by` | UUID | Optional reference to `users.id` |
+| `shape_type` | VARCHAR | Currently `BOUNDING_BOX` |
+| `geometry` | JSONB | Normalized bounding-box geometry |
+| `is_ai_generated` | BOOLEAN | Whether annotation was AI-generated |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
 
-| Name             | Type         | Settings                 | References | Note                                                               |
-| ---------------- | ------------ | ------------------------ | ---------- | ------------------------------------------------------------------ |
-| **config_key**   | VARCHAR(100) | 🔑 PK, not null, unique  |            |                                                                    |
-| **config_value** | JSONB        | not null                 |            |                                                                    |
-| **description**  | TEXT         | null                     |            | Mô tả chức năng để Admin hiểu tác dụng của cấu hình trên giao diện |
-| **updated_by**   | UUID         | not null                 |            |                                                                    |
-| **updated_at**   | TIMESTAMP    | not null, default: NOW() |            |                                                                    | 
+### `reviews`
 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `task_id` | UUID | Reviewed task |
+| `reviewer_id` | UUID | Reviewing user |
+| `defect_category_id` | UUID | Optional rejection category |
+| `comments` | TEXT | Reviewer comments |
+| `action` | VARCHAR | `APPROVED` or `REJECTED` |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
 
-### defect_categories
+### `activity_logs`
 
-| Name            | Type         | Settings                | References | Note |
-| --------------- | ------------ | ----------------------- | ---------- | ---- |
-| **id**          | UUID         | 🔑 PK, not null, unique |            |      |
-| **name**        | VARCHAR(100) | not null, unique        |            |      |
-| **description** | TEXT         | null                    |            |      | 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `user_id` | UUID | Optional acting user |
+| `action` | VARCHAR | Action name |
+| `endpoint` | VARCHAR | Request endpoint |
+| `method` | VARCHAR | HTTP method |
+| `ip_address` | VARCHAR | Client IP |
+| `status` | INTEGER | HTTP response status |
+| `duration_ms` | BIGINT | Request duration |
+| `entity_id` | UUID | Optional affected entity |
+| `entity_type` | VARCHAR | Optional affected entity type |
+| `old_value`, `new_value` | TEXT | Serialized before/after values |
+| `created_at` | TIMESTAMP | Log timestamp |
 
+### `system_configuration`
 
-### datasets
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | INTEGER | Singleton primary key, normally `1` |
+| `max_image_file_size_mb` | INTEGER | Upload size limit |
+| `ai_labeling_enabled` | BOOLEAN | Feature flag |
+| `default_page_size` | INTEGER | Pagination default |
+| `allowed_image_extensions` | VARCHAR | Comma-separated allowed extensions |
+| `updated_by` | VARCHAR | Email/user marker of last update |
+| `version` | BIGINT | Optimistic locking field |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
 
-| Name            | Type         | Settings                | References | Note |
-| --------------- | ------------ | ----------------------- | ---------- | ---- |
-| **id**          | UUID         | 🔑 PK, not null, unique |            |      |
-| **name**        | VARCHAR(255) | null                    |            |      |
-| **description** | TEXT         | null                    |            |      |
-| **creator_id**  | UUID         | null                    |            |      |
-| **created_at**  | TIMESTAMP    | null                    |            |      |
-| **updated_at**  | TIMESTAMP    | null                    |            |      | 
+### `project_files`
 
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `project_id` | UUID | Reference to `projects.id` |
+| `file_name` | VARCHAR | Original file name |
+| `file_type` | VARCHAR | MIME type |
+| `file_path` | TEXT/VARCHAR | Storage path |
+| `file_size` | BIGINT | File size |
+| `uploaded_at` | TIMESTAMP | Upload timestamp |
 
-### data_samples
+### `file_metadata`
 
-| Name           | Type         | Settings                | References | Note |
-| -------------- | ------------ | ----------------------- | ---------- | ---- |
-| **id**         | UUID         | 🔑 PK, not null, unique |            |      |
-| **dataset_id** | UUID         | null                    |            |      |
-| **image_url**  | VARCHAR(500) | null                    |            |      |
-| **metadata**   | JSONB        | null                    |            |      |
-| **created_at** | TIMESTAMP    | null                    |            |      | 
-
+| Column | Type | Constraint / Meaning |
+| --- | --- | --- |
+| `id` | UUID | Primary key |
+| `file_name` | VARCHAR | Original file name |
+| `file_path` | TEXT | Storage path |
+| `format` | VARCHAR | File extension/format |
+| `size_bytes` | BIGINT | File size |
+| `uploader_id` | UUID | Optional reference to `users.id` |
+| `metadata` | JSONB | Additional metadata |
+| `created_at`, `updated_at` | TIMESTAMP | Audit timestamps |
 
 ## Relationships
 
-- **audit_logs to users**: many_to_one
-- **system_configs to users**: many_to_one
-- **reviews to users**: many_to_one
-- **annotations to users**: many_to_one
-- **tasks to users**: many_to_one
-- **projects to users**: many_to_one
-- **labels to projects**: many_to_one
-- **tasks to projects**: many_to_one
-- **annotations to tasks**: many_to_one
-- **annotations to labels**: many_to_one
-- **reviews to tasks**: many_to_one
-- **reviews to defect_categories**: many_to_one
-- **datasets to users**: many_to_one
-- **data_samples to datasets**: many_to_one
-- **tasks to data_samples**: many_to_one
-- **projects to datasets**: many_to_one
-
-## Database Diagram
-
 ```mermaid
 erDiagram
-	audit_logs }o--|| users : references
-	system_configs }o--|| users : references
-	reviews }o--|| users : references
-	annotations }o--|| users : references
-	tasks }o--|| users : references
-	projects }o--|| users : references
-	labels }o--|| projects : references
-	tasks }o--|| projects : references
-	annotations }o--|| tasks : references
-	annotations }o--|| labels : references
-	reviews }o--|| tasks : references
-	reviews }o--|| defect_categories : references
-	datasets }o--|| users : references
-	data_samples }o--|| datasets : references
-	tasks }o--|| data_samples : references
-	projects }o--|| datasets : references
-
-	labels {
-		UUID id
-		UUID project_id
-		VARCHAR(100) name
-		VARCHAR(7) color_hex
-	}
-
-	annotations {
-		UUID id
-		UUID task_id
-		UUID label_id
-		UUID created_by
-		JSONB geometry
-		BOOLEAN is_ai_generated
-		TIMESTAMP created_at
-		TIMESTAMP updated_at
-	}
-
-	tasks {
-		UUID id
-		UUID project_id
-		UUID annotator_id
-		VARCHAR(50) status
-		TIMESTAMP created_at
-		TIMESTAMP updated_at
-		UUID sample_id
-	}
-
-	users {
-		UUID id
-		VARCHAR(255) email
-		VARCHAR(255) full_name
-		VARCHAR(255) password_hash
-		VARCHAR(50) role
-		BOOLEAN is_active
-		TIMESTAMP created_at
-	}
-
-	projects {
-		UUID id
-		VARCHAR(255) name
-		TEXT description
-		VARCHAR(500) guideline_url
-		VARCHAR(50) status
-		UUID manager_id
-		TIMESTAMPTZ created_at
-		TIMESTAMPTZ updated_at
-		UUID dataset_id
-		TIMESTAMPTZ deleted_at
-	}
-
-	reviews {
-		UUID id
-		UUID task_id
-		UUID reviewer_id
-		UUID defect_category_id
-		TEXT comments
-		VARCHAR(50) action
-		TIMESTAMP created_at
-		TIMESTAMP updated_at
-	}
-
-	audit_logs {
-		BIGSERIAL id
-		UUID user_id
-		VARCHAR(50) action
-		VARCHAR(100) entity_type
-		UUID entity_id
-		JSONB old_values
-		JSONB new_values
-		VARCHAR(45) ip_address
-		TIMESTAMP created_at
-	}
-
-	system_configs {
-		VARCHAR(100) config_key
-		JSONB config_value
-		TEXT description
-		UUID updated_by
-		TIMESTAMP updated_at
-	}
-
-	defect_categories {
-		UUID id
-		VARCHAR(100) name
-		TEXT description
-	}
-
-	datasets {
-		UUID id
-		VARCHAR(255) name
-		TEXT description
-		UUID creator_id
-		TIMESTAMP created_at
-		TIMESTAMP updated_at
-	}
-
-	data_samples {
-		UUID id
-		UUID dataset_id
-		VARCHAR(500) image_url
-		JSONB metadata
-		TIMESTAMP created_at
-	}
+    groups ||--o{ users : contains
+    users ||--o{ datasets : creates
+    datasets ||--o{ data_samples : contains
+    datasets ||--o{ projects : attached_to
+    users ||--o{ projects : manages
+    projects ||--o{ labels : defines
+    projects ||--o{ tasks : owns
+    projects ||--o{ project_files : has
+    projects ||--o{ project_reviewers : assigns
+    users ||--o{ project_reviewers : reviews
+    data_samples ||--o{ tasks : generates
+    users ||--o{ tasks : annotates
+    tasks ||--o{ annotations : contains
+    labels ||--o{ annotations : categorizes
+    tasks ||--o{ reviews : reviewed_by
+    users ||--o{ reviews : performs
+    defect_categories ||--o{ reviews : explains
+    users ||--o{ activity_logs : triggers
+    users ||--o{ file_metadata : uploads
 ```
+
+
+## Integrity Rules
+
+- Project names are unique among non-deleted projects.
+- Label names are unique per project among non-deleted labels.
+- A project/sample pair cannot produce duplicate tasks.
+- Managers can access projects they own; admins can access all projects.
+- Reviewer visibility is group-scoped through the project manager's group.
+- Annotators can read projects only when tasks are assigned to them.
+- COCO export includes `COMPLETED` tasks only and skips images with missing or unreadable dimensions.
