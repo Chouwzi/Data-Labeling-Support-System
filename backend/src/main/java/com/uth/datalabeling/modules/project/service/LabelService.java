@@ -38,6 +38,10 @@ public class LabelService {
         if (labelRepository.existsByNameAndProjectIdAndDeletedAtIsNull(request.getName(), projectId)) {
             throw new AppException(ErrorCode.LABEL_ALREADY_EXISTS);
         }
+        if (request.getColorHex() != null &&
+                labelRepository.existsByColorHexIgnoreCaseAndProjectIdAndDeletedAtIsNull(request.getColorHex(), projectId)) {
+            throw new AppException(ErrorCode.LABEL_COLOR_ALREADY_EXISTS);
+        }
 
         Label label = projectMapper.toLabel(request);
         label.setProject(project);
@@ -63,6 +67,11 @@ public class LabelService {
                 labelRepository.existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull(request.getName(), projectId,
                         labelId)) {
             throw new AppException(ErrorCode.LABEL_ALREADY_EXISTS);
+        }
+        if (request.getColorHex() != null &&
+                labelRepository.existsByColorHexIgnoreCaseAndProjectIdAndIdNotAndDeletedAtIsNull(
+                        request.getColorHex(), projectId, labelId)) {
+            throw new AppException(ErrorCode.LABEL_COLOR_ALREADY_EXISTS);
         }
 
         projectMapper.updateLabel(label, request);

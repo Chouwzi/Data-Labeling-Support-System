@@ -65,4 +65,25 @@ public class CocoExportController {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(dto);
     }
+
+    @GetMapping("/coco.zip")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @LogActivity(action = "EXPORT_COCO_PACKAGE", entityType = "PROJECT", entityIdParam = "projectId")
+    @Operation(
+            summary = "Export COCO ZIP package",
+            description = "Exports COMPLETED labeled images as a ZIP containing annotations/coco.json, export_manifest.json, "
+                    + "and an images/ directory with the local image files when available.")
+    public ResponseEntity<byte[]> exportCocoPackage(@PathVariable UUID projectId) {
+        byte[] zip = cocoExportService.buildExportPackage(projectId);
+        String filename = "project_" + projectId
+                + "_coco_package_"
+                + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+                + ".zip";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename).build().toString())
+                .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                .body(zip);
+    }
 }

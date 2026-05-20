@@ -25,6 +25,13 @@ public class ReviewQueueImageResponse {
     String status;
     UUID annotatorId;
     String annotatorName;
+    UUID reviewerId;
+    String reviewerName;
     LocalDateTime submittedAt;
+    LocalDateTime reviewedAt;
+    UUID defectCategoryId;
+    String defectCategoryName;
+    String comments;
+    String reviewAction;
     List<ReviewQueueAnnotationResponse> annotations;
 }

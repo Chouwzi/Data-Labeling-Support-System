@@ -22,4 +22,10 @@ public class UserResponse {
     String fullName;
     String role;
     boolean active;
+
+    @JsonProperty("group_id")
+    UUID groupId;
+
+    @JsonProperty("group_name")
+    String groupName;
 }

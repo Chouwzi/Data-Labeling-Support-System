@@ -11,6 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -35,4 +36,7 @@ public class UserUpdateRequest {
   String role;
 
   Boolean active;
+
+  @JsonProperty("group_id")
+  UUID groupId;
 }

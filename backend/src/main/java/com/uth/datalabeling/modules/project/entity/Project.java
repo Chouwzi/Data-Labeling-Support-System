@@ -1,6 +1,7 @@
 package com.uth.datalabeling.modules.project.entity;
 
 import com.uth.datalabeling.modules.dataset.entity.Dataset;
+import com.uth.datalabeling.modules.iam.entity.User;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +38,17 @@ public class Project {
 
     String guidelineUrl; // Link tài liệu hướng dẫn
 
-    @Column(nullable = false)
+    @Column(name = "manager_id")
     UUID managerId; // ID của quản lý dự án
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "project_reviewers",
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "reviewer_id")
+    )
+    @Builder.Default
+    List<User> reviewers = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dataset_id")

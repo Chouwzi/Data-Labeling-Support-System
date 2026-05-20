@@ -6,6 +6,8 @@ import com.uth.datalabeling.common.response.ApiResponse;
 import com.uth.datalabeling.common.response.PageResponse;
 import com.uth.datalabeling.modules.activitylog.annotation.LogActivity;
 import com.uth.datalabeling.modules.project.dto.request.ProjectCreateRequest;
+import com.uth.datalabeling.modules.project.dto.request.ProjectManagerRequest;
+import com.uth.datalabeling.modules.project.dto.request.ProjectReviewersRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectUpdateRequest;
 import com.uth.datalabeling.modules.project.dto.response.ProjectResponse;
 import com.uth.datalabeling.modules.project.service.ProjectService;
@@ -95,6 +97,26 @@ public class ProjectController {
         ProjectResponse response = projectService.updateProject(id, request);
         return ApiResponse.<ProjectResponse>builder()
                 .result(response)
+                .build();
+    }
+
+    @PutMapping("/{id}/manager")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<ProjectResponse> updateProjectManager(
+            @PathVariable UUID id,
+            @RequestBody @Valid ProjectManagerRequest request) {
+        return ApiResponse.<ProjectResponse>builder()
+                .result(projectService.updateProjectManager(id, request))
+                .build();
+    }
+
+    @PutMapping("/{id}/reviewers")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public ApiResponse<ProjectResponse> updateProjectReviewers(
+            @PathVariable UUID id,
+            @RequestBody @Valid ProjectReviewersRequest request) {
+        return ApiResponse.<ProjectResponse>builder()
+                .result(projectService.updateProjectReviewers(id, request))
                 .build();
     }
 

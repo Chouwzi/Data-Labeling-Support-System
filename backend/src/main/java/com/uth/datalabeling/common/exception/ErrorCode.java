@@ -38,6 +38,7 @@ public enum ErrorCode {
   USER_ALREADY_EXISTS(409, 40901, "Email đã tồn tại"),
   PROJECT_ALREADY_EXISTS(409, 40902, "Tên dự án đã tồn tại"),
   LABEL_ALREADY_EXISTS(409, 40903, "Nhãn dán đã tồn tại trong dự án"),
+  LABEL_COLOR_ALREADY_EXISTS(409, 40904, "Màu nhãn đã tồn tại trong dự án"),
 
   // 415 Unsupported Media Type
   UNSUPPORTED_MEDIA_TYPE(415, 41500, "Kiểu dữ liệu không hỗ trợ"),

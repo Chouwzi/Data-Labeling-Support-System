@@ -15,7 +15,7 @@ export default defineConfig({
     {
       name: 'serve-backend-uploads',
       configureServer(server) {
-        server.middlewares.use('/api/v1/uploads', (req, res, next) => {
+        server.middlewares.use('/api/v1/uploads', (req, res) => {
           // Remove query params if any
           const urlPath = req.url.split('?')[0];
           // Construct the path to the backend uploads folder
@@ -36,7 +36,10 @@ export default defineConfig({
             res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
             fs.createReadStream(filePath).pipe(res);
           } else {
-            next();
+            const safeName = path.basename(urlPath).replace(/[&<>]/g, '');
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'image/svg+xml');
+            res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="#f3f4f6"/><rect x="82" y="96" width="156" height="112" rx="12" fill="none" stroke="#9ca3af" stroke-width="8"/><circle cx="126" cy="132" r="14" fill="#9ca3af"/><path d="M96 192l48-48 34 34 22-22 34 36" fill="none" stroke="#9ca3af" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><text x="160" y="242" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#6b7280">Missing local file</text><text x="160" y="264" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#9ca3af">${safeName}</text></svg>`);
           }
         });
       }

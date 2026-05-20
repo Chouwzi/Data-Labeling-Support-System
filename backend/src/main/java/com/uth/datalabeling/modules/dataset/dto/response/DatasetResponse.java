@@ -18,4 +18,5 @@ public class DatasetResponse {
     UUID creatorId;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+    long imageCount;
 }

@@ -15,4 +15,6 @@ public interface LabelRepository extends JpaRepository<Label, UUID> {
     Optional<Label> findByIdAndProjectIdAndDeletedAtIsNull(UUID id, UUID projectId);
     boolean existsByNameAndProjectIdAndDeletedAtIsNull(String name, UUID projectId);
     boolean existsByNameAndProjectIdAndIdNotAndDeletedAtIsNull(String name, UUID projectId, UUID id);
+    boolean existsByColorHexIgnoreCaseAndProjectIdAndDeletedAtIsNull(String colorHex, UUID projectId);
+    boolean existsByColorHexIgnoreCaseAndProjectIdAndIdNotAndDeletedAtIsNull(String colorHex, UUID projectId, UUID id);
 }

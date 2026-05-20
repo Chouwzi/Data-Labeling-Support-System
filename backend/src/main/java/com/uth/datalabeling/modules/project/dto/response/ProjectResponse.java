@@ -29,6 +29,14 @@ public class ProjectResponse {
     @JsonProperty("manager_id")
     UUID managerId;
 
+    @JsonProperty("manager_name")
+    String managerName;
+
+    List<ProjectReviewerResponse> reviewers;
+
+    @JsonProperty("task_stats")
+    ProjectTaskStatsResponse taskStats;
+
     @JsonProperty("dataset_id")
     UUID datasetId;
 

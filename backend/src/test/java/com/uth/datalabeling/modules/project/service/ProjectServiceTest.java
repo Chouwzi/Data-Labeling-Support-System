@@ -14,6 +14,7 @@ import com.uth.datalabeling.modules.project.constant.ProjectStatus;
 import com.uth.datalabeling.modules.project.dto.request.LabelRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectCreateRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectUpdateRequest;
+import com.uth.datalabeling.modules.project.dto.response.LabelResponse;
 import com.uth.datalabeling.modules.project.dto.response.ProjectResponse;
 import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
@@ -230,6 +231,51 @@ class ProjectServiceTest {
         assertEquals(1, response.getTotalElements());
         assertEquals("Assigned Project", response.getData().get(0).getName());
         verify(projectRepository).findAssignedProjectsForAnnotator(annotator.getId(), pageable);
+    }
+
+    @Test
+    void getMyAssignedProjects_FiltersSoftDeletedLabelsFromResponse() {
+        User annotator = User.builder()
+                .id(UUID.randomUUID())
+                .email("annotator@test.com")
+                .role("ANNOTATOR")
+                .build();
+        Label activeLabel = Label.builder()
+                .id(UUID.randomUUID())
+                .name("Active")
+                .colorHex("#00ff00")
+                .build();
+        Label deletedLabel = Label.builder()
+                .id(UUID.randomUUID())
+                .name("Deleted")
+                .colorHex("#ff0000")
+                .deletedAt(java.time.LocalDateTime.now())
+                .build();
+        Project assignedProject = Project.builder()
+                .id(UUID.randomUUID())
+                .name("Assigned Project")
+                .labels(new ArrayList<>(List.of(activeLabel, deletedLabel)))
+                .build();
+        PageRequest pageable = PageRequest.of(0, 10);
+
+        when(projectAccessService.getCurrentUser()).thenReturn(annotator);
+        when(projectRepository.findAssignedProjectsForAnnotator(annotator.getId(), pageable))
+                .thenReturn(new PageImpl<>(List.of(assignedProject), pageable, 1));
+        when(projectMapper.toProjectResponse(assignedProject)).thenReturn(ProjectResponse.builder()
+                .id(assignedProject.getId())
+                .name("Assigned Project")
+                .build());
+        when(projectMapper.toLabelResponse(activeLabel)).thenReturn(LabelResponse.builder()
+                .id(activeLabel.getId())
+                .name("Active")
+                .colorHex("#00ff00")
+                .build());
+
+        PageResponse<ProjectResponse> response = projectService.getMyAssignedProjects(pageable);
+
+        assertEquals(1, response.getData().get(0).getLabels().size());
+        assertEquals("Active", response.getData().get(0).getLabels().get(0).getName());
+        verify(projectMapper, never()).toLabelResponse(deletedLabel);
     }
 
     @Test

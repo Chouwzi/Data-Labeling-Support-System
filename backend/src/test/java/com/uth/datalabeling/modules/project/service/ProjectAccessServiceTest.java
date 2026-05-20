@@ -11,6 +11,7 @@ import java.util.UUID;
 import com.uth.datalabeling.common.exception.AppException;
 import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.modules.iam.entity.User;
+import com.uth.datalabeling.modules.iam.entity.UserGroup;
 import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.repository.ProjectRepository;
@@ -63,20 +64,45 @@ class ProjectAccessServiceTest {
     }
 
     @Test
-    void findProjectAndCheckReadAccess_AllowsReviewer() {
+    void findProjectAndCheckReadAccess_AllowsReviewerInProjectManagerGroup() {
         UUID projectId = UUID.randomUUID();
-        User reviewer = currentUser("reviewer@test.com", "REVIEWER");
+        UserGroup group = UserGroup.builder().id(UUID.randomUUID()).name("QA").build();
+        User reviewer = currentUser("reviewer@test.com", "REVIEWER", group);
+        User manager = User.builder().id(UUID.randomUUID()).email("manager@test.com").role("MANAGER").group(group).build();
         Project project = Project.builder()
                 .id(projectId)
-                .managerId(UUID.randomUUID())
+                .managerId(manager.getId())
                 .build();
 
         when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
         when(userRepository.findByEmail("reviewer@test.com")).thenReturn(Optional.of(reviewer));
+        when(userRepository.findById(manager.getId())).thenReturn(Optional.of(manager));
 
         Project result = projectAccessService.findProjectAndCheckReadAccess(projectId);
 
         assertSame(project, result);
+    }
+
+    @Test
+    void findProjectAndCheckReadAccess_RejectsReviewerOutsideProjectManagerGroup() {
+        UUID projectId = UUID.randomUUID();
+        UserGroup reviewerGroup = UserGroup.builder().id(UUID.randomUUID()).name("QA").build();
+        UserGroup managerGroup = UserGroup.builder().id(UUID.randomUUID()).name("Ops").build();
+        User reviewer = currentUser("reviewer@test.com", "REVIEWER", reviewerGroup);
+        User manager = User.builder().id(UUID.randomUUID()).email("manager@test.com").role("MANAGER").group(managerGroup).build();
+        Project project = Project.builder()
+                .id(projectId)
+                .managerId(manager.getId())
+                .build();
+
+        when(projectRepository.findByIdAndDeletedAtIsNull(projectId)).thenReturn(Optional.of(project));
+        when(userRepository.findByEmail("reviewer@test.com")).thenReturn(Optional.of(reviewer));
+        when(userRepository.findById(manager.getId())).thenReturn(Optional.of(manager));
+
+        AppException ex = assertThrows(AppException.class,
+                () -> projectAccessService.findProjectAndCheckReadAccess(projectId));
+
+        assertEquals(ErrorCode.FORBIDDEN, ex.getErrorCode());
     }
 
     @Test
@@ -99,12 +125,17 @@ class ProjectAccessServiceTest {
     }
 
     private User currentUser(String email, String role) {
+        return currentUser(email, role, null);
+    }
+
+    private User currentUser(String email, String role, UserGroup group) {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(email, null));
         return User.builder()
                 .id(UUID.randomUUID())
                 .email(email)
                 .role(role)
+                .group(group)
                 .build();
     }
 }

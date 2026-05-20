@@ -33,6 +33,9 @@ public class ProjectCreateRequest {
     @JsonProperty("dataset_id")
     UUID datasetId;
 
+    @JsonProperty("manager_id")
+    UUID managerId;
+
     @Valid
     List<LabelRequest> labels;
 }

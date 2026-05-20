@@ -9,15 +9,23 @@ import com.uth.datalabeling.common.exception.ErrorCode;
 import com.uth.datalabeling.common.response.PageResponse;
 
 import com.uth.datalabeling.modules.iam.entity.User;
+import com.uth.datalabeling.modules.iam.repository.UserRepository;
 import com.uth.datalabeling.modules.project.constant.ProjectStatus;
+import com.uth.datalabeling.modules.project.dto.request.ProjectManagerRequest;
+import com.uth.datalabeling.modules.project.dto.request.ProjectReviewersRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectCreateRequest;
 import com.uth.datalabeling.modules.project.dto.request.ProjectUpdateRequest;
+import com.uth.datalabeling.modules.project.dto.response.LabelResponse;
 import com.uth.datalabeling.modules.project.dto.response.ProjectResponse;
+import com.uth.datalabeling.modules.project.dto.response.ProjectReviewerResponse;
+import com.uth.datalabeling.modules.project.dto.response.ProjectTaskStatsResponse;
 import com.uth.datalabeling.modules.project.entity.Label;
 import com.uth.datalabeling.modules.project.entity.Project;
 import com.uth.datalabeling.modules.project.mapper.ProjectMapper;
 import com.uth.datalabeling.modules.project.repository.ProjectRepository;
 import com.uth.datalabeling.modules.dataset.repository.DatasetRepository;
+import com.uth.datalabeling.modules.task.dto.TaskStatusCountDTO;
+import com.uth.datalabeling.modules.task.repository.TaskRepository;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +44,8 @@ public class ProjectService {
     ProjectAccessService projectAccessService;
     ProjectMapper projectMapper;
     DatasetRepository datasetRepository;
+    UserRepository userRepository;
+    TaskRepository taskRepository;
 
 
     /**
@@ -63,7 +73,16 @@ public class ProjectService {
 
         // set thông tin hệ thống
         project.setStatus(ProjectStatus.DRAFT);
-        project.setManagerId(currentUser.getId());
+        UUID managerId = projectAccessService.isAdmin(currentUser) ? null : currentUser.getId();
+        if (projectAccessService.isAdmin(currentUser) && request.getManagerId() != null) {
+            User manager = userRepository.findById(request.getManagerId())
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            if (!"MANAGER".equals(manager.getRole())) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Project manager must have MANAGER role");
+            }
+            managerId = manager.getId();
+        }
+        project.setManagerId(managerId);
         project.setCreatedBy(currentUser.getId());
         project.setUpdatedBy(currentUser.getId());
 
@@ -77,7 +96,7 @@ public class ProjectService {
         // load lại để trả về đầy đủ (labels, dataset…)
         Project hydratedProject = reloadProjectForResponse(savedProject.getId());
 
-        return projectMapper.toProjectResponse(hydratedProject);
+        return toProjectResponseWithActiveLabels(hydratedProject);
     }
 
 
@@ -98,15 +117,21 @@ public class ProjectService {
                 .pageSize(projectPage.getSize())
                 .totalElements(projectPage.getTotalElements())
                 .data(projectPage.getContent().stream()
-                        .map(projectMapper::toProjectResponse)
+                        .map(this::toProjectResponseWithActiveLabels)
                         .collect(Collectors.toList()))
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProjectResponse> getMyAssignedProjects(Pageable pageable) {
+    public PageResponse<ProjectResponse> getMyAssignedProjects(String role, Pageable pageable) {
         User currentUser = projectAccessService.getCurrentUser();
-        Page<Project> projectPage = projectRepository.findAssignedProjectsForAnnotator(currentUser.getId(), pageable);
+        String effectiveRole = role == null || role.isBlank() ? currentUser.getRole() : role.trim().toUpperCase();
+        if (!effectiveRole.equals(currentUser.getRole())) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        Page<Project> projectPage = "REVIEWER".equals(effectiveRole)
+                ? projectRepository.findAssignedProjectsForReviewer(currentUser.getId(), pageable)
+                : projectRepository.findAssignedProjectsForAnnotator(currentUser.getId(), pageable);
 
         return PageResponse.<ProjectResponse>builder()
                 .currentPage(projectPage.getNumber())
@@ -114,15 +139,63 @@ public class ProjectService {
                 .pageSize(projectPage.getSize())
                 .totalElements(projectPage.getTotalElements())
                 .data(projectPage.getContent().stream()
-                        .map(projectMapper::toProjectResponse)
+                        .map(this::toProjectResponseWithActiveLabels)
                         .collect(Collectors.toList()))
                 .build();
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<ProjectResponse> getMyAssignedProjects(Pageable pageable) {
+        return getMyAssignedProjects(null, pageable);
+    }
+
+    @Transactional
+    public ProjectResponse updateProjectManager(UUID id, ProjectManagerRequest request) {
+        User currentUser = projectAccessService.getCurrentUser();
+        if (!projectAccessService.isAdmin(currentUser)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        Project project = projectRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        if (request.getManagerId() == null) {
+            project.setManagerId(null);
+            project.setUpdatedBy(currentUser.getId());
+            return toProjectResponseWithActiveLabels(projectRepository.saveAndFlush(project));
+        }
+        User manager = userRepository.findById(request.getManagerId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (!"MANAGER".equals(manager.getRole())) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Project manager must have MANAGER role");
+        }
+        project.setManagerId(manager.getId());
+        project.setUpdatedBy(currentUser.getId());
+        return toProjectResponseWithActiveLabels(projectRepository.saveAndFlush(project));
+    }
+
+    @Transactional
+    public ProjectResponse updateProjectReviewers(UUID id, ProjectReviewersRequest request) {
+        Project project = projectAccessService.findProjectAndCheckAccess(id);
+        List<UUID> reviewerIds = request.getReviewerIds() == null ? List.of() : request.getReviewerIds();
+        List<User> reviewers = reviewerIds.isEmpty() ? List.of() : userRepository.findAllById(reviewerIds);
+        if (reviewers.size() != new HashSet<>(reviewerIds).size()) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+        for (User reviewer : reviewers) {
+            if (!"REVIEWER".equals(reviewer.getRole())) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Reviewer assignee must have REVIEWER role");
+            }
+            projectAccessService.ensureUserAssignableInCurrentScope(reviewer);
+        }
+        project.getReviewers().clear();
+        project.getReviewers().addAll(reviewers);
+        project.setUpdatedBy(projectAccessService.getCurrentUser().getId());
+        return toProjectResponseWithActiveLabels(projectRepository.saveAndFlush(project));
+    }
+
+    @Transactional(readOnly = true)
     public ProjectResponse getProjectById(UUID id) {
         Project project = projectAccessService.findProjectAndCheckReadAccess(id);
-        return projectMapper.toProjectResponse(project);
+        return toProjectResponseWithActiveLabels(project);
     }
 
     @Transactional
@@ -160,7 +233,7 @@ public class ProjectService {
 
         Project savedProject = projectRepository.saveAndFlush(project);
         Project hydratedProject = reloadProjectForResponse(savedProject.getId());
-        return projectMapper.toProjectResponse(hydratedProject);
+        return toProjectResponseWithActiveLabels(hydratedProject);
     }
 
     @Transactional
@@ -213,7 +286,73 @@ public class ProjectService {
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
         project.getLabels().size();
+        project.getReviewers().size();
         return project;
+    }
+
+    private ProjectResponse toProjectResponseWithActiveLabels(Project project) {
+        ProjectResponse response = projectMapper.toProjectResponse(project);
+        List<LabelResponse> activeLabels = Optional.ofNullable(project.getLabels())
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .filter(label -> label.getDeletedAt() == null)
+                .map(projectMapper::toLabelResponse)
+                .collect(Collectors.toList());
+        response.setLabels(activeLabels);
+        response.setManagerName(resolveManagerName(project.getManagerId()));
+        response.setReviewers(Optional.ofNullable(project.getReviewers())
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .map(reviewer -> ProjectReviewerResponse.builder()
+                        .id(reviewer.getId())
+                        .fullName(reviewer.getFullName())
+                        .email(reviewer.getEmail())
+                        .build())
+                .toList());
+        response.setTaskStats(buildTaskStats(project.getId()));
+        return response;
+    }
+
+    private String resolveManagerName(UUID managerId) {
+        if (managerId == null || userRepository == null) {
+            return null;
+        }
+        return userRepository.findById(managerId)
+                .map(User::getFullName)
+                .orElse(null);
+    }
+
+    private ProjectTaskStatsResponse buildTaskStats(UUID projectId) {
+        if (taskRepository == null) {
+            return ProjectTaskStatsResponse.builder().build();
+        }
+        Map<String, Long> counts = taskRepository.countTasksByStatus(projectId).stream()
+                .collect(Collectors.toMap(
+                        item -> item.status() == null ? "" : item.status().toUpperCase(),
+                        TaskStatusCountDTO::count));
+        long pending = counts.getOrDefault("PENDING", 0L);
+        long assigned = counts.getOrDefault("ASSIGNED", 0L);
+        long inProgress = counts.getOrDefault("IN_PROGRESS", 0L);
+        long readyForReview = counts.getOrDefault("READY_FOR_REVIEW", 0L);
+        long pendingReview = counts.getOrDefault("PENDING_REVIEW", 0L);
+        long completed = counts.getOrDefault("COMPLETED", 0L);
+        long rejected = counts.getOrDefault("REJECTED", 0L);
+        long total = pending + assigned + inProgress + readyForReview + pendingReview + completed + rejected;
+        long reviewed = completed + rejected;
+        return ProjectTaskStatsResponse.builder()
+                .total(total)
+                .unlabeled(pending + assigned)
+                .inProgress(inProgress)
+                .pendingReview(pendingReview)
+                .completed(completed)
+                .rejected(rejected)
+                .completionRate(total > 0 ? roundPercent(completed, total) : 0.0)
+                .rejectionRate(reviewed > 0 ? roundPercent(rejected, reviewed) : 0.0)
+                .build();
+    }
+
+    private double roundPercent(long value, long total) {
+        return Math.round(((double) value / (double) total) * 10000.0) / 100.0;
     }
 
     private boolean isValidProjectStatus(String status) {

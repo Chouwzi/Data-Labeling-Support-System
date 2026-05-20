@@ -9,15 +9,18 @@ import KpiCard from '@/components/dashboard/KpiCard';
 import ProjectTable from '@/pages/manager/ProjectTable';
 import ProjectCard from '@/components/manager/ProjectCard';
 import Modal from '@/components/Modal';
-import { createProject, getProjects, getTasks, uploadGuidelineFile } from '@/services/api';
+import Toast from '@/components/Toast';
+import { createProject, deleteProject, getProjects, getUsers, updateProject, updateProjectManager, uploadGuidelineFile } from '@/services/api';
 import {
   FolderPlus, AlignLeft, FileText, Upload, X, CheckCircle,
   Search, LayoutGrid, List
 } from 'lucide-react';
+import { apiErrorMessage } from '@/utils/uploadPolicy';
 import '@/styles/ManagerDashboard.css';
 
 const FILTER_CHIPS = [
   { id: 'all', label: 'All' },
+  { id: 'needs_setup', label: 'Needs Setup' },
   { id: 'initialized', label: 'Initialized' },
   { id: 'in_progress', label: 'In Progress' },
   { id: 'review', label: 'Review' },
@@ -75,7 +78,8 @@ function normalizeProject(raw) {
     status: statusMap[raw.status] || 'initialized',
     progress: raw.progress ?? 0,
     images: raw.totalImages ?? raw.images ?? 0,
-    labels: raw.totalLabels ?? raw.labels ?? 0,
+    labels: Array.isArray(raw.labels) ? raw.labels.length : (raw.totalLabels ?? raw.labels ?? 0),
+    datasetId: raw.datasetId || raw.dataset_id || null,
     annotators: raw.annotatorCount ?? raw.annotators ?? 0,
     createdAt: rawDate,
     created: parseDate(rawDate),
@@ -83,6 +87,9 @@ function normalizeProject(raw) {
       'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
     members: raw.members || [],
     description: raw.description || '',
+    managerId: raw.managerId || raw.manager_id || null,
+    managerName: raw.managerName || raw.manager_name || 'Unassigned',
+    taskStats: raw.taskStats || raw.task_stats || {},
   };
 }
 
@@ -95,6 +102,7 @@ export default function Projects() {
 
   // ── Project list state ──
   const [projects, setProjects] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [, setIsLoadingProjects] = useState(false);
 
   // View mode
@@ -105,12 +113,16 @@ export default function Projects() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedManagerId, setSelectedManagerId] = useState('');
   const [file, setFile] = useState(null);
   const [fileError, setFileError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const fileInputRef = useRef(null);
 
 
@@ -125,40 +137,36 @@ export default function Projects() {
       const data = res.data?.result?.data ?? [];
 
       if (Array.isArray(data)) {
-        const normalized = data.map(normalizeProject);
-        const withProgress = await Promise.all(
-          normalized.map(async (proj) => {
-            try {
-              const tasksRes = await getTasks(proj.id);
-              const tasks = Array.isArray(tasksRes.data?.result)
-                ? tasksRes.data.result
-                : Array.isArray(tasksRes.data)
-                ? tasksRes.data
-                : [];
-              const total = tasks.length;
-              const completed = tasks.filter(
-                (t) => t.status === 'DONE' || t.status === 'COMPLETED' || t.status === 'APPROVED'
-              ).length;
-              const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-              
-              let status = proj.status;
-              if (total > 0) {
-                if (completed === total) {
-                  status = 'completed';
-                } else if (tasks.some(t => t.status === 'PENDING_REVIEW' || t.status === 'REVIEW')) {
-                  status = 'review';
-                } else if (completed > 0 || tasks.some(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED' || t.status === 'REJECTED')) {
-                  status = 'in_progress';
-                }
-              }
-              return { ...proj, progress, status, images: total, imageCount: total };
-            } catch (e) {
-              console.error('Failed to fetch tasks for project', proj.id, e);
-              return { ...proj, progress: 0, images: 0, imageCount: 0 };
+        setProjects(data.map((raw) => {
+          const proj = normalizeProject(raw);
+          const stats = proj.taskStats || {};
+          const total = Number(stats.total || 0);
+          const completed = Number(stats.completed || 0);
+          let status = proj.status;
+          if (total > 0) {
+            if (completed === total) {
+              status = 'completed';
+            } else if (Number(stats.pendingReview || stats.pending_review || 0) > 0) {
+              status = 'review';
+            } else if (
+              Number(stats.inProgress || stats.in_progress || 0) > 0 ||
+              Number(stats.rejected || 0) > 0 ||
+              Number(stats.assigned || 0) > 0
+            ) {
+              status = 'in_progress';
             }
-          })
-        );
-        setProjects(withProgress);
+          }
+          const imageCount = total || Number(proj.images || 0);
+          return {
+            ...proj,
+            progress: Math.round(Number(stats.completionRate || stats.completion_rate || 0)),
+            status,
+            images: imageCount,
+            imageCount,
+            taskCount: total,
+            needsSetup: Number(proj.labels || 0) === 0 || imageCount === 0,
+          };
+        }));
       }
     } catch (err) {
       console.error('Error fetching projects:', err);
@@ -171,6 +179,16 @@ export default function Projects() {
     fetchProjects();
   }, [fetchProjects]);
 
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return;
+    getUsers()
+      .then((res) => {
+        const list = res.data?.result || [];
+        setManagers(list.filter((item) => item.role === 'MANAGER'));
+      })
+      .catch(() => setManagers([]));
+  }, [user?.role]);
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -182,6 +200,7 @@ export default function Projects() {
     setIsCreateModalOpen(false);
     setProjectName('');
     setDescription('');
+    setSelectedManagerId('');
     setFile(null);
     setFileError('');
     setErrors({});
@@ -255,6 +274,7 @@ export default function Projects() {
       const response = await createProject({
         name: projectName.trim(),
         description: description.trim(),
+        managerId: selectedManagerId || undefined,
         labels: [],
       });
 
@@ -293,6 +313,48 @@ export default function Projects() {
     }
   };
 
+  const handleEditProject = (project) => {
+    setEditingProject({
+      id: project.id,
+      name: project.name,
+      description: project.description || '',
+      status: project.status === 'in_progress' ? 'ACTIVE' : project.status === 'completed' ? 'ARCHIVED' : 'DRAFT',
+      managerId: project.managerId || '',
+    });
+  };
+
+  const handleUpdateProject = async (event) => {
+    event.preventDefault();
+    if (!editingProject?.name?.trim()) return;
+    try {
+      await updateProject(editingProject.id, {
+        name: editingProject.name.trim(),
+        description: editingProject.description.trim(),
+        status: editingProject.status,
+      });
+      if (isAdmin && editingProject.managerId) {
+        await updateProjectManager(editingProject.id, editingProject.managerId);
+      }
+      setToast({ type: 'success', message: 'Project updated' });
+      setEditingProject(null);
+      await fetchProjects();
+    } catch (error) {
+      setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to update project') });
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteProject(deleteTarget.id);
+      setToast({ type: 'success', message: 'Project deleted' });
+      setDeleteTarget(null);
+      await fetchProjects();
+    } catch (error) {
+      setToast({ type: 'error', message: apiErrorMessage(error, 'Failed to delete project') });
+    }
+  };
+
 
   const isFormValid = projectName.trim().length >= 3;
 
@@ -301,7 +363,8 @@ export default function Projects() {
   const filteredProjects = useMemo(() => {
     const safeList = Array.isArray(projects) ? projects : [];
     return safeList.filter((p) => {
-      const matchesFilter = activeFilter === 'all' || p?.status === activeFilter;
+      const matchesFilter = activeFilter === 'all'
+        || (activeFilter === 'needs_setup' ? p?.needsSetup : p?.status === activeFilter);
       const matchesSearch =
         !searchQuery.trim() ||
         p?.name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -315,8 +378,9 @@ export default function Projects() {
     const completed = projects.filter((p) => p.status === 'completed').length;
     const pending = projects.filter((p) => p.status === 'initialized').length;
     const inReview = projects.filter((p) => p.status === 'review').length;
+    const needsSetup = projects.filter((p) => p.needsSetup).length;
 
-    return { total, active, completed, pending, inReview };
+    return { total, active, completed, pending, inReview, needsSetup };
   }, [projects]);
 
   // ─── Create Form ─────────────────────────────────────────────────────────
@@ -374,6 +438,25 @@ export default function Projects() {
           rows={4}
         />
       </div>
+
+      {isAdmin && (
+        <label className="form-field">
+          <span className="form-field__label">Manager</span>
+          <select
+            className="form-field__input"
+            value={selectedManagerId}
+            onChange={(event) => setSelectedManagerId(event.target.value)}
+            disabled={isSubmitting}
+          >
+            <option value="">Assign to me / default</option>
+            {managers.map((manager) => (
+              <option key={manager.id} value={manager.id}>
+                {manager.fullName || manager.full_name || manager.email}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="form-field">
         <label className="form-field__label">
@@ -509,7 +592,7 @@ export default function Projects() {
                 <div>
                   <h1 className="manager-page-title">Projects</h1>
                   <p className="manager-page-subtitle">
-                    Manage your active labeling campaigns.
+                    Manage labeling campaigns from setup through review.
                   </p>
                 </div>
                 <button
@@ -532,12 +615,15 @@ export default function Projects() {
                 <KpiCard title="All Projects" value={stats.total} icon="folder_managed" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
+                <KpiCard title="Needs Setup" value={stats.needsSetup} icon="clock" variant="summary" />
+              </div>
+              <div className="projects-kpi-wrap">
                 <KpiCard title="Active Projects" value={stats.active} icon="folder_managed" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
                 <KpiCard title="Completed Projects" value={stats.completed} icon="assignment_turned_in" variant="summary" />
               </div>
-              <div className="projects-kpi_wrap">
+              <div className="projects-kpi-wrap">
                 <KpiCard title="Pending Projects" value={stats.pending} icon="clock" variant="summary" />
               </div>
               <div className="projects-kpi-wrap">
@@ -561,6 +647,7 @@ export default function Projects() {
                     {chip.id !== 'all' && (
                       <span className="filter-chip__count">
                         {chip.id === 'initialized' && stats.pending}
+                        {chip.id === 'needs_setup' && stats.needsSetup}
                         {chip.id === 'in_progress' && stats.active}
                         {chip.id === 'review' && stats.inReview}
                         {chip.id === 'completed' && stats.completed}
@@ -615,6 +702,8 @@ export default function Projects() {
                   projects={filteredProjects}
                   statusColors={STATUS_COLORS}
                   totalProjects={filteredProjects.length}
+                  onEdit={handleEditProject}
+                  onDelete={setDeleteTarget}
                 />
               ) : (
                 <div className="project-grid" role="list" aria-label="Projects">
@@ -623,6 +712,8 @@ export default function Projects() {
                       key={project.id}
                       project={project}
                       statusColors={STATUS_COLORS}
+                      onEdit={handleEditProject}
+                      onDelete={setDeleteTarget}
                     />
                   ))}
                 </div>
@@ -638,6 +729,65 @@ export default function Projects() {
         >
           {renderCreateProjectForm()}
         </Modal>
+
+        <Modal
+          isOpen={Boolean(editingProject)}
+          onClose={() => setEditingProject(null)}
+          title="Edit Project"
+        >
+          {editingProject && (
+            <form className="create-project-form" onSubmit={handleUpdateProject}>
+              <label className="form-field">
+                <span className="form-field__label">Project name</span>
+                <input className="form-field__input" value={editingProject.name} onChange={(event) => setEditingProject((prev) => ({ ...prev, name: event.target.value }))} />
+              </label>
+              <label className="form-field">
+                <span className="form-field__label">Description</span>
+                <textarea className="form-field__textarea" rows={4} value={editingProject.description} onChange={(event) => setEditingProject((prev) => ({ ...prev, description: event.target.value }))} />
+              </label>
+              <label className="form-field">
+                <span className="form-field__label">Status</span>
+                <select className="form-field__input" value={editingProject.status} onChange={(event) => setEditingProject((prev) => ({ ...prev, status: event.target.value }))}>
+                  <option value="DRAFT">Draft</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="ARCHIVED">Archived</option>
+                </select>
+              </label>
+              {isAdmin && (
+                <label className="form-field">
+                  <span className="form-field__label">Manager</span>
+                  <select className="form-field__input" value={editingProject.managerId} onChange={(event) => setEditingProject((prev) => ({ ...prev, managerId: event.target.value }))}>
+                    <option value="">No change</option>
+                    {managers.map((manager) => (
+                      <option key={manager.id} value={manager.id}>
+                        {manager.fullName || manager.full_name || manager.email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <div className="form-actions">
+                <button type="submit" className="create-project-submit-btn">Save changes</button>
+                <button type="button" className="cancel-btn" onClick={() => setEditingProject(null)}>Cancel</button>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+          title="Delete Project"
+        >
+          <div className="delete-confirmation">
+            <p>Delete <strong>{deleteTarget?.name}</strong>? This project will be soft-deleted and removed from active lists.</p>
+            <div className="form-actions">
+              <button type="button" className="danger-btn" onClick={handleDeleteProject}>Delete project</button>
+              <button type="button" className="cancel-btn" onClick={() => setDeleteTarget(null)}>Cancel</button>
+            </div>
+          </div>
+        </Modal>
+        {toast && <Toast type={toast.type || 'success'} message={toast.message} onClose={() => setToast(null)} />}
       </div>
     </div>
   );

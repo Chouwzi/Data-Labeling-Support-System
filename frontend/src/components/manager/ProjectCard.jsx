@@ -1,16 +1,30 @@
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Eye, Clock, Image as ImageIcon, Tag, Users } from 'lucide-react';
+import { Edit2, Eye, Image as ImageIcon, Tag, Trash2, Users } from 'lucide-react';
 
-export default function ProjectCard({ project, statusColors }) {
+export default function ProjectCard({ project, statusColors, onEdit, onDelete }) {
   const status = statusColors[project.status] || statusColors.initialized;
   const isNew = Boolean(project.isNew);
   const navigate = useNavigate();
 
   const userRole = localStorage.getItem('role') || 'MANAGER';
   const prefix = userRole === 'ADMIN' ? '/admin' : '/manager';
+  const openProject = (tab) => {
+    navigate(`${prefix}/projects/${project.id}${tab ? `?tab=${tab}` : ''}`);
+  };
 
   return (
-    <article className="project-card" role="listitem">
+    <article
+      className="project-card"
+      role="listitem"
+      tabIndex={0}
+      onClick={() => openProject()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openProject();
+        }
+      }}
+    >
       {/* Thumbnail */}
       <div className="project-card__thumb">
         <img
@@ -109,7 +123,10 @@ export default function ProjectCard({ project, statusColors }) {
               className="project-card__action-btn"
               aria-label={`Edit ${project.name}`}
               title="Edit Taxonomy"
-              onClick={() => navigate(`${prefix}/taxonomy/${project.id}`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(project);
+              }}
             >
               <Edit2 size={14} />
             </button>
@@ -118,9 +135,24 @@ export default function ProjectCard({ project, statusColors }) {
               className="project-card__action-btn project-card__action-btn--primary"
               aria-label={`View ${project.name}`}
               title="Assign Images"
-              onClick={() => navigate(`${prefix}/annotators`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                openProject('tasks');
+              }}
             >
               <Eye size={14} />
+            </button>
+            <button
+              type="button"
+              className="project-card__action-btn project-card__action-btn--danger"
+              aria-label={`Delete ${project.name}`}
+              title="Delete Project"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(project);
+              }}
+            >
+              <Trash2 size={14} />
             </button>
           </div>
         </div>

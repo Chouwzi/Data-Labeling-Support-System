@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/useAuth';
 import ReviewerSidebar from '@/components/reviewer/ReviewerSidebar';
 import Topbar from '@/components/common/Topbar';
@@ -34,12 +34,15 @@ export default function ReviewerDashboard() {
   const [completedReviews, setCompletedReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const selectedProjectId = searchParams.get('projectId') || null;
   
   // Custom filter states for Completed Stats tab
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedAnnotator, setSelectedAnnotator] = useState('ALL');
 
   const isDashboard = location.pathname === '/reviewer';
+  const isProjectsTab = location.pathname === '/reviewer/projects';
   const isCompletedTab = location.pathname === '/reviewer/completed';
 
   let pageTitle = 'Reviewer Dashboard';
@@ -48,8 +51,15 @@ export default function ReviewerDashboard() {
     pageTitle = 'Review Statistics';
     pageSubtitle = 'Comprehensive performance metrics and curation quality review';
   } else if (!isDashboard) {
-    pageTitle = 'Pending Reviews';
-    pageSubtitle = 'Annotations currently waiting for your verification';
+    if (isProjectsTab) {
+      pageTitle = 'Assigned Review Projects';
+      pageSubtitle = 'Projects available through your manager group';
+    } else {
+      pageTitle = selectedProjectId ? 'Project Review Queue' : 'Pending Reviews';
+      pageSubtitle = selectedProjectId
+        ? 'Annotations waiting for verification in this project'
+        : 'Annotations currently waiting for your verification';
+    }
   }
 
   const loadCompletedFromLocal = () => {
@@ -69,9 +79,17 @@ export default function ReviewerDashboard() {
         const data = loadCompletedFromLocal();
         setReviews(data);
       } else {
-        const res = await getReviewQueueImages();
+        const [queueRes, statsRes, projectsRes] = await Promise.all([
+          getReviewQueueImages(selectedProjectId),
+          getReviewStats({ projectId: selectedProjectId, range: 'today' }).catch(() => null),
+          getMyProjects({ role: 'REVIEWER' }).catch(() => ({ data: { result: { data: [] } } })),
+        ]);
+        const res = queueRes;
         const data = res.data?.result?.data || res.data?.result || [];
-        setReviews(data);
+        setReviews(Array.isArray(data) ? data : []);
+        setReviewStats(statsRes?.data?.result || null);
+        const projectData = projectsRes.data?.result?.data || projectsRes.data?.result || [];
+        setProjects(Array.isArray(projectData) ? projectData : []);
       }
       
       // Load completed reviews to calculate stats for the standard dashboard too
@@ -89,7 +107,7 @@ export default function ReviewerDashboard() {
 
   useEffect(() => {
     fetchReviews();
-  }, [isCompletedTab]);
+  }, [isCompletedTab, selectedProjectId]);
 
   const handleLogout = () => {
     logout();
@@ -110,10 +128,11 @@ export default function ReviewerDashboard() {
   };
 
   // Compute values dynamically from "reviews" list
-  const totalReviewed = reviews.length;
-  const approvedList = reviews.filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED');
+  const reviewStatus = (r) => (r.reviewAction || r.status || '').toUpperCase();
+  const totalReviewed = reviewStats?.totalReviewed ?? reviews.length;
+  const approvedList = reviews.filter(r => ['APPROVED', 'COMPLETED'].includes(reviewStatus(r)));
   const approvedCount = approvedList.length;
-  const rejectedList = reviews.filter(r => r.status === 'REJECTED');
+  const rejectedList = reviews.filter(r => reviewStatus(r) === 'REJECTED');
   const rejectedCount = rejectedList.length;
   const approvalRate = totalReviewed > 0 ? ((approvedCount / totalReviewed) * 100).toFixed(1) : '0';
   const rejectionRate = totalReviewed > 0 ? ((rejectedCount / totalReviewed) * 100).toFixed(1) : '0';
@@ -229,8 +248,8 @@ export default function ReviewerDashboard() {
   // Compute common defect categories distribution dynamically
   const defectBreakdown = {};
   reviews.forEach(r => {
-    if (r.status === 'REJECTED') {
-      const cat = r.defect_category_name || r.defectCategory || 'Uncategorized';
+    if (reviewStatus(r) === 'REJECTED') {
+      const cat = r.defect_category_name || r.defectCategoryName || r.defectCategory || 'Uncategorized';
       defectBreakdown[cat] = (defectBreakdown[cat] || 0) + 1;
     }
   });
@@ -243,9 +262,9 @@ export default function ReviewerDashboard() {
       annotatorStatsMap[name] = { name, total: 0, approved: 0, rejected: 0 };
     }
     annotatorStatsMap[name].total += 1;
-    if (r.status === 'APPROVED' || r.status === 'COMPLETED') {
+    if (['APPROVED', 'COMPLETED'].includes(reviewStatus(r))) {
       annotatorStatsMap[name].approved += 1;
-    } else if (r.status === 'REJECTED') {
+    } else if (reviewStatus(r) === 'REJECTED') {
       annotatorStatsMap[name].rejected += 1;
     }
   });
@@ -260,7 +279,7 @@ export default function ReviewerDashboard() {
     const imageUrl = review.image_url || review.imageUrl || '';
     const fileName = imageUrl ? imageUrl.replace(/\\/g, '/').split('/').pop() : '';
     const annotatorName = review.annotator_name || review.annotatorName || 'Unknown';
-    const status = review.status || 'COMPLETED';
+    const status = reviewStatus(review) || 'COMPLETED';
 
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           annotatorName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -276,8 +295,8 @@ export default function ReviewerDashboard() {
 
   // SVG Circle stroke length math: radius = 50, circumference = 2 * Math.PI * 50 = 314.16
   const strokeCircumference = 314.16;
-  const approvedStrokeOffset = strokeCircumference * (1 - approvedCount / (totalReviewed || 1));
-  const rejectedStrokeOffset = strokeCircumference * (1 - rejectedCount / (totalReviewed || 1));
+  const approvedStrokeOffset = strokeCircumference * (1 - approvedMetric / (totalReviewed || 1));
+  const rejectedStrokeOffset = strokeCircumference * (1 - rejectedMetric / (totalReviewed || 1));
 
   return (
     <div className="dashboard-layout">
@@ -305,7 +324,46 @@ export default function ReviewerDashboard() {
           {/* ========================================================= */}
           {/* STATS VIEW (Completed Tab) */}
           {/* ========================================================= */}
-          {isCompletedTab ? (
+          {isProjectsTab ? (
+            <div className="reviewer-projects-grid">
+              {projects.length === 0 ? (
+                <div className="empty-state">
+                  <ClipboardCheck size={44} />
+                  <p>No review projects assigned.</p>
+                </div>
+              ) : projects.map((project) => (
+                <article key={project.id} className="reviewer-project-card">
+                  <div className="reviewer-project-card__header">
+                    <div>
+                      <h3>{project.name}</h3>
+                      <p>{project.description || 'No description provided.'}</p>
+                    </div>
+                    <span className="reviewer-project-card__badge">
+                      {project.task_stats?.pendingReview || project.taskStats?.pendingReview || 0} pending
+                    </span>
+                  </div>
+                  <div className="reviewer-project-card__meta">
+                    <span>Manager</span>
+                    <strong>{project.manager_name || project.managerName || 'Unassigned'}</strong>
+                    <span>Status</span>
+                    <strong>{project.status || 'Active'}</strong>
+                  </div>
+                  <div className="reviewer-project-card__actions">
+                    <button
+                      type="button"
+                      className="btn btn--primary"
+                      onClick={() => navigate(`/reviewer/tasks?projectId=${project.id}`)}
+                    >
+                      Open review queue
+                    </button>
+                    {project.guideline_url || project.guidelineUrl ? (
+                      <a className="action-btn" href={project.guideline_url || project.guidelineUrl} target="_blank" rel="noreferrer">Guideline</a>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : isCompletedTab ? (
             <div className="stats-dashboard">
               {/* KPI metrics row */}
               <div className="kpi-container-custom">
@@ -318,14 +376,14 @@ export default function ReviewerDashboard() {
                 />
                 <KpiCard
                   title="Approved Annotations"
-                  value={`${approvedCount} (${approvalRate}%)`}
+                              value={`${approvedMetric} (${approvalRate}%)`}
                   icon={ThumbsUp}
                   trend="Acceptance"
                   variant="success"
                 />
                 <KpiCard
                   title="Rejected / Redo"
-                  value={`${rejectedCount} (${rejectionRate}%)`}
+                              value={`${rejectedMetric} (${rejectionRate}%)`}
                   icon={ThumbsDown}
                   trend="Issue Rate"
                   variant="danger"
@@ -370,7 +428,7 @@ export default function ReviewerDashboard() {
                               r="50" 
                               strokeDasharray={strokeCircumference}
                               strokeDashoffset={rejectedStrokeOffset}
-                              style={{ transform: `rotate(${(approvedCount / totalReviewed) * 360}deg)`, transformOrigin: '60px 60px' }}
+                              style={{ transform: `rotate(${(approvedMetric / totalReviewed) * 360}deg)`, transformOrigin: '60px 60px' }}
                             />
                           </>
                         )}
@@ -385,12 +443,12 @@ export default function ReviewerDashboard() {
                       <div className="legend-item">
                         <div className="legend-dot legend-dot--approved"></div>
                         <span className="legend-lbl">Approved</span>
-                        <span className="legend-val">{approvedCount} imgs</span>
+                        <span className="legend-val">{approvedMetric} imgs</span>
                       </div>
                       <div className="legend-item">
                         <div className="legend-dot legend-dot--rejected"></div>
                         <span className="legend-lbl">Rejected</span>
-                        <span className="legend-val">{rejectedCount} imgs</span>
+                        <span className="legend-val">{rejectedMetric} imgs</span>
                       </div>
                       <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', color: '#1e293b' }}>
                         <span>Grand Total:</span>
@@ -409,7 +467,7 @@ export default function ReviewerDashboard() {
                   <div className="defect-bar-list">
                     {Object.keys(defectBreakdown).length > 0 ? (
                       Object.entries(defectBreakdown).map(([category, count]) => {
-                        const percent = rejectedCount > 0 ? (count / rejectedCount) * 100 : 0;
+                        const percent = rejectedMetric > 0 ? (count / rejectedMetric) * 100 : 0;
                         return (
                           <div key={category} className="defect-bar-item">
                             <div className="defect-bar-meta">
@@ -521,7 +579,7 @@ export default function ReviewerDashboard() {
                           const imageUrl = review.image_url || review.imageUrl || '';
                           const fileName = imageUrl ? imageUrl.replace(/\\/g, '/').split('/').pop() : 'image.jpg';
                           const annotatorName = review.annotator_name || review.annotatorName || 'Unknown';
-                          const status = review.status || 'COMPLETED';
+                          const status = reviewStatus(review) || 'COMPLETED';
                           
                           // Format date nicely
                           const reviewDateStr = review.reviewed_at || review.reviewedAt || review.submitted_at || review.submittedAt || new Date().toISOString();
@@ -534,7 +592,7 @@ export default function ReviewerDashboard() {
                           });
 
                           const isApproved = status === 'APPROVED' || status === 'COMPLETED';
-                          const defectCategory = review.defect_category_name || review.defectCategory || '';
+                          const defectCategory = review.defect_category_name || review.defectCategoryName || review.defectCategory || '';
 
                           return (
                             <tr key={review.task_id || Math.random()}>
@@ -587,7 +645,7 @@ export default function ReviewerDashboard() {
                 <div className="kpi-grid">
                   <KpiCard
                     title="Pending Review"
-                    value={reviews.length.toString()}
+                    value={pendingMetric.toString()}
                     icon={ClipboardCheck}
                     trend="Real-time"
                     variant="warning"
@@ -654,7 +712,7 @@ export default function ReviewerDashboard() {
                           </div>
                           <button
                             className="btn btn--primary btn--full"
-                            onClick={() => navigate(`/reviewer/workspace/${taskId}`)}
+                            onClick={() => navigate(`/reviewer/workspace/${taskId}${selectedProjectId ? `?projectId=${selectedProjectId}` : ''}`)}
                           >
                             Review Now
                           </button>

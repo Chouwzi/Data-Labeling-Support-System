@@ -85,15 +85,14 @@ export default function RejectModal({ onClose, onConfirm }) {
             </div>
 
             <div className="form-group" style={{ marginTop: '20px' }}>
-              <label className="form-label" htmlFor="reject-note">Detailed Notes:</label>
+              <label className="form-label" htmlFor="reject-note">Notes (optional):</label>
               <textarea
                 id="reject-note"
                 className="form-textarea"
-                placeholder="Enter detailed reason here..."
+                placeholder="Add a short hint if the category is not enough..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={500}
-                required
               />
               <div className="textarea-footer">
                 <span className="char-counter">{note.length}/500</span>

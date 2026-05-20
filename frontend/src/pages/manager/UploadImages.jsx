@@ -4,24 +4,23 @@ import { useAuth } from '@/contexts/useAuth';
 import ManagerSidebar from '@/components/manager/ManagerSidebar';
 import Topbar from '@/components/common/Topbar';
 import BrandLogo from '@/components/common/BrandLogo';
-import { getProjects, uploadSamples, createDataset, updateProject } from '@/services/api';
+import { getProjects, uploadSamples, createDataset, updateProject, getSystemConfig } from '@/services/api';
 import Toast from '@/components/Toast';
+import {
+  apiErrorMessage,
+  DEFAULT_UPLOAD_POLICY,
+  formatFileSize,
+  getAcceptedImageExtensions,
+  normalizeUploadPolicy,
+  validateImageFile,
+} from '@/utils/uploadPolicy';
 import {
   Upload, X, CheckCircle, AlertCircle, Image, Loader2, Lightbulb,
   Trash2, ChevronRight, Info, Sparkles, Shield, ChevronDown
 } from 'lucide-react';
 import '@/styles/UploadImages.css';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png'];
-const MAX_SIZE_MB = 50;
-const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const SIMULATED_DURATION_MS = 3000;
-
-function formatFileSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function generatePreviewUrl(file) {
   return URL.createObjectURL(file);
@@ -36,6 +35,7 @@ export default function UploadImages() {
 
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadPolicy, setUploadPolicy] = useState(DEFAULT_UPLOAD_POLICY);
 
   const [projectId, setProjectId] = useState('');
   const [projectsList, setProjectsList] = useState([]);
@@ -66,6 +66,9 @@ export default function UploadImages() {
       }
     }
     fetchProjects();
+    getSystemConfig()
+      .then((res) => setUploadPolicy(normalizeUploadPolicy(res)))
+      .catch(() => setUploadPolicy(DEFAULT_UPLOAD_POLICY));
   }, []);
 
   // Metadata panel toggles
@@ -82,17 +85,8 @@ export default function UploadImages() {
 
   // Validate a single file
   const validateFile = useCallback((file) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return { valid: false, error: 'Only JPEG and PNG formats are accepted' };
-    }
-    if (file.size > MAX_SIZE_BYTES) {
-      return {
-        valid: false,
-        error: `Size too large: ${formatFileSize(file.size)}. Limit is ${MAX_SIZE_MB}MB.`
-      };
-    }
-    return { valid: true, error: null };
-  }, []);
+    return validateImageFile(file, uploadPolicy);
+  }, [uploadPolicy]);
 
   // Process dropped/selected files
   const processFiles = useCallback((rawFiles) => {
@@ -116,7 +110,7 @@ export default function UploadImages() {
       if (sizeErrorCount > 0) {
         setToast({
           type: 'error',
-          message: `${sizeErrorCount} file(s) exceed the ${MAX_SIZE_MB}MB size limit and were marked as invalid.`
+          message: `${sizeErrorCount} file(s) exceed the ${uploadPolicy.maxImageSizeMb}MB size limit and were marked as invalid.`
         });
       } else {
         setToast({ 
@@ -131,7 +125,7 @@ export default function UploadImages() {
       const filtered = newEntries.filter((e) => !existingNames.has(e.name));
       return [...prev, ...filtered];
     });
-  }, [validateFile]);
+  }, [uploadPolicy.maxImageSizeMb, validateFile]);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -235,7 +229,7 @@ export default function UploadImages() {
           setFiles((prev) => prev.map(f => f.id === fileObj.id ? { ...f, status: 'done', progress: 100 } : f));
         } catch (error) {
           // On failure, mark as invalid and show error
-          setFiles((prev) => prev.map(f => f.id === fileObj.id ? { ...f, status: 'invalid', error: error.message || 'Upload failed' } : f));
+          setFiles((prev) => prev.map(f => f.id === fileObj.id ? { ...f, status: 'invalid', error: apiErrorMessage(error, 'Upload failed') } : f));
         }
       })
     ).finally(() => {
@@ -372,7 +366,7 @@ export default function UploadImages() {
                 <input
                   type="file"
                   multiple
-                  accept="image/jpeg,image/png"
+                  accept={getAcceptedImageExtensions(uploadPolicy)}
                   className="visually-hidden"
                   onChange={handleFileInputChange}
                   ref={fileInputRef}
@@ -390,14 +384,13 @@ export default function UploadImages() {
                     or <span className="upload-dropzone__link">browse files</span> to select manually
                   </p>
                   <div className="upload-dropzone__badges">
-                    <span className="upload-badge upload-badge--type">
-                      <Image size={12} /> JPEG
-                    </span>
-                    <span className="upload-badge upload-badge--type">
-                      <Image size={12} /> PNG
-                    </span>
+                    {uploadPolicy.allowedExtensions.slice(0, 4).map((extension) => (
+                      <span key={extension} className="upload-badge upload-badge--type">
+                        <Image size={12} /> {extension.toUpperCase()}
+                      </span>
+                    ))}
                     <span className="upload-badge upload-badge--size">
-                      Max {MAX_SIZE_MB}MB per file
+                      Max {uploadPolicy.maxImageSizeMb}MB per file
                     </span>
                   </div>
                 </div>
@@ -665,15 +658,15 @@ export default function UploadImages() {
                 <ul className="upload-format-info__list">
                   <li>
                     <span className="upload-format-info__dot upload-format-info__dot--emerald" />
-                    JPEG (.jpg, .jpeg) &mdash; Lossy compression, smaller size
+                    Allowed formats: {uploadPolicy.allowedExtensions.map((extension) => `.${extension}`).join(', ')}
                   </li>
                   <li>
                     <span className="upload-format-info__dot upload-format-info__dot--emerald" />
-                    PNG (.png) &mdash; Lossless, supports transparency
+                    Files are checked by extension and image content before upload
                   </li>
                   <li>
                     <span className="upload-format-info__dot upload-format-info__dot--amber" />
-                    Max file size: {MAX_SIZE_MB}MB (admin-configured limit)
+                    Max file size: {uploadPolicy.maxImageSizeMb}MB (admin-configured limit)
                   </li>
                   <li>
                     <span className="upload-format-info__dot upload-format-info__dot--emerald" />

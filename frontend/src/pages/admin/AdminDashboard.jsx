@@ -1,206 +1,86 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ClipboardList,
+  FolderOpen,
+  Settings,
+  UserPlus,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
 import Sidebar from '@/components/common/Sidebar';
 import Topbar from '@/components/common/Topbar';
 import KpiCard from '@/components/dashboard/KpiCard';
-import ActivityItem from '@/components/dashboard/ActivityItem';
-import SystemConfigPanel from '@/components/system/SystemConfigPanel';
 import BrandLogo from '@/components/common/BrandLogo';
+import SystemConfigPanel from '@/components/system/SystemConfigPanel';
+import {
+  AttentionQueue,
+  AuditSparkline,
+  DonutMetric,
+  MiniBarList,
+  PipelineStackedBar,
+} from '@/components/dashboard/DashboardCharts';
+import { getAdminDashboard, getSystemConfig, updateSystemConfig } from '@/services/api';
 import '@/styles/AdminDashboard.css';
 
-const ACTIVITIES = [
-  {
-    id: 1,
-    icon: 'person_edit',
-    iconBgClass: 'activity-item__icon--secondary-container',
-    iconColorClass: 'activity-item__icon--text-secondary-container',
-    message: (
-      <>
-        <strong>Julian Casablancas</strong> updated role for annotator
-      </>
-    ),
-    timestamp: '2 MINUTES AGO',
-    category: 'USER MANAGEMENT',
-  },
-  {
-    id: 2,
-    icon: 'check_circle',
-    iconBgClass: 'activity-item__icon--primary-container',
-    iconColorClass: 'activity-item__icon--text-primary-container',
-    message: (
-      <>
-        Project <strong>Visual-QA-Alpha</strong> completed
-      </>
-    ),
-    timestamp: '45 MINUTES AGO',
-    category: 'PROJECT PIPELINE',
-  },
-  {
-    id: 3,
-    icon: 'warning',
-    iconBgClass: 'activity-item__icon--tertiary-container',
-    iconColorClass: 'activity-item__icon--text-tertiary',
-    message: (
-      <>
-        Storage quota exceeded for node <strong>AWS-US-EAST-1</strong>
-      </>
-    ),
-    timestamp: '2 HOURS AGO',
-    category: 'SYSTEM ALERT',
-  },
-];
+const emptyAdminDashboard = {
+  summary: {},
+  roleBreakdown: [],
+  taskPipeline: [],
+  projectSetupBreakdown: [],
+  auditActivity: [],
+  attentionQueue: [],
+  recentActivity: [],
+};
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
-  
-  const [dashboardData, setDashboardData] = useState({
-    totalUsers: '...',
-    activeProjects: '...',
-    systemUsage: '76%',
-    tasksInProgress: '8,912',
-  });
-  const [recentActivities, setRecentActivities] = useState(ACTIVITIES);
+  const [dashboard, setDashboard] = useState(emptyAdminDashboard);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [systemConfig, setSystemConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState('');
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
-  const toggleSidebar = useCallback(() => setSidebarOpen((o) => !o), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((open) => !open), []);
 
   useEffect(() => {
-      const fetchData = async () => {
-        try {
-          const { getUsers, getProjects, getLogs, getTasks } = await import('@/services/api');
-          const [usersRes, projectsRes, logsRes] = await Promise.all([
-            getUsers().catch(() => ({ data: { result: [] } })),
-            getProjects().catch(() => ({ data: { result: { content: [] } } })),
-            getLogs(0, 3).catch(() => ({ data: { result: { content: [] } } }))
-          ]);
-          
-          const usersList = usersRes.data?.result || [];
-          const totalUsers = usersList.length;
-
-          const projectsList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
-          const activeProjects = Array.isArray(projectsList) ? projectsList.length : 0;
-          
-          let totalTasksInProgress = 0;
-          let totalTasks = 0;
-
-          if (Array.isArray(projectsList)) {
-            await Promise.all(
-              projectsList.map(async (project) => {
-                try {
-                  const tasksRes = await getTasks(project.id);
-                  const tasks = Array.isArray(tasksRes.data?.result) ? tasksRes.data.result : (Array.isArray(tasksRes.data) ? tasksRes.data : []);
-                  totalTasks += tasks.length;
-                  totalTasksInProgress += tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length;
-                } catch (err) {
-                  console.error(`Failed to fetch tasks for project ${project.id}:`, err);
-                }
-              })
-            );
+    const fetchData = async () => {
+      setLoading(true);
+      setLoadError('');
+      try {
+        const [dashboardRes, configRes] = await Promise.all([
+          getAdminDashboard(),
+          getSystemConfig().catch((error) => {
+            setConfigError(error.response?.data?.message || 'Unable to load system configuration');
+            return null;
+          }),
+        ]);
+        setDashboard(dashboardRes.data?.result || emptyAdminDashboard);
+        if (configRes) {
+          const config = configRes.data?.result || {};
+          if (config.maxImageSize !== undefined && config.aiEnabled !== undefined) {
+            setSystemConfig({
+              maxImageSize: config.maxImageSize,
+              aiEnabled: config.aiEnabled,
+            });
+          } else {
+            setConfigError('System configuration response is incomplete');
           }
-
-          const calculatedUsage = Math.max(8, Math.min(95, Math.round(((totalTasks * 1.2) / 1000) * 100)));
-
-          const userMap = {};
-          usersList.forEach(u => {
-            userMap[u.id] = u.fullName || u.email || 'System User';
-          });
-
-          const logsList = Array.isArray(logsRes.data?.result)
-            ? logsRes.data.result
-            : Array.isArray(logsRes.data)
-            ? logsRes.data
-            : [];
-            
-          const mappedActivities = logsList.slice(0, 3).map((log, index) => {
-            let icon = 'check_circle';
-            let bgClass = 'activity-item__icon--primary-container';
-            let colorClass = 'activity-item__icon--text-primary-container';
-            
-            if (log.action?.includes('USER') || log.action?.includes('ROLE')) {
-              icon = 'person_edit';
-              bgClass = 'activity-item__icon--secondary-container';
-              colorClass = 'activity-item__icon--text-secondary-container';
-            } else if (log.action?.includes('CONFIG') || log.action?.includes('ERROR') || log.action?.includes('DELETE')) {
-              icon = 'warning';
-              bgClass = 'activity-item__icon--tertiary-container';
-              colorClass = 'activity-item__icon--text-tertiary';
-            }
-
-            const userName = userMap[log.userId] || 'System User';
-            const actionTextMap = {
-              CREATE_PROJECT: 'created a new project',
-              VIEW_ALL_PROJECTS: 'viewed all projects',
-              VIEW_PROJECT: 'viewed project details',
-              UPDATE_PROJECT: 'updated a project',
-              DELETE_PROJECT: 'deleted a project',
-              VIEW_AUDIT_LOGS: 'viewed system audit logs',
-              UPDATE_ROLE: 'updated user role',
-              TOGGLE_STATUS: 'toggled user status',
-            };
-            const actionFormatted = actionTextMap[log.action] || `performed ${log.action?.toLowerCase().replace(/_/g, ' ')}`;
-
-            const dateVal = log.createdAt;
-            const parseDate = (dVal) => {
-              if (!dVal) return new Date();
-              try {
-                if (Array.isArray(dVal)) {
-                  const [y, m, d, h = 0, min = 0, s = 0] = dVal;
-                  return new Date(y, m - 1, d, h, min, s);
-                }
-                return new Date(dVal);
-              } catch {
-                return new Date();
-              }
-            };
-            const dateObj = parseDate(dateVal);
-            
-            const formatTimeAgo = (date) => {
-              const seconds = Math.floor((new Date() - date) / 1000);
-              if (seconds < 60) return 'JUST NOW';
-              const minutes = Math.floor(seconds / 60);
-              if (minutes < 60) return `${minutes} MINUTES AGO`;
-              const hours = Math.floor(minutes / 60);
-              if (hours < 24) return `${hours} HOURS AGO`;
-              const days = Math.floor(hours / 24);
-              return `${days} DAYS AGO`;
-            };
-
-            return {
-              id: log.id || `log-${index}`,
-              icon,
-              iconBgClass: bgClass,
-              iconColorClass: colorClass,
-              message: (
-                <>
-                  <strong>{userName}</strong> {actionFormatted}
-                </>
-              ),
-              timestamp: formatTimeAgo(dateObj),
-              category: log.entityType || 'SYSTEM LOG',
-            };
-          });
-
-          setDashboardData(prev => ({
-            ...prev,
-            totalUsers: totalUsers.toString(),
-            activeProjects: activeProjects.toString(),
-            systemUsage: `${calculatedUsage}%`,
-            tasksInProgress: totalTasksInProgress.toLocaleString()
-          }));
-          
-          if (mappedActivities.length > 0) {
-            setRecentActivities(mappedActivities);
-          }
-        } catch (error) {
-          console.error('Failed to fetch dashboard data:', error);
         }
-      };
-      fetchData();
-    }, []);
+      } catch (error) {
+        console.error('Failed to fetch admin dashboard:', error);
+        setLoadError(error.response?.data?.message || 'Unable to load dashboard metrics');
+      } finally {
+        setLoading(false);
+        setConfigLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -209,18 +89,23 @@ export default function AdminDashboard() {
 
   const handleSaveConfig = async (config) => {
     try {
-      const { updateSystemConfig } = await import('@/services/api');
       await updateSystemConfig(config);
+      setSystemConfig({
+        maxImageSize: config.maxImageSize,
+        aiEnabled: config.aiEnabled,
+      });
       setToast({ message: 'Configuration saved successfully', type: 'success' });
-    } catch (err) {
+    } catch (error) {
       setToast({
-        message: err.response?.data?.message || 'Failed to save configuration',
+        message: error.response?.data?.message || 'Failed to save configuration',
         type: 'error',
       });
     }
     setTimeout(() => setToast(null), 3000);
   };
 
+  const summary = dashboard.summary || {};
+  const dashboardUnavailable = Boolean(loadError);
   const userName = user?.fullName || user?.email || 'Administrator';
   const userRole = user?.role ? user.role.replace('_', ' ') : 'USER';
 
@@ -242,76 +127,105 @@ export default function AdminDashboard() {
               <BrandLogo size={32} />
               <span className="admin-page-header__brand-name">DataLabel Pro</span>
             </div>
-            <h1 className="admin-page-title">Admin Dashboard</h1>
-            <p className="admin-page-subtitle">
-              Monitor system status and control configuration for the Data Labeling Support System ecosystem.
-            </p>
+            <div className="admin-page-header__row">
+              <div>
+                <h1 className="admin-page-title">Admin Operations</h1>
+                <p className="admin-page-subtitle">
+                  Global view of users, setup gaps, audit activity, and task throughput.
+                </p>
+              </div>
+              <div className="admin-quick-actions" aria-label="Admin quick actions">
+                <button type="button" className="admin-action-btn admin-action-btn--primary" onClick={() => navigate('/admin/users')}>
+                  <UserPlus size={16} />
+                  Create User
+                </button>
+                <button type="button" className="admin-action-btn" onClick={() => navigate('/admin/projects')}>
+                  <FolderOpen size={16} />
+                  Open Projects
+                </button>
+                <button type="button" className="admin-action-btn" onClick={() => navigate('/admin/logs')}>
+                  <ClipboardList size={16} />
+                  View Audit Logs
+                </button>
+              </div>
+            </div>
+            {loadError && <div className="dashboard-alert">{loadError}</div>}
           </header>
 
-          <div className="admin-grid">
-            <section className="admin-left-col">
-              <div className="kpi-grid">
-                <KpiCard
-                  title="Total Users"
-                  value={dashboardData.totalUsers}
-                  icon="group"
-                  trend="Real-time"
+          <div className="admin-v2-grid">
+            <section className="admin-v2-main">
+              <div className="kpi-grid admin-kpi-grid">
+                <KpiCard title="Users" value={formatNumber(summary.totalUsers, loading, dashboardUnavailable)} icon="group" trend={formatTrend(summary.activeUsers, 'active', loading, dashboardUnavailable)} />
+                <KpiCard title="Projects" value={formatNumber(summary.totalProjects, loading, dashboardUnavailable)} icon="folder_managed" trend={formatTrend(summary.datasetImages, 'images', loading, dashboardUnavailable)} />
+                <KpiCard title="Setup Gaps" value={formatNumber(summary.setupGaps, loading, dashboardUnavailable)} icon="warning" variant="warning" />
+                <KpiCard title="Active Labeling Tasks" value={formatNumber(summary.activeLabelingTasks, loading, dashboardUnavailable)} icon="assignment_turned_in" variant="success" />
+              </div>
+
+              <PipelineStackedBar
+                title="Global Task Pipeline"
+                subtitle="All task stages across active projects."
+                items={dashboard.taskPipeline}
+              />
+
+              <div className="admin-chart-grid">
+                <MiniBarList
+                  title="Project Setup Breakdown"
+                  subtitle="Ready projects versus setup blockers."
+                  items={dashboard.projectSetupBreakdown}
+                  valueKey="count"
+                  labelKey="label"
                 />
-                <KpiCard
-                  title="Active Projects"
-                  value={dashboardData.activeProjects}
-                  icon="folder_managed"
-                />
-                <KpiCard
-                  title="System Usage"
-                  value={dashboardData.systemUsage}
-                  subtitle="Storage"
-                  variant="wide"
-                  progress={parseInt(dashboardData.systemUsage) || 8}
-                />
-                <KpiCard
-                  title="Tasks in Progress"
-                  value={dashboardData.tasksInProgress}
-                  variant="activity"
-                  dotColors={['#10b981', '#34d399', '#6ee7b7']}
+                <AuditSparkline
+                  title="Audit Activity"
+                  subtitle="Last 7 days of administrative and system events."
+                  points={dashboard.auditActivity}
                 />
               </div>
 
-              <section
-                className="activity-section"
-                aria-labelledby="recent-activity-heading"
-              >
-                <div className="activity-section__header">
-                  <h2 className="activity-section__title" id="recent-activity-heading">
-                    Recent Activity
-                  </h2>
-                  <button
-                    type="button"
-                    className="activity-section__view-all"
-                    onClick={() => navigate('/admin/logs')}
-                  >
-                    VIEW ALL LOGS
-                  </button>
-                </div>
-
-                <div className="activity-section__list">
-                  {recentActivities.map((activity) => (
-                    <ActivityItem
-                      key={activity.id}
-                      icon={activity.icon}
-                      iconBgClass={activity.iconBgClass}
-                      iconColorClass={activity.iconColorClass}
-                      message={activity.message}
-                      timestamp={activity.timestamp}
-                      category={activity.category}
-                    />
-                  ))}
-                </div>
-              </section>
+              <RecentActivity items={dashboard.recentActivity} onViewAll={() => navigate('/admin/logs')} />
             </section>
 
-            <aside className="admin-right-col">
-              <SystemConfigPanel onSave={handleSaveConfig} />
+            <aside className="admin-v2-aside">
+              <DonutMetric
+                title="Role Breakdown"
+                subtitle="Current user composition."
+                items={dashboard.roleBreakdown}
+                centerLabel="Users"
+              />
+              <AttentionQueue
+                title="Attention Queue"
+                subtitle="Operational risks that need admin action."
+                items={dashboard.attentionQueue}
+                onNavigate={navigate}
+              />
+              <section className="admin-control-panel" aria-label="Admin control panel">
+                <div className="admin-control-panel__header">
+                  <Settings size={20} />
+                  <div>
+                    <h2>Control Panel</h2>
+                    <p>Shortcuts and guarded global settings.</p>
+                  </div>
+                </div>
+                <div className="admin-control-links">
+                  <button type="button" onClick={() => navigate('/admin/users')}>User Management</button>
+                  <button type="button" onClick={() => navigate('/admin/projects')}>Projects</button>
+                  <button type="button" onClick={() => navigate('/admin/system-config')}>System Config</button>
+                  <button type="button" onClick={() => navigate('/admin/logs')}>Activity Logs</button>
+                </div>
+                <div className="admin-config-compact">
+                  {configLoading ? (
+                    <div className="dashboard-empty">Loading system configuration...</div>
+                  ) : systemConfig ? (
+                    <SystemConfigPanel
+                      initialMaxImageSize={systemConfig.maxImageSize}
+                      initialAiEnabled={systemConfig.aiEnabled}
+                      onSave={handleSaveConfig}
+                    />
+                  ) : (
+                    <div className="dashboard-empty">{configError || 'System configuration is unavailable'}</div>
+                  )}
+                </div>
+              </section>
             </aside>
           </div>
         </main>
@@ -319,10 +233,57 @@ export default function AdminDashboard() {
 
       {toast && (
         <div className={`toast toast--${toast.type}`}>
-          <span className="toast__icon">{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span className="toast__icon">{toast.type === 'success' ? 'OK' : '!'}</span>
           <span className="toast__message">{toast.message}</span>
         </div>
       )}
     </div>
   );
+}
+
+function RecentActivity({ items = [], onViewAll }) {
+  return (
+    <section className="dash-card admin-recent-card" aria-label="Recent activity">
+      <div className="dash-card__header">
+        <div>
+          <h2>Recent Activity</h2>
+          <p>Latest audit events from the system log.</p>
+        </div>
+        <button type="button" className="activity-section__view-all" onClick={onViewAll}>
+          VIEW ALL LOGS
+        </button>
+      </div>
+      <div className="admin-recent-list">
+        {items.length > 0 ? items.map((item) => (
+          <div key={item.id || `${item.action}-${item.createdAt}`} className={`admin-recent-row admin-recent-row--${item.tone || 'neutral'}`}>
+            <strong>{formatAction(item.action)}</strong>
+            <span>{item.entityType || 'System'} - {formatDate(item.createdAt)}</span>
+          </div>
+        )) : <div className="dashboard-empty">No recent audit events</div>}
+      </div>
+    </section>
+  );
+}
+
+function formatNumber(value, loading, unavailable = false) {
+  if (loading) return '...';
+  if (unavailable) return '--';
+  return Number(value || 0).toLocaleString();
+}
+
+function formatTrend(value, label, loading, unavailable = false) {
+  if (loading) return 'Loading';
+  if (unavailable) return 'Unavailable';
+  return `${Number(value || 0).toLocaleString()} ${label}`;
+}
+
+function formatAction(action) {
+  return String(action || 'Activity').replace(/_/g, ' ').toLowerCase();
+}
+
+function formatDate(value) {
+  if (!value) return 'No timestamp';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No timestamp';
+  return date.toLocaleString();
 }

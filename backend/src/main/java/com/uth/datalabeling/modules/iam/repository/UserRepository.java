@@ -1,6 +1,7 @@
 package com.uth.datalabeling.modules.iam.repository;
 
 import com.uth.datalabeling.modules.iam.entity.User;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +14,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   Optional<User> findByEmail(String email);
 
-  java.util.List<User> findAllByRole(String role);
+  List<User> findAllByRole(String role);
+
+  List<User> findAllByGroupId(UUID groupId);
+
+  List<User> findAllByRoleAndGroupId(String role, UUID groupId);
+
+  long countByGroupId(UUID groupId);
+
+  long countByActiveTrue();
+
+  long countByRole(String role);
 }

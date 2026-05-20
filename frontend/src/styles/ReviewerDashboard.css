@@ -47,6 +47,13 @@
   color: #6b7280;
 }
 
+.review-workspace-nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .btn-back {
   display: inline-flex;
   align-items: center;
@@ -135,6 +142,82 @@
   gap: 24px;
 }
 
+.reviewer-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.reviewer-project-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border, #d7e0e8);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.reviewer-project-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.reviewer-project-card__header h3 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.reviewer-project-card__header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.reviewer-project-card__badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.reviewer-project-card__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  border-top: 1px solid var(--color-border, #d7e0e8);
+  border-bottom: 1px solid var(--color-border, #d7e0e8);
+  padding: 14px 0;
+}
+
+.reviewer-project-card__meta span {
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reviewer-project-card__meta strong {
+  color: #334155;
+  font-size: 14px;
+}
+
+.reviewer-project-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .review-card {
   background-color: #ffffff;
   border-radius: 12px;
@@ -162,7 +245,7 @@
   object-fit: cover;
 }
 
-.status-badge {
+.review-card .status-badge {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -289,7 +372,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 20px;
+  padding: 12px;
 }
 
 .image-viewer-container {
@@ -304,7 +387,7 @@
 .image-viewer {
   display: block;
   max-width: 100%;
-  max-height: 65vh;
+  max-height: 78vh;
   object-fit: contain;
 }
 
@@ -315,6 +398,15 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+.review-bbox-rect {
+  filter: drop-shadow(0 0 3px rgba(15, 23, 42, 0.55));
+  transition: stroke-width 0.12s ease, fill 0.12s ease, filter 0.12s ease;
+}
+
+.review-bbox-overlay--highlight .review-bbox-rect {
+  filter: drop-shadow(0 0 8px rgba(15, 23, 42, 0.85));
 }
 
 /* Review Sidebar Panel */

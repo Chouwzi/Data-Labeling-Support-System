@@ -19,6 +19,10 @@ const ActivityLog = () => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [size] = useState(20);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
     
   
 const handleLogout = () => {
@@ -71,7 +75,16 @@ const handleLogout = () => {
   const formatTimestamp = (createdAt) => {
     if (!createdAt) return 'N/A';
     try {
-      const date = new Date(createdAt);
+      const date = Array.isArray(createdAt)
+        ? new Date(
+            createdAt[0],
+            (createdAt[1] || 1) - 1,
+            createdAt[2] || 1,
+            createdAt[3] || 0,
+            createdAt[4] || 0,
+            createdAt[5] || 0
+          )
+        : new Date(createdAt);
       if (isNaN(date.getTime())) return 'N/A';
 
       return date.toLocaleString('en-US', {
@@ -91,6 +104,52 @@ const handlePageChange = (newPage) => {
       fetchLogs(newPage);
     }
   };
+
+  const normalizedLogs = useMemo(() => logs.map((log, index) => {
+    const userId = log.userId || log.user_id;
+    const userEmail = log.userEmail || log.user_email;
+    const userFullName = log.userFullName || log.user_full_name;
+    const userRole = log.userRole || log.user_role || 'SYSTEM';
+    const currentUserId = localStorage.getItem('userId');
+    const currentEmail = localStorage.getItem('email');
+    const actor = resolveActor({ userId, userEmail, currentUserId, currentEmail });
+    const action = log.action || 'UNKNOWN';
+    const endpoint = log.endpoint || '';
+    const target = log.entityType || log.entity_type || endpoint.replace('/api/v1/', '') || 'N/A';
+    const status = log.status || log.statusCode || log.status_code;
+    const createdAt = log.createdAt || log.created_at;
+    return {
+      id: log.id || `${createdAt || ''}-${index}`,
+      actor,
+      actorTitle: userFullName ? `${userFullName} (${actor})` : actor,
+      userRole,
+      action,
+      endpoint,
+      target,
+      status,
+      createdAt,
+    };
+  }), [logs]);
+
+  const availableActions = useMemo(
+    () => Array.from(new Set(normalizedLogs.map((log) => log.action).filter(Boolean))).sort(),
+    [normalizedLogs]
+  );
+
+  const availableRoles = useMemo(
+    () => Array.from(new Set(normalizedLogs.map((log) => log.userRole).filter(Boolean))).sort(),
+    [normalizedLogs]
+  );
+
+  const filteredLogs = useMemo(() => normalizedLogs.filter((log) => {
+    const statusText = getStatusText(log.status);
+    const haystack = `${log.actor} ${log.userRole} ${log.action} ${log.target} ${log.endpoint}`.toLowerCase();
+    const matchesSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
+    const matchesAction = !actionFilter || log.action === actionFilter;
+    const matchesRole = !roleFilter || log.userRole === roleFilter;
+    const matchesStatus = !statusFilter || statusText === statusFilter;
+    return matchesSearch && matchesAction && matchesRole && matchesStatus;
+  }), [normalizedLogs, searchQuery, actionFilter, roleFilter, statusFilter]);
 
   return (
     <div className="admin-layout">
@@ -124,6 +183,70 @@ const handlePageChange = (newPage) => {
 
           {!loading && !error && (
             <div className="log-table-wrapper">
+              <div className="log-toolbar" aria-label="Audit log filters">
+                <label className="log-search">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search logs by actor, action, target..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
+                </label>
+                <label className="log-filter">
+                  <span>Action</span>
+                  <select
+                    aria-label="Action filter"
+                    value={actionFilter}
+                    onChange={(event) => setActionFilter(event.target.value)}
+                  >
+                    <option value="">All actions</option>
+                    {availableActions.map((action) => (
+                      <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="log-filter">
+                  <span>Status</span>
+                  <select
+                    aria-label="Status filter"
+                    value={statusFilter}
+                    onChange={(event) => setStatusFilter(event.target.value)}
+                  >
+                    <option value="">All statuses</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="FAILED">Failed</option>
+                    <option value="INFO">Info</option>
+                  </select>
+                </label>
+                <label className="log-filter">
+                  <span>Role</span>
+                  <select
+                    aria-label="Role filter"
+                    value={roleFilter}
+                    onChange={(event) => setRoleFilter(event.target.value)}
+                  >
+                    <option value="">All roles</option>
+                    {availableRoles.map((role) => (
+                      <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </label>
+                {(searchQuery || actionFilter || roleFilter || statusFilter) && (
+                  <button
+                    type="button"
+                    className="log-clear-btn"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActionFilter('');
+                      setRoleFilter('');
+                      setStatusFilter('');
+                    }}
+                  >
+                    Reset filters
+                  </button>
+                )}
+              </div>
               <table className="log-table">
                 <thead>
                   <tr>
@@ -135,30 +258,13 @@ const handlePageChange = (newPage) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.length > 0 ? logs.map((log, index) => {
-                    let userDisplay = 'System';
-
-                    if (log.user_id) {
-                      const currentUserId = localStorage.getItem('userId');
-                      
-                      if (log.user_id === currentUserId && localStorage.getItem('email')) {
-                       
-                        userDisplay = localStorage.getItem('email');
-                      } else {
-                        
-                        userDisplay = `User ${log.user_id.toString().substring(0, 8)}...`;
-                      }
-                    }
-
-                  
-                    let targetDisplay = log.endpoint ? log.endpoint.replace('/api/v1/', '') : 'N/A';
-
+                  {filteredLogs.length > 0 ? filteredLogs.map((log) => {
                     return (
-                      <tr key={`${log.created_at || ''}-${index}`}>
-                        <td className="log-table__cell--timestamp">{formatTimestamp(log.created_at)}</td>
-                        <td><span className="log-user">{userDisplay}</span></td>
-                        <td><span className="action-tag">{log.action ? log.action.replace(/_/g, ' ') : 'UNKNOWN'}</span></td>
-                        <td className="log-table__cell--muted">{targetDisplay}</td>
+                      <tr key={log.id}>
+                        <td className="log-table__cell--timestamp">{formatTimestamp(log.createdAt)}</td>
+                        <td><span className="log-user" title={log.actorTitle}>{log.actor}</span></td>
+                        <td><span className="action-tag">{log.action.replace(/_/g, ' ')}</span></td>
+                        <td className="log-table__cell--muted" title={log.endpoint}>{log.target}</td>
                         <td><span className={`log-status ${getStatusClass(log.status)}`}>{getStatusText(log.status)}</span></td>
                       </tr>
                     );
@@ -202,3 +308,10 @@ const handlePageChange = (newPage) => {
 };
 
 export default ActivityLog;
+
+function resolveActor({ userId, userEmail, currentUserId, currentEmail }) {
+  if (userEmail) return userEmail;
+  if (!userId) return 'System';
+  if (userId === currentUserId && currentEmail) return currentEmail;
+  return `User ${userId.toString().substring(0, 8)}...`;
+}

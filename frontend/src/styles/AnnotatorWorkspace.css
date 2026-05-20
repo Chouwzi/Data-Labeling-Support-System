@@ -67,17 +67,20 @@
 .canvas-wrapper {
   flex: 1;
   overflow: auto;
-  padding: 2rem;
+  padding: 1rem;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   background: #e2e8f0;
+  user-select: none;
 }
 
 .canvas-container {
   position: relative;
   background: white;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  user-select: none;
+  touch-action: none;
 }
 
 .canvas-container.crosshair {
@@ -87,6 +90,9 @@
 .workspace-image {
   display: block;
   max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  object-fit: contain;
 }
 
 .annotation-svg {
@@ -111,6 +117,35 @@
   pointer-events: all;
   cursor: pointer;
   transition: stroke 0.2s ease, fill 0.2s ease, stroke-width 0.2s ease;
+}
+
+.bbox-handle {
+  pointer-events: all;
+}
+
+.bbox-handle--n,
+.bbox-handle--s {
+  cursor: ns-resize;
+}
+
+.bbox-handle--e,
+.bbox-handle--w {
+  cursor: ew-resize;
+}
+
+.bbox-handle--nw,
+.bbox-handle--se {
+  cursor: nwse-resize;
+}
+
+.bbox-handle--ne,
+.bbox-handle--sw {
+  cursor: nesw-resize;
+}
+
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .annotation-group.selected .bbox-rect {

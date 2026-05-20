@@ -67,8 +67,8 @@ public class ProjectAccessService {
 
     /**
      * Tìm project cho các API chỉ đọc.
-     * ADMIN và REVIEWER được đọc tất cả, MANAGER được đọc project của mình,
-     * ANNOTATOR chỉ được đọc project có task được giao.
+     * ADMIN được đọc tất cả, REVIEWER được đọc project trong group của manager,
+     * MANAGER được đọc project của mình, ANNOTATOR chỉ được đọc project có task được giao.
      */
     public Project findProjectAndCheckReadAccess(java.util.UUID projectId) {
         Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
@@ -76,7 +76,7 @@ public class ProjectAccessService {
         User currentUser = getCurrentUser();
 
         if (isAdmin(currentUser)
-                || isReviewer(currentUser)
+                || isAssignedReviewer(projectId, currentUser)
                 || Objects.equals(project.getManagerId(), currentUser.getId())
                 || isAssignedAnnotator(projectId, currentUser)) {
             return project;
@@ -92,6 +92,33 @@ public class ProjectAccessService {
 
     private boolean isReviewer(User currentUser) {
         return "REVIEWER".equals(currentUser.getRole());
+    }
+
+    private boolean isAssignedReviewer(java.util.UUID projectId, User currentUser) {
+        if (!isReviewer(currentUser) || currentUser.getGroup() == null) {
+            return false;
+        }
+        Project project = projectRepository.findByIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        if (project.getManagerId() == null) {
+            return false;
+        }
+        return userRepository.findById(project.getManagerId())
+                .map(User::getGroup)
+                .map(group -> group.getId().equals(currentUser.getGroup().getId()))
+                .orElse(false);
+    }
+
+    public void ensureUserAssignableInCurrentScope(User target) {
+        User currentUser = getCurrentUser();
+        if (isAdmin(currentUser)) {
+            return;
+        }
+        java.util.UUID currentGroupId = currentUser.getGroup() != null ? currentUser.getGroup().getId() : null;
+        java.util.UUID targetGroupId = target.getGroup() != null ? target.getGroup().getId() : null;
+        if (currentGroupId == null || !currentGroupId.equals(targetGroupId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
     }
 
     /**

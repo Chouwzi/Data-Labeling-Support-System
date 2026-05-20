@@ -60,6 +60,16 @@ export const getUsers = () => api.get('/users');
 
 export const getAnnotators = () => api.get('/users/annotators');
 
+export const getGroups = () => api.get('/groups');
+
+export const createGroup = (data) => api.post('/groups', data);
+
+export const updateGroup = (groupId, data) => api.put(`/groups/${groupId}`, data);
+
+export const deleteGroup = (groupId) => api.delete(`/groups/${groupId}`);
+
+export const getGroupMembers = (groupId) => api.get(`/groups/${groupId}/members`);
+
 export const createUser = (data) => api.post('/users', data);
 
 export const updateUser = (userId, data) => api.put(`/users/${userId}`, data);
@@ -71,6 +81,8 @@ export const updateUserRole = (user, newRole) => {
     email: user.email,
     full_name: user.fullName,
     role: newRole,
+    active: user.active,
+    group_id: user.groupId || user.group_id || null,
   };
   console.log('Sending payload (updateUserRole):', payload);
   return api.put(`/users/${user.id}`, payload);
@@ -130,17 +142,54 @@ export const getLogs = (page = 0, size = 20) =>
   });
 
 // =====================
+// Role Dashboards
+// =====================
+const toCamelCase = (key) =>
+  key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+
+const normalizeKeys = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeKeys);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value).reduce((acc, [key, entryValue]) => {
+      acc[toCamelCase(key)] = normalizeKeys(entryValue);
+      return acc;
+    }, {});
+  }
+
+  return value;
+};
+
+const normalizeApiResult = (response) => ({
+  ...response,
+  data: {
+    ...response.data,
+    result: normalizeKeys(response.data?.result),
+  },
+});
+
+export const getManagerDashboard = () =>
+  api.get('/dashboard/manager').then(normalizeApiResult);
+
+export const getAdminDashboard = () =>
+  api.get('/dashboard/admin').then(normalizeApiResult);
+
+// =====================
 // Projects
 // =====================
-export const getProjects = () => api.get('/projects', { params: { size: 1000, sort: 'createdAt,desc' } });
-export const getMyProjects = () => api.get('/me/projects', { params: { size: 1000 } });
+export const getProjects = (params = {}) => api.get('/projects', { params: { page: 0, size: 24, ...params } });
+export const getMyProjects = (params = {}) => api.get('/me/projects', { params: { page: 0, size: 24, ...params } });
 export const getProject = (projectId) => api.get(`/projects/${projectId}`);
+
+export const deleteProject = (projectId) => api.delete(`/projects/${projectId}`);
 
 export const getTasks = (projectId, status) =>
   api.get(`/projects/${projectId}/tasks`, { params: { status } });
 
 export const exportProjectCoco = (projectId) =>
-  api.get(`/projects/${projectId}/export/coco`);
+  api.get(`/projects/${projectId}/export/coco.zip`, { responseType: 'blob' });
 
 export const generateTasks = (projectId, datasetId) =>
   api.post(`/projects/${projectId}/tasks/generate`, null, { params: { datasetId } });
@@ -148,18 +197,53 @@ export const generateTasks = (projectId, datasetId) =>
 export const assignTasks = (projectId, data) =>
   api.put(`/projects/${projectId}/tasks/assign`, data);
 
-export const createProject = ({ name, description }) =>
+export const createProject = ({ name, description, managerId, manager_id }) =>
   api.post('/projects', {
     name,
     description,
+    manager_id: managerId || manager_id || null,
     labels: [],
   });
 
-export const createDataset = (name) =>
-  api.post('/datasets', { name });
+export const getDatasets = (params = {}) => api.get('/datasets', { params: { page: 0, size: 24, ...params } });
+
+export const getDataset = (datasetId) => api.get(`/datasets/${datasetId}`);
+
+export const getDatasetSamples = (datasetId, params = {}) => api.get(`/datasets/${datasetId}/samples`, { params: { page: 0, size: 24, ...params } });
+
+export const createDataset = (data) =>
+  api.post('/datasets', typeof data === 'string' ? { name: data } : data);
+
+export const updateDataset = (datasetId, data) =>
+  api.put(`/datasets/${datasetId}`, data);
+
+export const deleteDataset = (datasetId) => api.delete(`/datasets/${datasetId}`);
+
+export const deleteDatasetSample = (datasetId, sampleId) => api.delete(`/datasets/${datasetId}/samples/${sampleId}`);
 
 export const updateProject = (projectId, data) =>
   api.put(`/projects/${projectId}`, data);
+
+export const updateProjectManager = (projectId, managerId) =>
+  api.put(`/projects/${projectId}/manager`, { manager_id: managerId });
+
+export const updateProjectReviewers = (projectId, reviewerIds) =>
+  api.put(`/projects/${projectId}/reviewers`, { reviewer_ids: reviewerIds });
+
+export const getProjectWorkload = (projectId) =>
+  api.get(`/projects/${projectId}/workload`);
+
+export const splitProjectTasks = (projectId, data) =>
+  api.post(`/projects/${projectId}/tasks/split`, data);
+
+export const getProjectPerformance = (projectId) =>
+  api.get(`/projects/${projectId}/performance`);
+
+export const getAdminUserPerformance = () =>
+  api.get('/admin/users/performance');
+
+export const getMyPerformance = () =>
+  api.get('/me/performance');
 
 export const uploadGuidelineFile = (projectId, file) => {
   const formData = new FormData();
@@ -206,6 +290,9 @@ export const deleteLabel = (projectId, labelId) =>
 export const getMyAssignedImages = (params) =>
   api.get('/me/assigned-images', { params });
 
+export const submitReadyImages = (projectId) =>
+  api.post(`/me/projects/${projectId}/tasks/submit-ready`);
+
 export const getAnnotations = (taskId) =>
   api.get(`/tasks/${taskId}/annotations`);
 
@@ -215,12 +302,12 @@ export const saveTaskAnnotations = (taskId, annotations, submit = false) =>
 // =====================
 // Reviewer API Services
 // =====================
-export const getReviewQueueImages = (projectId, page = 0, size = 100) =>
+export const getReviewQueueImages = (projectId, page = 0, size = 24) =>
   api.get('/review-queue/images', {
     params: { projectId, page, size }
   });
 
-export const getCompletedReviewImages = (projectId, page = 0, size = 100) =>
+export const getCompletedReviewImages = (projectId, page = 0, size = 24) =>
   api.get('/review-queue/completed', {
     params: { projectId, page, size }
   });
@@ -236,5 +323,20 @@ export const rejectReviewImage = (taskId, defectCategoryId, comments) =>
 
 export const getDefectCategories = () =>
   api.get('/defect-categories');
+
+export const createDefectCategory = (data) =>
+  api.post('/defect-categories', data);
+
+export const updateDefectCategory = (categoryId, data) =>
+  api.put(`/defect-categories/${categoryId}`, data);
+
+export const deleteDefectCategory = (categoryId) =>
+  api.delete(`/defect-categories/${categoryId}`);
+
+export const getReviewStats = (params = {}) =>
+  api.get('/review-queue/stats', { params });
+
+export const getReviewHistory = (params = {}) =>
+  api.get('/review-queue/completed', { params });
 
 export default api;

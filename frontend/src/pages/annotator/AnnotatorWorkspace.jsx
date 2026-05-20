@@ -21,10 +21,24 @@ import {
   RotateCcw,
   ZoomIn,
   ZoomOut,
-  Maximize
+  Maximize,
+  ChevronLeft,
+  ChevronRight,
+  Send
 } from 'lucide-react';
 import '@/styles/Dashboard.css';
 import '@/styles/AnnotatorWorkspace.css';
+
+const projectWorkspaceCache = new Map();
+const assignedQueueCache = new Map();
+
+const bucketForStatus = (status) => {
+  const value = status?.toUpperCase();
+  if (value === 'REJECTED') return 'rework';
+  if (value === 'READY_FOR_REVIEW') return 'ready';
+  if (['PENDING_REVIEW', 'COMPLETED', 'APPROVED'].includes(value)) return 'submitted';
+  return 'unlabeled';
+};
 
 export default function AnnotatorWorkspace() {
   const { projectId, taskId } = useParams();
@@ -37,12 +51,14 @@ export default function AnnotatorWorkspace() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentBox, setCurrentBox] = useState(null);
   const [selectedBoxId, setSelectedBoxId] = useState(null);
+  const [dragState, setDragState] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState(null); // { message, type: 'success' | 'error' }
-  const [isCelebrated, setIsCelebrated] = useState(false);
+  const [queue, setQueue] = useState([]);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
 
   const [workspaceSettings, setWorkspaceSettings] = useState({
     strokeWidth: 'medium',
@@ -66,18 +82,6 @@ export default function AnnotatorWorkspace() {
       }
     }
   }, []);
-
-  const getStrokeWidth = () => {
-    const base = workspaceSettings.strokeWidth === 'thin' ? 1 : (workspaceSettings.strokeWidth === 'thick' ? 3.5 : 2);
-    return base / zoomLevel;
-  };
-
-  const getStrokeDasharray = (ann) => {
-    if (!isValidAnnotation(ann)) {
-      return `${5 / zoomLevel},${5 / zoomLevel}`;
-    }
-    return workspaceSettings.borderStyle === 'dashed' ? `${6 / zoomLevel},${4 / zoomLevel}` : 'none';
-  };
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -106,7 +110,10 @@ export default function AnnotatorWorkspace() {
     status: 'PENDING'
   });
 
-  const isLocked = taskData.status && !['PENDING', 'ASSIGNED', 'IN_PROGRESS'].includes(taskData.status.toUpperCase());
+  const isLocked = taskData.status && !['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'REJECTED'].includes(taskData.status.toUpperCase());
+  const currentQueueIndex = queue.findIndex((item) => item.id === taskId);
+  const previousTask = currentQueueIndex > 0 ? queue[currentQueueIndex - 1] : null;
+  const nextTask = currentQueueIndex >= 0 && currentQueueIndex < queue.length - 1 ? queue[currentQueueIndex + 1] : null;
 
   const [selectedLabelId, setSelectedLabelId] = useState(null);
 
@@ -135,6 +142,14 @@ export default function AnnotatorWorkspace() {
       }
       if (e.key.toLowerCase() === 'v') setActiveTool('select');
       if (e.key.toLowerCase() === 'b') setActiveTool('draw');
+      if (e.key === 'ArrowLeft' && previousTask) {
+        e.preventDefault();
+        navigateToTask(previousTask.id);
+      }
+      if (e.key === 'ArrowRight' && nextTask) {
+        e.preventDefault();
+        navigateToTask(nextTask.id);
+      }
 
       // If locked, block any annotation modifications (hotkeys, delete)
       if (isLocked) {
@@ -150,6 +165,7 @@ export default function AnnotatorWorkspace() {
           setSelectedLabelId(label.id);
           // If a box is selected, update its label too
           if (selectedBoxId) {
+            setHasUserEdited(true);
             setAnnotations(prev => prev.map(ann =>
               ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
             ));
@@ -157,12 +173,15 @@ export default function AnnotatorWorkspace() {
         }
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedBoxId) setAnnotations(prev => prev.filter(ann => ann.id !== selectedBoxId));
+        if (selectedBoxId) {
+          setHasUserEdited(true);
+          setAnnotations(prev => prev.filter(ann => ann.id !== selectedBoxId));
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBoxId, taskData.labels, isLocked]);
+  }, [selectedBoxId, taskData.labels, isLocked, previousTask, nextTask]);
 
   const [rawAnnotations, setRawAnnotations] = useState([]);
 
@@ -170,24 +189,51 @@ export default function AnnotatorWorkspace() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [projectRes, labelsRes, imagesRes, annotationsRes] = await Promise.all([
-          getProject(projectId),
-          getLabelsByProject(projectId),
-          getMyAssignedImages({ projectId, size: 100 }),
-          getAnnotations(taskId)
+        setAnnotations([]);
+        setHasUserEdited(false);
+        setSelectedBoxId(null);
+        setImageLoaded(false);
+        setImageSize({ width: 0, height: 0 });
+        const cachedProject = projectWorkspaceCache.get(projectId);
+        const cachedQueue = assignedQueueCache.get(projectId);
+        const [projectBundle, imagesRes, annotationsRes] = await Promise.all([
+          cachedProject
+            ? Promise.resolve(cachedProject)
+            : Promise.all([getProject(projectId), getLabelsByProject(projectId)]).then(([projectRes, labelsRes]) => {
+              const bundle = {
+                project: projectRes.data?.result || {},
+                labelsData: labelsRes.data?.result || [],
+              };
+              projectWorkspaceCache.set(projectId, bundle);
+              return bundle;
+            }),
+          cachedQueue
+            ? Promise.resolve(cachedQueue)
+            : getMyAssignedImages({ projectId, size: 24 }).then((response) => {
+              const resultData = response.data?.result?.data || response.data?.result || [];
+              const rawImages = Array.isArray(resultData) ? resultData : [];
+              assignedQueueCache.set(projectId, rawImages);
+              return rawImages;
+            }),
+          getAnnotations(taskId),
         ]);
 
-        const project = projectRes.data?.result || {};
-        const labelsData = labelsRes.data?.result || [];
+        const project = projectBundle.project || {};
+        const labelsData = projectBundle.labelsData || [];
         const mappedLabels = labelsData.map(l => ({
           id: l.id,
           name: l.name,
           color: l.color_hex || l.color || l.colorCode || l.hexColor || '#3b82f6'
         }));
 
-        const resultData = imagesRes.data?.result?.data || imagesRes.data?.result || [];
-        const rawImages = Array.isArray(resultData) ? resultData : [];
+        const rawImages = Array.isArray(imagesRes) ? imagesRes : [];
         const currentImg = rawImages.find(img => (img.task_id || img.taskId || img.id) === taskId);
+        const currentBucket = bucketForStatus(currentImg?.status);
+        setQueue(rawImages.map((img) => ({
+          id: img.task_id || img.taskId || img.id,
+          status: img.status || 'PENDING',
+          fileName: img.file_name || img.fileName || 'Image',
+        })).filter((item) => item.id && bucketForStatus(item.status) === currentBucket));
 
         if (currentImg) {
           setTaskData({
@@ -230,7 +276,13 @@ export default function AnnotatorWorkspace() {
   }, [imageLoaded, imageSize, rawAnnotations]);
 
   const handleImageLoad = (e) => {
-    setImageSize({ width: e.target.naturalWidth, height: e.target.naturalHeight });
+    const maxWidth = Math.max(420, window.innerWidth - 460);
+    const maxHeight = Math.max(320, window.innerHeight - 190);
+    const fitScale = Math.min(1, maxWidth / e.target.naturalWidth, maxHeight / e.target.naturalHeight);
+    setImageSize({
+      width: Math.round(e.target.naturalWidth * fitScale),
+      height: Math.round(e.target.naturalHeight * fitScale),
+    });
     setImageLoaded(true);
   };
 
@@ -244,6 +296,7 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseDown = (e) => {
+    e.preventDefault();
     if (activeTool !== 'draw' || !imageLoaded || isLocked) {
       // Clear selection when clicking empty area or image in select mode or when locked
       if (
@@ -261,12 +314,48 @@ export default function AnnotatorWorkspace() {
   };
 
   const handleMouseMove = (e) => {
+    if (dragState && !isLocked) {
+      e.preventDefault();
+      const { x, y } = getRelativeCoords(e);
+      const dx = x - dragState.startX;
+      const dy = y - dragState.startY;
+      setAnnotations(prev => prev.map((ann) => {
+        if (ann.id !== dragState.id) return ann;
+        if (dragState.mode === 'move') {
+          return {
+            ...ann,
+            x: Math.max(0, Math.min(imageSize.width - ann.width, dragState.original.x + dx)),
+            y: Math.max(0, Math.min(imageSize.height - ann.height, dragState.original.y + dy)),
+          };
+        }
+        const next = { ...ann };
+        if (dragState.mode.includes('e')) next.width = Math.max(4, Math.min(imageSize.width - ann.x, dragState.original.width + dx));
+        if (dragState.mode.includes('s')) next.height = Math.max(4, Math.min(imageSize.height - ann.y, dragState.original.height + dy));
+        if (dragState.mode.includes('w')) {
+          const nextX = Math.max(0, Math.min(dragState.original.x + dx, dragState.original.x + dragState.original.width - 4));
+          next.width = dragState.original.width + (dragState.original.x - nextX);
+          next.x = nextX;
+        }
+        if (dragState.mode.includes('n')) {
+          const nextY = Math.max(0, Math.min(dragState.original.y + dy, dragState.original.y + dragState.original.height - 4));
+          next.height = dragState.original.height + (dragState.original.y - nextY);
+          next.y = nextY;
+        }
+        return next;
+      }));
+      return;
+    }
     if (!isDrawing || !currentBox) return;
     const { x, y } = getRelativeCoords(e);
     setCurrentBox(prev => ({ ...prev, width: x - prev.x, height: y - prev.y }));
   };
 
   const handleMouseUp = () => {
+    if (dragState) {
+      setDragState(null);
+      setHasUserEdited(true);
+      return;
+    }
     if (!isDrawing || !currentBox) return;
     if (Math.abs(currentBox.width) > 5 && Math.abs(currentBox.height) > 5) {
       const newBox = {
@@ -278,6 +367,7 @@ export default function AnnotatorWorkspace() {
         height: Math.abs(currentBox.height)
       };
       setAnnotations([...annotations, newBox]);
+      setHasUserEdited(true);
       setSelectedBoxId(newBox.id);
     }
     setIsDrawing(false);
@@ -286,6 +376,23 @@ export default function AnnotatorWorkspace() {
 
   const getLabelColor = (id) => taskData.labels.find(l => l.id === id)?.color || '#3b82f6';
   const getLabelName = (id) => taskData.labels.find(l => l.id === id)?.name || 'Unknown';
+
+  const startBoxDrag = (event, ann, mode = 'move') => {
+    if (isLocked) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const { x, y } = getRelativeCoords(event);
+    setSelectedBoxId(ann.id);
+    setSelectedLabelId(ann.labelId);
+    setActiveTool('select');
+    setDragState({
+      id: ann.id,
+      mode,
+      startX: x,
+      startY: y,
+      original: { ...ann },
+    });
+  };
 
   const handleSave = async (submit = false, silent = false) => {
     try {
@@ -319,8 +426,18 @@ export default function AnnotatorWorkspace() {
       });
 
       await saveTaskAnnotations(taskId, mappedAnnotations, submit);
+      setHasUserEdited(false);
+      if (!submit && mappedAnnotations.length > 0) {
+        setTaskData((prev) => ({ ...prev, status: 'READY_FOR_REVIEW' }));
+        assignedQueueCache.delete(projectId);
+      }
       if (submit) {
-        setIsCelebrated(true);
+        assignedQueueCache.delete(projectId);
+        showToast('Sent for review.', 'success');
+        const target = nextTask || previousTask;
+        if (target) {
+          setTimeout(() => navigate(`/annotator/projects/${projectId}/workspace/${target.id}`), 450);
+        }
       } else if (!silent) {
         showToast('Progress saved successfully!', 'success');
       }
@@ -333,13 +450,51 @@ export default function AnnotatorWorkspace() {
   };
 
   useEffect(() => {
-    if (workspaceSettings.autoSave && taskId && annotations.length > 0 && !isLocked) {
-      const interval = setInterval(() => {
-        handleSave(false, true); // save silently
-      }, 120000); // every 2 minutes
-      return () => clearInterval(interval);
+    if (workspaceSettings.autoSave && taskId && annotations.length > 0 && !isLocked && hasUserEdited) {
+      const timer = setTimeout(() => {
+        handleSave(false, true);
+      }, 800);
+      return () => clearTimeout(timer);
     }
-  }, [workspaceSettings.autoSave, annotations, taskId, isLocked]);
+  }, [workspaceSettings.autoSave, annotations, taskId, isLocked, hasUserEdited]);
+
+  const navigateToTask = async (targetTaskId) => {
+    if (!targetTaskId || targetTaskId === taskId) return;
+    if (!isLocked && hasUserEdited) {
+      await handleSave(false, true);
+    }
+    navigate(`/annotator/projects/${projectId}/workspace/${targetTaskId}`);
+  };
+
+  const renderResizeHandles = (ann) => {
+    if (selectedBoxId !== ann.id || isLocked) return null;
+    const size = 8 / zoomLevel;
+    const half = size / 2;
+    return [
+      ['nw', ann.x, ann.y],
+      ['n', ann.x + ann.width / 2, ann.y],
+      ['ne', ann.x + ann.width, ann.y],
+      ['e', ann.x + ann.width, ann.y + ann.height / 2],
+      ['se', ann.x + ann.width, ann.y + ann.height],
+      ['s', ann.x + ann.width / 2, ann.y + ann.height],
+      ['sw', ann.x, ann.y + ann.height],
+      ['w', ann.x, ann.y + ann.height / 2],
+    ].map(([mode, x, y]) => (
+      <rect
+        key={mode}
+        className={`bbox-handle bbox-handle--${mode}`}
+        x={x - half}
+        y={y - half}
+        width={size}
+        height={size}
+        fill="#ffffff"
+        stroke={getLabelColor(ann.labelId)}
+        strokeWidth={1.5 / zoomLevel}
+        onMouseDown={(event) => startBoxDrag(event, ann, mode)}
+      />
+    ));
+  };
+
   return (
     <div className={`dashboard-layout ${workspaceSettings.themeMode === 'dark' ? 'theme-dark' : ''}`}>
       {toast && (
@@ -348,42 +503,6 @@ export default function AnnotatorWorkspace() {
             {toast.type === 'success' ? <Check size={14} /> : <X size={14} />}
           </span>
           <span className="toast-message">{toast.message}</span>
-        </div>
-      )}
-
-      {isCelebrated && (
-        <div className="celebration-overlay">
-          <div className="celebration-card">
-            <div className="sparkle-ring">
-              <div className="sparkle-dot s1"></div>
-              <div className="sparkle-dot s2"></div>
-              <div className="sparkle-dot s3"></div>
-              <div className="sparkle-dot s4"></div>
-              <div className="success-icon-wrapper">
-                <Check size={36} />
-              </div>
-            </div>
-            <h2 className="celebration-title">Task Completed!</h2>
-            <p className="celebration-subtitle">Image annotations submitted successfully!</p>
-
-            <div className="celebration-stats">
-              <div className="stat-item">
-                <span className="stat-label">Bounding Boxes</span>
-                <span className="stat-value">{annotations.length}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Status</span>
-                <span className="stat-value status-done">Submitted</span>
-              </div>
-            </div>
-
-            <button
-              className="btn btn--primary celebration-btn"
-              onClick={() => navigate(`/annotator/projects/${projectId}/tasks`)}
-            >
-              Back to Tasks List
-            </button>
-          </div>
         </div>
       )}
 
@@ -412,11 +531,18 @@ export default function AnnotatorWorkspace() {
                 {isLocked && (
                   <div className="workspace-locked-badge">
                     <span className="locked-dot"></span>
-                    <span>Completed (Read-Only)</span>
+                    <span>Submitted (Read-Only)</span>
                   </div>
                 )}
                 <div className="toolbar-divider" />
                 <div className="toolbar-group">
+                  <button
+                    className={`tool-btn ${activeTool === 'select' ? 'active' : ''}`}
+                    onClick={() => setActiveTool('select')}
+                    title="Select or move box (V)"
+                  >
+                    <MousePointer2 size={20} />
+                  </button>
                   <button
                     className={`tool-btn ${activeTool === 'draw' ? 'active' : ''}`}
                     onClick={() => {
@@ -442,19 +568,28 @@ export default function AnnotatorWorkspace() {
                 </div>
                 <div className="toolbar-spacer" />
                 <div className="toolbar-group">
+                  <button className="tool-btn" onClick={() => navigateToTask(previousTask?.id)} disabled={!previousTask} title="Previous image">
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button className="tool-btn" onClick={() => navigateToTask(nextTask?.id)} disabled={!nextTask} title="Next image">
+                    <ChevronRight size={20} />
+                  </button>
                   <button
                     className="btn btn--secondary"
-                    onClick={() => setAnnotations([])}
+                    onClick={() => {
+                      setHasUserEdited(true);
+                      setAnnotations([]);
+                    }}
                     disabled={isLocked}
                   >
                     <RotateCcw size={16} style={{ marginRight: '8px' }} /> Reset
                   </button>
                   <button
-                    className="btn btn--success"
+                    className="btn btn--primary"
                     onClick={() => handleSave(false)}
-                    disabled={isLocked}
+                    disabled={isLocked || annotations.length === 0}
                   >
-                    <Save size={16} style={{ marginRight: '8px' }} /> Save Progress
+                    <Send size={16} style={{ marginRight: '8px' }} /> Save ready
                   </button>
                 </div>
               </div>
@@ -515,8 +650,10 @@ export default function AnnotatorWorkspace() {
                             strokeWidth={2 / zoomLevel}
                             strokeDasharray={isValidAnnotation(ann) ? 'none' : `${5 / zoomLevel},${5 / zoomLevel}`}
                             className={`bbox-rect ${!isValidAnnotation(ann) ? 'bbox-invalid' : ''}`}
-                            style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                            style={{ pointerEvents: 'all', cursor: isLocked ? 'pointer' : 'move' }}
+                            onMouseDown={(event) => startBoxDrag(event, ann, 'move')}
                           />
+                          {renderResizeHandles(ann)}
                           <g className="bbox-label" style={{ pointerEvents: 'none' }}>
                             <rect
                               x={ann.x}
@@ -556,13 +693,6 @@ export default function AnnotatorWorkspace() {
 
                 <div className="workspace-sidebar">
                   <div className="sidebar-section">
-                    <h3 className="section-title">Project Info</h3>
-                    <div className="info-card">
-                      <p className="info-label">File:</p> <p className="info-value">{taskData.fileName}</p>
-                      <p className="info-label">Project:</p> <p className="info-value">{taskData.projectName}</p>
-                    </div>
-                  </div>
-                  <div className="sidebar-section">
                     <h3 className="section-title">Labels</h3>
                     <div className="label-selector">
                       {taskData.labels.map((label, index) => (
@@ -573,6 +703,7 @@ export default function AnnotatorWorkspace() {
                             if (isLocked) return;
                             setSelectedLabelId(label.id);
                             if (selectedBoxId) {
+                              setHasUserEdited(true);
                               setAnnotations(prev => prev.map(ann =>
                                 ann.id === selectedBoxId ? { ...ann, labelId: label.id } : ann
                               ));
@@ -622,6 +753,7 @@ export default function AnnotatorWorkspace() {
                                   className="delete-ann-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setHasUserEdited(true);
                                     setAnnotations(prev => prev.filter(a => a.id !== ann.id));
                                     if (selectedBoxId === ann.id) setSelectedBoxId(null);
                                   }}
@@ -634,15 +766,6 @@ export default function AnnotatorWorkspace() {
                         })
                       )}
                     </div>
-                  </div>
-                  <div className="workspace-actions">
-                    <button
-                      className="btn btn--primary btn--full"
-                      onClick={() => handleSave(true)}
-                      disabled={isLocked || annotations.length === 0}
-                    >
-                      Complete Task
-                    </button>
                   </div>
                 </div>
               </div>

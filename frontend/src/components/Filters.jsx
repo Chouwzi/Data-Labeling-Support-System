@@ -9,7 +9,14 @@ export default function Filters({
   groupFilter,
   onGroupFilterChange,
   groups,
+  roleOptions,
 }) {
+  const roles = roleOptions || [
+    { value: 'MANAGER', label: 'Manager' },
+    { value: 'ANNOTATOR', label: 'Annotator' },
+    { value: 'REVIEWER', label: 'Reviewer' },
+  ];
+
   return (
     <div className="filters">
       <div className="filters__search">
@@ -31,9 +38,9 @@ export default function Filters({
             onChange={(e) => onRoleFilterChange(e.target.value)}
           >
             <option value="">All Roles</option>
-            <option value="MANAGER">Manager</option>
-            <option value="ANNOTATOR">Annotator</option>
-            <option value="REVIEWER">Reviewer</option>
+            {roles.map((role) => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
           </select>
           <svg className="filters__select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="6 9 12 15 18 9"/>
