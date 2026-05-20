@@ -8,5 +8,10 @@
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "prisma": "^7.5.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19"
   }
 }

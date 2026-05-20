@@ -1,0 +1,99 @@
+/* Modal - Clean flat design, no nested cards */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 29, 26, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 200;
+  animation: overlayIn 0.2s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* =============================================
+   MODAL CONTAINER
+   ============================================= */
+
+.modal-container {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* =============================================
+   MODAL HEADER
+   ============================================= */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-header__title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.modal-header__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-header__close:hover { background: #f3f4f6; color: #374151; }
+.modal-header__close:active { background: #e5e7eb; }
+
+/* =============================================
+   MODAL BODY
+   ============================================= */
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-container { max-width: none; max-height: 85vh; border-radius: 1.25rem 1.25rem 0 0; }
+  .modal-header { padding: 1.25rem 1.25rem 1rem; }
+  .modal-body { padding: 1.25rem; }
+}
+
+@media (max-width: 480px) {
+  .modal-header__title { font-size: 1rem; }
+}

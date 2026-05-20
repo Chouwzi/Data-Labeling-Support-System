@@ -1,0 +1,199 @@
+/* Sidebar — light theme only */
+.sidebar__backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 990;
+  margin: 0;
+  padding: 0;
+  border: none;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.sidebar__backdrop--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar {
+  height: 100vh;
+  height: 100dvh;
+  width: 15rem;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(5, 150, 105, 0.1);
+  background-color: rgba(236, 253, 245, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1000;
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+
+/* Manager dashboard (image_1): solid mint shell */
+.sidebar--manager {
+  background-color: #ecfdf5;
+}
+
+.sidebar__content {
+  padding: 2rem 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+  padding-top: 0.5rem;
+}
+
+.sidebar__logo-mark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar__logo-mark svg {
+  display: block;
+}
+
+.sidebar__logo-text {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #059669;
+  margin: 0;
+  line-height: 1.2;
+  font-family: 'Manrope', sans-serif;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-right: 4px solid transparent;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.sidebar__nav-item:hover {
+  color: #065f46;
+  background-color: rgba(209, 250, 229, 0.6);
+}
+
+.sidebar__nav-item--active {
+  color: #064e3b;
+  font-weight: 700;
+  border-right-color: #059669;
+  background-color: rgba(209, 250, 229, 0.7);
+}
+
+.sidebar__nav-item--active .active-icon {
+  color: #059669;
+}
+
+.sidebar__nav-item svg {
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.sidebar__nav-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.sidebar__footer {
+  padding: 1.5rem;
+  margin-top: auto;
+}
+
+.sidebar__status {
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background-color: rgba(209, 250, 229, 0.4);
+}
+
+.sidebar__status-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(5, 150, 105, 0.7);
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.sidebar__status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar__status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: #10b981;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.sidebar__status-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #065f46;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/*
+ * Drawer: khớp với AdminDashboard.css (admin-main margin-left: 0 khi ≤1024px).
+ * Trước đây chỉ ≤767px → iPad (768–1024) vẫn cố định sidebar nhưng main không margin → chồng lấn.
+ */
+@media (max-width: 1024px) {
+  .sidebar__backdrop {
+    display: block;
+    z-index: 1990;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(22, 29, 26, 0.08);
+    z-index: 2000;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+}

@@ -1,0 +1,59 @@
+/* AssignGroupDropdown - Compact dropdown for user cards */
+.assign-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assign-group__label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.assign-group__select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.assign-group__select {
+  appearance: none;
+  background: #f4fbf5;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 100px;
+}
+
+.assign-group__select:hover:not(:disabled) {
+  background: #ecfdf5;
+  border-color: rgba(0, 108, 81, 0.15);
+}
+
+.assign-group__select:focus {
+  outline: none;
+  border-color: #006c51;
+  box-shadow: 0 0 0 3px rgba(0, 108, 81, 0.1);
+}
+
+.assign-group__select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.assign-group__arrow {
+  position: absolute;
+  right: 0.5rem;
+  pointer-events: none;
+  color: #6b7a72;
+}
