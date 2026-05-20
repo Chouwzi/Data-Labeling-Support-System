@@ -51,7 +51,7 @@ export default function SystemConfig() {
         const defects = defectRes.data?.result || defectRes.data || [];
         setDefectCategories(Array.isArray(defects) ? defects : []);
       } catch {
-        setError('Không thể tải cấu hình. Vui lòng thử lại.');
+        setError('Failed to load system configuration. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -148,7 +148,7 @@ export default function SystemConfig() {
           {loading ? (
             <div className="config-page-loading">
               <div className="loading-spinner" />
-              <p>Đang tải cấu hình...</p>
+              <p>Loading system configuration...</p>
             </div>
           ) : error ? (
             <div className="config-page-error" role="alert">

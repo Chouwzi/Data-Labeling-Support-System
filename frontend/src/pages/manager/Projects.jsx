@@ -60,10 +60,10 @@ function normalizeProject(raw) {
     try {
       if (Array.isArray(dateVal)) {
         const [y, m, d, h = 0, min = 0, s = 0] = dateVal;
-        return new Date(y, m - 1, d, h, min, s).toLocaleDateString('vi-VN');
+        return new Date(y, m - 1, d, h, min, s).toLocaleDateString('en-US');
       }
       const d = new Date(dateVal);
-      return isNaN(d) ? 'Just now' : d.toLocaleDateString('vi-VN');
+      return isNaN(d) ? 'Just now' : d.toLocaleDateString('en-US');
     } catch {
       return 'Just now';
     }
@@ -169,7 +169,7 @@ export default function Projects() {
         }));
       }
     } catch (err) {
-      console.error('Lỗi lấy dự án:', err);
+      console.error('Error fetching projects:', err);
     } finally {
       setIsLoadingProjects(false);
     }
@@ -302,11 +302,11 @@ export default function Projects() {
         setTimeout(() => closeCreateModal(), 2000);
       }
     } catch (err) {
-      console.error('❌ Lỗi tạo project:', err);
+      console.error('❌ Error creating project:', err);
       const serverMsg = err.response?.data?.message
         || err.response?.data?.result?.message;
       setErrors({
-        submit: serverMsg || `Lỗi ${err.response?.status ?? 'Server'}: Không thể tạo dự án.`,
+        submit: serverMsg || `Error ${err.response?.status ?? 'Server'}: Could not create project.`,
       });
     } finally {
       setIsSubmitting(false);

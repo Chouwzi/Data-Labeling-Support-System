@@ -35,8 +35,16 @@ export default function RejectModal({ onClose, onConfirm }) {
       setError('Please select an error category.');
       return;
     }
+    if (!note.trim()) {
+      setError('Please enter a detailed rejection note.');
+      return;
+    }
+    
+    const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+    
     onConfirm({
       defectCategoryId: selectedCategoryId,
+      defectCategoryName: selectedCategory ? selectedCategory.name : 'Unknown',
       note: note.trim()
     });
   };

@@ -25,19 +25,308 @@ export default function Topbar({
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
+    const role = localStorage.getItem('role');
+    
     const fetchNotifs = async () => {
       try {
-        const { getLogs, getUsers } = await import('@/services/api');
-        const [logsRes, usersRes] = await Promise.all([
-          getLogs(0, 5).catch(() => ({ data: { result: [] } })),
-          getUsers().catch(() => ({ data: { result: [] } }))
-        ]);
-        const logsList = Array.isArray(logsRes.data?.result)
-          ? logsRes.data.result
-          : Array.isArray(logsRes.data)
-          ? logsRes.data
-          : [];
-        const usersList = usersRes.data?.result || [];
+        const { getLogs, getUsers, getProjects, getTasks, getMyAssignedImages, getReviewQueueImages } = await import('@/services/api');
+        
+        let logsList = [];
+        let usersList = [];
+        let logsFailed = false;
+        
+        // Only fetch audit logs and users list if the user is an ADMIN
+        if (role === 'ADMIN') {
+          try {
+            const [logsRes, usersRes] = await Promise.all([
+              getLogs(0, 15).catch(() => { logsFailed = true; return { data: { result: {} } }; }),
+              getUsers().catch(() => ({ data: { result: [] } }))
+            ]);
+            
+            const rawLogs = logsRes.data?.result?.data || logsRes.data?.result?.content || logsRes.data?.result || logsRes.data || [];
+            logsList = Array.isArray(rawLogs) ? rawLogs : [];
+            
+            const rawUsers = usersRes.data?.result || usersRes.data || [];
+            usersList = Array.isArray(rawUsers) ? rawUsers : [];
+          } catch (err) {
+            logsFailed = true;
+            console.warn("Audit logs restricted or failed:", err);
+          }
+        } else {
+          logsFailed = true;
+        }
+        
+        // If we are REVIEWER, fetch review queue tasks
+        if (role === 'REVIEWER') {
+          try {
+            const queueRes = await getReviewQueueImages();
+            const queueData = queueRes.data?.result?.data || queueRes.data?.result || [];
+            
+            if (Array.isArray(queueData)) {
+              const reviewerNotifs = queueData.map((item, index) => {
+                const imageUrl = item.image_url || item.imageUrl || '';
+                const fileName = imageUrl ? imageUrl.replace(/\\/g, '/').split('/').pop() : 'image.jpg';
+                const annotatorName = item.annotator_name || item.annotatorName || 'Annotator';
+                const projectName = item.project_name || item.projectName || 'Project';
+                
+                // Parse date
+                const dateVal = item.submitted_at || item.submittedAt || item.createdAt || item.created_at;
+                const parseReviewDate = (dVal) => {
+                  if (!dVal) {
+                    const dateObj = new Date();
+                    dateObj.setMinutes(dateObj.getMinutes() - (index * 15) - 3);
+                    return dateObj;
+                  }
+                  try {
+                    if (Array.isArray(dVal)) {
+                      const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+                      return new Date(y, m - 1, d, h, min, s);
+                    }
+                    const parsed = new Date(dVal);
+                    return isNaN(parsed) ? new Date() : parsed;
+                  } catch {
+                    return new Date();
+                  }
+                };
+                
+                const dateObj = parseReviewDate(dateVal);
+                
+                const formatTimeAgo = (date) => {
+                  const seconds = Math.floor((new Date() - date) / 1000);
+                  if (seconds < 10) return 'Just now';
+                  if (seconds < 60) return `${seconds}s ago`;
+                  const minutes = Math.floor(seconds / 60);
+                  if (minutes < 60) return `${minutes}m ago`;
+                  const hours = Math.floor(minutes / 60);
+                  if (hours < 24) return `${hours}h ago`;
+                  const days = Math.floor(hours / 24);
+                  return `${days}d ago`;
+                };
+                
+                return {
+                  id: item.task_id || item.id || `notif-reviewer-${index}`,
+                  type: 'success',
+                  iconChar: '✓',
+                  message: `${annotatorName} completed labeling "${fileName}" in "${projectName}" (Pending Review)`,
+                  time: formatTimeAgo(dateObj),
+                  unread: index < 2,
+                  rawDate: dateObj
+                };
+              });
+              
+              // Sort by date descending
+              reviewerNotifs.sort((a, b) => b.rawDate - a.rawDate);
+              
+              setNotifications(reviewerNotifs.slice(0, 5));
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to fetch reviewer notifications:', err);
+          }
+        }
+        
+        // If we are ANNOTATOR, fetch assigned images and reviewer states
+        if (role === 'ANNOTATOR') {
+          try {
+            const assignedRes = await getMyAssignedImages({ page: 0, size: 25 });
+            const assignedData = assignedRes.data?.result?.data || assignedRes.data?.result || [];
+            
+            if (Array.isArray(assignedData)) {
+              const annotatorNotifs = assignedData
+                .filter(item => ['ASSIGNED', 'APPROVED', 'REJECTED'].includes(item.status?.toUpperCase()))
+                .map((item, index) => {
+                  const statusUpper = item.status?.toUpperCase();
+                  const imageUrl = item.image_url || item.imageUrl || '';
+                  const fileName = imageUrl ? imageUrl.replace(/\\/g, '/').split('/').pop() : 'image.jpg';
+                  const projectName = item.project_name || item.projectName || 'Project';
+                  
+                  let message = '';
+                  let type = 'info';
+                  let iconChar = 'i';
+                  
+                  if (statusUpper === 'ASSIGNED') {
+                    message = `New image "${fileName}" assigned to you in project "${projectName}"`;
+                    type = 'info';
+                    iconChar = 'i';
+                  } else if (statusUpper === 'APPROVED') {
+                    message = `Your labeled image "${fileName}" was APPROVED by the reviewer`;
+                    type = 'success';
+                    iconChar = '✓';
+                  } else if (statusUpper === 'REJECTED') {
+                    message = `Your labeled image "${fileName}" was REJECTED by reviewer. Please fix defects`;
+                    type = 'warning';
+                    iconChar = '!';
+                  }
+                  
+                  // Parse date
+                  const dateVal = item.updatedAt || item.updated_at || item.createdAt || item.created_at;
+                  const parseTaskDate = (dVal) => {
+                    if (!dVal) {
+                      const dateObj = new Date();
+                      dateObj.setMinutes(dateObj.getMinutes() - (index * 20) - 5);
+                      return dateObj;
+                    }
+                    try {
+                      if (Array.isArray(dVal)) {
+                        const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+                        return new Date(y, m - 1, d, h, min, s);
+                      }
+                      const parsed = new Date(dVal);
+                      return isNaN(parsed) ? new Date() : parsed;
+                    } catch {
+                      return new Date();
+                    }
+                  };
+                  
+                  const dateObj = parseTaskDate(dateVal);
+                  
+                  const formatTimeAgo = (date) => {
+                    const seconds = Math.floor((new Date() - date) / 1000);
+                    if (seconds < 10) return 'Just now';
+                    if (seconds < 60) return `${seconds}s ago`;
+                    const minutes = Math.floor(seconds / 60);
+                    if (minutes < 60) return `${minutes}m ago`;
+                    const hours = Math.floor(minutes / 60);
+                    if (hours < 24) return `${hours}h ago`;
+                    const days = Math.floor(hours / 24);
+                    return `${days}d ago`;
+                  };
+                  
+                  return {
+                    id: item.id || `notif-annotator-${index}`,
+                    type,
+                    iconChar,
+                    message,
+                    time: formatTimeAgo(dateObj),
+                    unread: index < 2,
+                    rawDate: dateObj
+                  };
+                });
+              
+              // Sort by date descending
+              annotatorNotifs.sort((a, b) => b.rawDate - a.rawDate);
+              
+              setNotifications(annotatorNotifs.slice(0, 5));
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to fetch annotator notifications:', err);
+          }
+        }
+        
+        // If we are MANAGER (or getLogs is forbidden/empty), fetch active tasks updates
+        if (role === 'MANAGER' && (logsFailed || logsList.length === 0)) {
+          try {
+            const projectsRes = await getProjects();
+            const pList = projectsRes.data?.result?.data || projectsRes.data?.result?.content || projectsRes.data?.result || [];
+            
+            if (Array.isArray(pList) && pList.length > 0) {
+              const allTasksWithProjects = [];
+              
+              // Fetch tasks for up to first 5 active projects to avoid hitting API rate limits
+              await Promise.all(
+                pList.slice(0, 5).map(async (project) => {
+                  try {
+                    const tasksRes = await getTasks(project.id);
+                    const tasks = Array.isArray(tasksRes.data?.result)
+                      ? tasksRes.data.result
+                      : (Array.isArray(tasksRes.data) ? tasksRes.data : []);
+                    
+                    tasks.forEach(t => {
+                      if (['DONE', 'COMPLETED', 'PENDING_REVIEW', 'APPROVED', 'REJECTED'].includes(t.status)) {
+                        allTasksWithProjects.push({
+                          task: t,
+                          project: project
+                        });
+                      }
+                    });
+                  } catch (e) {
+                    console.error(`Failed to fetch tasks for project ${project.id}:`, e);
+                  }
+                })
+              );
+              
+              // Generate real notifications from task states
+              const generatedNotifs = allTasksWithProjects.map((item, index) => {
+                const { task, project } = item;
+                const annotatorName = task.annotatorName || task.annotator_name || 'Annotator';
+                
+                let message = '';
+                let type = 'info';
+                let iconChar = 'i';
+                
+                if (['DONE', 'COMPLETED', 'PENDING_REVIEW'].includes(task.status)) {
+                  message = `${annotatorName} submitted image "${task.image_url?.split('/').pop() || 'image.jpg'}" in "${project.name}" for review`;
+                  type = 'success';
+                  iconChar = '✓';
+                } else if (task.status === 'APPROVED') {
+                  message = `Reviewer approved image "${task.image_url?.split('/').pop() || 'image.jpg'}" in "${project.name}"`;
+                  type = 'success';
+                  iconChar = '✓';
+                } else if (task.status === 'REJECTED') {
+                  message = `Reviewer rejected image "${task.image_url?.split('/').pop() || 'image.jpg'}" in "${project.name}"`;
+                  type = 'warning';
+                  iconChar = '!';
+                }
+                
+                // Parse date
+                const dateVal = task.updatedAt || task.updated_at || task.createdAt || task.created_at;
+                const parseTaskDate = (dVal) => {
+                  if (!dVal) {
+                    // Stagger older notifications based on index if no date is given
+                    const dateObj = new Date();
+                    dateObj.setMinutes(dateObj.getMinutes() - (index * 15) - 2);
+                    return dateObj;
+                  }
+                  try {
+                    if (Array.isArray(dVal)) {
+                      const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+                      return new Date(y, m - 1, d, h, min, s);
+                    }
+                    const parsed = new Date(dVal);
+                    return isNaN(parsed) ? new Date() : parsed;
+                  } catch {
+                    return new Date();
+                  }
+                };
+                
+                const dateObj = parseTaskDate(dateVal);
+                
+                const formatTimeAgo = (date) => {
+                  const seconds = Math.floor((new Date() - date) / 1000);
+                  if (seconds < 10) return 'Just now';
+                  if (seconds < 60) return `${seconds}s ago`;
+                  const minutes = Math.floor(seconds / 60);
+                  if (minutes < 60) return `${minutes}m ago`;
+                  const hours = Math.floor(minutes / 60);
+                  if (hours < 24) return `${hours}h ago`;
+                  const days = Math.floor(hours / 24);
+                  return `${days}d ago`;
+                };
+                
+                return {
+                  id: task.id || `notif-task-${index}`,
+                  type,
+                  iconChar,
+                  message,
+                  time: formatTimeAgo(dateObj),
+                  unread: index < 2,
+                  rawDate: dateObj
+                };
+              });
+              
+              // Sort by date descending
+              generatedNotifs.sort((a, b) => b.rawDate - a.rawDate);
+              
+              setNotifications(generatedNotifs.slice(0, 5));
+              return;
+            }
+          } catch (fallbackErr) {
+            console.error('Task Curation Fallback failed:', fallbackErr);
+          }
+        }
+        
+        // If we fall here, map audit logs (works for ADMIN)
         const userMap = {};
         usersList.forEach(u => {
           userMap[u.id] = u.fullName || u.email || 'System User';
@@ -46,15 +335,16 @@ export default function Topbar({
         const mapped = logsList.slice(0, 5).map((log, index) => {
           let type = 'info';
           let iconChar = 'i';
-          if (log.action?.includes('CREATE')) {
+          if (log.action?.includes('CREATE') || log.action?.includes('ADD') || log.action?.includes('SUBMIT')) {
             type = 'success';
             iconChar = '✓';
-          } else if (log.action?.includes('DELETE') || log.action?.includes('ERROR')) {
+          } else if (log.action?.includes('DELETE') || log.action?.includes('ERROR') || log.status === 'FAILED' || log.action?.includes('REJECT')) {
             type = 'warning';
             iconChar = '!';
           }
           
-          const uName = userMap[log.userId] || 'System User';
+          const userIdVal = log.userId || log.user_id;
+          const uName = userMap[userIdVal] || (userIdVal ? `User ${userIdVal.toString().substring(0, 8)}...` : 'System');
           
           const actionTextMap = {
             CREATE_PROJECT: 'created a new project',
@@ -65,18 +355,22 @@ export default function Topbar({
             VIEW_AUDIT_LOGS: 'viewed system audit logs',
             UPDATE_ROLE: 'updated user role',
             TOGGLE_STATUS: 'toggled user status',
+            SUBMIT_ANNOTATIONS: 'submitted annotations for task',
+            APPROVE_IMAGE: 'approved annotated image',
+            REJECT_IMAGE: 'rejected annotated image',
           };
           const formattedAction = actionTextMap[log.action] || `performed ${log.action?.toLowerCase().replace(/_/g, ' ')}`;
 
-          const dateVal = log.createdAt;
+          const dateVal = log.createdAt || log.created_at;
           const parseDate = (dVal) => {
             if (!dVal) return new Date();
             try {
-              if (Array.isArray(dateVal)) {
-                const [y, m, d, h = 0, min = 0, s = 0] = dateVal;
+              if (Array.isArray(dVal)) {
+                const [y, m, d, h = 0, min = 0, s = 0] = dVal;
                 return new Date(y, m - 1, d, h, min, s);
               }
-              return new Date(dateVal);
+              const parsed = new Date(dVal);
+              return isNaN(parsed) ? new Date() : parsed;
             } catch {
               return new Date();
             }
@@ -84,7 +378,8 @@ export default function Topbar({
           const dateObj = parseDate(dateVal);
           const formatTimeAgo = (date) => {
             const seconds = Math.floor((new Date() - date) / 1000);
-            if (seconds < 60) return 'Just now';
+            if (seconds < 10) return 'Just now';
+            if (seconds < 60) return `${seconds}s ago`;
             const minutes = Math.floor(seconds / 60);
             if (minutes < 60) return `${minutes}m ago`;
             const hours = Math.floor(minutes / 60);
@@ -108,14 +403,13 @@ export default function Topbar({
       }
     };
     
-    const role = localStorage.getItem('role');
     if (localStorage.getItem('accessToken')) {
-      if (role === 'ADMIN') {
+      if (role === 'ADMIN' || role === 'MANAGER' || role === 'ANNOTATOR' || role === 'REVIEWER') {
         fetchNotifs();
         const interval = setInterval(fetchNotifs, 10000);
         return () => clearInterval(interval);
       } else {
-        // For non-admin roles (Manager, Annotator, Reviewer)
+        // For non-admin/manager/annotator/reviewer roles
         setNotifications([
           {
             id: 'welcome-notif',

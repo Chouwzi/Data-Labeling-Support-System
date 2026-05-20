@@ -98,12 +98,28 @@ export default function ManagerDashboard() {
     setSubmitSuccess(false);
 
     try {
-      await createProject({ name: projectName.trim(), description: description.trim() });
-      setSubmitSuccess(true);
-      await loadDashboard();
-      setTimeout(closeCreateModal, 900);
-    } catch (error) {
-      setErrors({ submit: error.response?.data?.message || 'Create project failed' });
+      const response = await createProject({
+        name: projectName.trim(),
+        description: description.trim(),
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        setSubmitSuccess(true);
+
+        setTimeout(() => {
+          closeCreateModal();
+          navigate('/manager/projects');
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Dashboard API Error:", err);
+
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.code ||
+        "Create project failed";
+
+      setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
     }

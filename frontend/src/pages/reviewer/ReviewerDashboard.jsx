@@ -19,9 +19,11 @@ import {
   BarChart2,
   Calendar
 } from 'lucide-react';
-import { getReviewQueueImages, getReviewHistory, getReviewStats, getMyProjects } from '@/services/api';
+import { getReviewQueueImages } from '@/services/api';
 import '@/styles/Dashboard.css';
 import '@/styles/ReviewerDashboard.css';
+
+// MOCK_COMPLETED_REVIEWS has been removed to ensure statistics represent only real data.
 
 export default function ReviewerDashboard() {
   const { user, logout } = useAuth();
@@ -29,8 +31,7 @@ export default function ReviewerDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [reviews, setReviews] = useState([]);
-  const [reviewStats, setReviewStats] = useState(null);
-  const [projects, setProjects] = useState([]);
+  const [completedReviews, setCompletedReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -61,17 +62,22 @@ export default function ReviewerDashboard() {
     }
   }
 
+  const loadCompletedFromLocal = () => {
+    try {
+      const localData = localStorage.getItem('completed_reviews');
+      return localData ? JSON.parse(localData) : [];
+    } catch (e) {
+      console.error('Failed to parse completed_reviews from localStorage:', e);
+      return [];
+    }
+  };
+
   const fetchReviews = async () => {
     try {
       setLoading(true);
       if (isCompletedTab) {
-        const [historyRes, statsRes] = await Promise.all([
-          getReviewHistory({ page: 0, size: 24 }),
-          getReviewStats({ range: '30d' }).catch(() => null),
-        ]);
-        const data = historyRes.data?.result?.data || historyRes.data?.result?.content || historyRes.data?.result || [];
-        setReviews(Array.isArray(data) ? data : []);
-        setReviewStats(statsRes?.data?.result || null);
+        const data = loadCompletedFromLocal();
+        setReviews(data);
       } else {
         const [queueRes, statsRes, projectsRes] = await Promise.all([
           getReviewQueueImages(selectedProjectId),
@@ -85,8 +91,15 @@ export default function ReviewerDashboard() {
         const projectData = projectsRes.data?.result?.data || projectsRes.data?.result || [];
         setProjects(Array.isArray(projectData) ? projectData : []);
       }
+      
+      // Load completed reviews to calculate stats for the standard dashboard too
+      const completed = loadCompletedFromLocal();
+      setCompletedReviews(completed);
     } catch (err) {
       console.error('Failed to fetch reviewer queue:', err);
+      if (isCompletedTab) {
+        setReviews([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -121,14 +134,113 @@ export default function ReviewerDashboard() {
   const approvedCount = approvedList.length;
   const rejectedList = reviews.filter(r => reviewStatus(r) === 'REJECTED');
   const rejectedCount = rejectedList.length;
-  const approvedMetric = reviewStats?.approved ?? approvedCount;
-  const rejectedMetric = reviewStats?.rejected ?? rejectedCount;
-  const pendingMetric = reviewStats?.pendingReview ?? reviews.length;
-  const approvalRate = reviewStats?.approvalRate ?? (totalReviewed > 0 ? Number(((approvedMetric / totalReviewed) * 100).toFixed(1)) : 0);
-  const rejectionRate = reviewStats?.rejectionRate ?? (totalReviewed > 0 ? Number(((rejectedMetric / totalReviewed) * 100).toFixed(1)) : 0);
-  const avgReviewTime = reviewStats?.averageReviewTimeSeconds
-    ? `${Math.round(reviewStats.averageReviewTimeSeconds / 60)}m`
-    : 'Not enough data';
+  const approvalRate = totalReviewed > 0 ? ((approvedCount / totalReviewed) * 100).toFixed(1) : '0';
+  const rejectionRate = totalReviewed > 0 ? ((rejectedCount / totalReviewed) * 100).toFixed(1) : '0';
+  // Compute average review time dynamically from submission to review timestamps
+  let avgReviewTime = 'N/A';
+  if (reviews.length > 0) {
+    let totalMs = 0;
+    let validCount = 0;
+    
+    reviews.forEach(r => {
+      const reviewDateVal = r.reviewed_at || r.reviewedAt || r.updated_at || r.updatedAt;
+      const submitDateVal = r.submitted_at || r.submittedAt || r.created_at || r.createdAt;
+      
+      if (reviewDateVal && submitDateVal) {
+        const parseDate = (dVal) => {
+          if (!dVal) return null;
+          try {
+            if (Array.isArray(dVal)) {
+              const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+              return new Date(y, m - 1, d, h, min, s);
+            }
+            const parsed = new Date(dVal);
+            return isNaN(parsed) ? null : parsed;
+          } catch {
+            return null;
+          }
+        };
+        
+        const reviewDate = parseDate(reviewDateVal);
+        const submitDate = parseDate(submitDateVal);
+        
+        if (reviewDate && submitDate && reviewDate > submitDate) {
+          totalMs += (reviewDate - submitDate);
+          validCount++;
+        }
+      }
+    });
+    
+    if (validCount > 0) {
+      const avgSeconds = Math.round((totalMs / validCount) / 1000);
+      if (avgSeconds < 60) {
+        avgReviewTime = `${avgSeconds}s`;
+      } else {
+        const avgMinutes = (avgSeconds / 60).toFixed(1);
+        avgReviewTime = `${avgMinutes}m`;
+      }
+    }
+  }
+
+  // Dashboard calculations from completedReviews
+  const todayStr = new Date().toDateString();
+  const approvedTodayCount = completedReviews.filter(r => {
+    const isApproved = r.status === 'APPROVED' || r.status === 'COMPLETED';
+    const reviewedDate = r.reviewed_at || r.reviewedAt;
+    return isApproved && reviewedDate && new Date(reviewedDate).toDateString() === todayStr;
+  }).length;
+
+  const rejectedTodayCount = completedReviews.filter(r => {
+    const isRejected = r.status === 'REJECTED';
+    const reviewedDate = r.reviewed_at || r.reviewedAt;
+    return isRejected && reviewedDate && new Date(reviewedDate).toDateString() === todayStr;
+  }).length;
+
+  let dashboardAvgReviewTime = 'N/A';
+  if (completedReviews.length > 0) {
+    let totalMs = 0;
+    let validCount = 0;
+    
+    completedReviews.forEach(r => {
+      const reviewDateVal = r.reviewed_at || r.reviewedAt || r.updated_at || r.updatedAt;
+      const submitDateVal = r.submitted_at || r.submittedAt || r.created_at || r.createdAt;
+      
+      if (reviewDateVal && submitDateVal) {
+        const parseDate = (dVal) => {
+          if (!dVal) return null;
+          try {
+            if (Array.isArray(dVal)) {
+              const [y, m, d, h = 0, min = 0, s = 0] = dVal;
+              return new Date(y, m - 1, d, h, min, s);
+            }
+            const parsed = new Date(dVal);
+            return isNaN(parsed) ? null : parsed;
+          } catch {
+            return null;
+          }
+        };
+        
+        const reviewDate = parseDate(reviewDateVal);
+        const submitDate = parseDate(submitDateVal);
+        
+        if (reviewDate && submitDate && reviewDate > submitDate) {
+          totalMs += (reviewDate - submitDate);
+          validCount++;
+        }
+      }
+    });
+    
+    if (validCount > 0) {
+      const avgSeconds = Math.round((totalMs / validCount) / 1000);
+      if (avgSeconds < 60) {
+        dashboardAvgReviewTime = `${avgSeconds}s`;
+      } else {
+        const avgMinutes = (avgSeconds / 60).toFixed(1);
+        dashboardAvgReviewTime = `${avgMinutes}m`;
+      }
+    }
+  }
+
 
   // Compute unique list of annotators dynamically for the dropdown filter
   const uniqueAnnotators = [...new Set(reviews.map(r => r.annotator_name || r.annotatorName || 'Unknown'))].filter(Boolean);
@@ -540,23 +652,23 @@ export default function ReviewerDashboard() {
                   />
                   <KpiCard
                     title="Approved Today"
-                    value={(reviewStats?.approved ?? 0).toString()}
+                    value={approvedTodayCount.toString()}
                     icon={CheckSquare}
                     trend="Today"
                     variant="success"
                   />
                   <KpiCard
                     title="Rejected Today"
-                    value={(reviewStats?.rejected ?? 0).toString()}
+                    value={rejectedTodayCount.toString()}
                     icon={XSquare}
                     trend="Today"
                     variant="danger"
                   />
                   <KpiCard
                     title="Avg. Review Time"
-                    value={avgReviewTime}
+                    value={dashboardAvgReviewTime}
                     icon={Clock}
-                    trend="Real data"
+                    trend="Lifetime"
                     variant="primary"
                   />
                 </div>
