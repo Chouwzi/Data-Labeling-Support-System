@@ -19,7 +19,7 @@ import {
   BarChart2,
   Calendar
 } from 'lucide-react';
-import { getReviewQueueImages } from '@/services/api';
+import { getMyProjects, getReviewQueueImages, getReviewStats } from '@/services/api';
 import '@/styles/Dashboard.css';
 import '@/styles/ReviewerDashboard.css';
 
@@ -32,6 +32,8 @@ export default function ReviewerDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [reviews, setReviews] = useState([]);
   const [completedReviews, setCompletedReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState(null);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -134,6 +136,9 @@ export default function ReviewerDashboard() {
   const approvedCount = approvedList.length;
   const rejectedList = reviews.filter(r => reviewStatus(r) === 'REJECTED');
   const rejectedCount = rejectedList.length;
+  const approvedMetric = reviewStats?.approved ?? approvedCount;
+  const rejectedMetric = reviewStats?.rejected ?? rejectedCount;
+  const pendingMetric = reviewStats?.pendingReview ?? reviews.length;
   const approvalRate = totalReviewed > 0 ? ((approvedCount / totalReviewed) * 100).toFixed(1) : '0';
   const rejectionRate = totalReviewed > 0 ? ((rejectedCount / totalReviewed) * 100).toFixed(1) : '0';
   // Compute average review time dynamically from submission to review timestamps
