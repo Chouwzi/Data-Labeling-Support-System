@@ -6,10 +6,9 @@ import Topbar from '@/components/common/Topbar';
 import RejectModal from '@/components/reviewer/RejectModal';
 import { ArrowLeft, Check, X, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { getReviewQueueImages, approveReviewImage, rejectReviewImage } from '@/services/api';
+import { loadReviewQueueForWorkspace } from './reviewWorkspaceData';
 import '@/styles/Dashboard.css';
 import '@/styles/ReviewerDashboard.css';
-
-let pendingReviewQueueCache = null;
 
 export default function ReviewWorkspace() {
   const { id } = useParams();
@@ -33,13 +32,7 @@ export default function ReviewWorkspace() {
     const fetchReviewDetail = async () => {
       try {
         setLoading(true);
-        const cacheKey = projectId || 'all';
-        const queueData = pendingReviewQueueCache?.key === cacheKey ? pendingReviewQueueCache.data : await getReviewQueueImages(projectId).then((res) => {
-          const data = res.data?.result?.data || res.data?.result || [];
-          const normalized = Array.isArray(data) ? data : [];
-          pendingReviewQueueCache = { key: cacheKey, data: normalized };
-          return normalized;
-        });
+        const queueData = await loadReviewQueueForWorkspace({ getReviewQueueImages, projectId });
         setQueue(queueData.map((item) => ({
           id: item.task_id || item.taskId,
           fileName: (item.image_url || item.imageUrl || '').replace(/\\/g, '/').split('/').pop() || 'image.jpg',
